@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  createdAt    DateTime      @default(now())
+  integrations Integration[]
+  conversations Conversation[]
+  contacts     Contact[]
+}
+
+model Integration {
+  id           String      @id @default(cuid())
+  userId       String
+  type         IntegrationTypeEnum
+  accessToken  String
+  refreshToken String?
+  metadata     Json        @default("{}")
+  isActive     Boolean     @default(true)
+  syncedAt     DateTime?
+  createdAt    DateTime    @default(now())
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+
+  @@unique([userId, type])
+}
+
+model Contact {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  email       String?
+  telegramId  String?
+  phone       String?
+  source      ChannelEnum
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+
+  @@unique([userId, telegramId])
+  @@unique([userId, email])
+}
+
+model Conversation {
+  id             String        @id @default(cuid())
+  userId         String
+  contactId      String
+  integrationId  String
+  channel        ChannelEnum
+  externalId     String
+  subject        String?
+  status         ConversationStatus @default(ACTIVE)
+  priority       PriorityLevel @default(COLD)
+  priorityScore  Float         @default(0)
+  lastMessageAt  DateTime?
+  lastAnalyzedAt DateTime?
+  createdAt      DateTime      @default(now())
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contact        Contact       @relation(fields: [contactId], references: [id])
+  integration    Integration   @relation(fields: [integrationId], references: [id])
+  messages       Message[]
+  analysis       ConversationAnalysis?
+
+  @@unique([integrationId, externalId])
+}
+
+model Message {
+  id             String      @id @default(cuid())
+  conversationId String
+  externalId     String?
+  direction      MessageDirection
+  content        String
+  contentType    ContentType @default(TEXT)
+  sentAt         DateTime
+  isRead         Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, externalId])
+}
+
+model ConversationAnalysis {
+  id             String    @id @default(cuid())
+  conversationId String    @unique
+  summary        String
+  riskLevel      RiskLevel @default(LOW)
+  riskReasons    String[]
+  nextAction     String?
+  lostReason     String?
+  sentiment      Sentiment @default(NEUTRAL)
+  analysisData   Json      @default("{}")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+enum IntegrationTypeEnum {
+  TELEGRAM
+  GMAIL
+}
+enum ChannelEnum {
+  TELEGRAM
+  GMAIL
+}
+enum ConversationStatus {
+  ACTIVE
+  ARCHIVED
+  LOST
+}
+enum PriorityLevel {
+  HOT
+  ATTENTION
+  COLD
+  SPAM
+}
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+enum ContentType {
+  TEXT
+  HTML
+  ATTACHMENT
+}
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+enum Sentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
