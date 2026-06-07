@@ -1,18 +1,23 @@
-import React from 'react'
-import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { getCurrentUser } from '@/lib/auth'
+import Sidebar from '@/components/layout/Sidebar'
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-    return (
-        <div className="min-h-screen flex">
-            <aside className="w-64 border-r px-4 py-6">
-                <h2 className="font-bold mb-4">Flo</h2>
-                <nav className="flex flex-col gap-2">
-                    <Link href="/inbox">Inbox</Link>
-                    <Link href="/integrations">Integrations</Link>
-                    <Link href="/settings">Settings</Link>
-                </nav>
-            </aside>
-            <main className="flex-1 p-6">{children}</main>
-        </div>
-    )
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  // getCurrentUser() is request-scoped and cached via React.cache().
+  // Child layouts and pages calling it in the same tree get the same result for free.
+  const user = await getCurrentUser()
+
+  if (!user) redirect('/login')
+
+  const userName  = user.user_metadata?.full_name ?? user.user_metadata?.name ?? null
+  const userEmail = user.email ?? null
+
+  return (
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-base)' }}>
+      <Sidebar userName={userName} userEmail={userEmail} />
+      <main style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        {children}
+      </main>
+    </div>
+  )
 }

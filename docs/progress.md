@@ -1,18 +1,21 @@
-2026-06-03 00:00
+2026-06-04 00:00
 
-Status: IN PROGRESS
+Status: Phase 2 DONE
 
-Built: Scaffolding for Phase 1 completed (docs, Prisma schema, lib, types, basic pages, stores, service placeholders).
+Phase 1 (Foundation) — DONE
+Phase 2 (Gmail Integration) — DONE
 
-Files added:
-- prisma/schema.prisma
-- src/lib/prisma.ts
-- src/lib/supabase.ts
-- src/types/index.ts
-- src/stores/inbox.store.ts
-- src/services/* placeholders
-- src/app/(auth) and src/app/(dashboard) pages
+New files (Phase 2):
+- src/lib/supabase-server.ts — async server-side Supabase client using @supabase/ssr
+- src/services/gmail.service.ts — syncGmailForUser(): threads → DB (Contact, Conversation, Message upserts, token refresh)
+- src/app/api/auth/gmail/route.ts — redirects to Google OAuth
+- src/app/api/auth/gmail/callback/route.ts — exchanges code, stores Integration
+- src/app/api/integrations/route.ts — GET list, DELETE disconnect
+- src/app/api/integrations/gmail/sync/route.ts — POST triggers sync
 
-Tests: Manual verification required after installing dependencies and setting env vars.
+Updated files:
+- src/app/(dashboard)/integrations/page.tsx — connect/sync/disconnect UI
+- src/app/(dashboard)/inbox/page.tsx — real conversations from DB, split-view detail
+- src/components/ConversationList.tsx — client component accepting real ConversationSummary props
 
-Next: Install dependencies (`prisma`, `@prisma/client`, `@supabase/supabase-js`, `zustand`, etc.), run `prisma migrate dev --name init` when `DATABASE_URL` is set, then start dev server.
+Next: Run `prisma migrate dev --name init` once DATABASE_URL is configured, then set all env vars in .env.local and test the Gmail OAuth flow. Phase 3 (AI Intelligence) is next — wire up gemini.service.ts and run conversation.analyzer.ts.

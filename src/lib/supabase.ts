@@ -1,11 +1,10 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
-let _supabase: SupabaseClient | null = null
-
-export function getSupabaseClient(): SupabaseClient {
-    if (_supabase) return _supabase
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-    _supabase = createClient(url, anonKey)
-    return _supabase
+// Browser-side Supabase client. Stores session in cookies (not localStorage)
+// so the server-side client in supabase-server.ts can read the same session.
+export function getSupabaseClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  )
 }

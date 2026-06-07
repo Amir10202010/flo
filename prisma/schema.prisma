@@ -48,6 +48,7 @@ model Contact {
 
   @@unique([userId, telegramId])
   @@unique([userId, email])
+  @@index([userId])
 }
 
 model Conversation {
@@ -71,6 +72,7 @@ model Conversation {
   analysis       ConversationAnalysis?
 
   @@unique([integrationId, externalId])
+  @@index([userId, priorityScore(sort: Desc), lastMessageAt(sort: Desc)])
 }
 
 model Message {
@@ -86,6 +88,7 @@ model Message {
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, externalId])
+  @@index([conversationId, sentAt])
 }
 
 model ConversationAnalysis {

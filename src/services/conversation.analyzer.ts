@@ -1,54 +1,64 @@
 import { prisma } from '@/lib/prisma'
-import { analyzeConversation as aiAnalyze } from './gemini.service'
+import { analyzeConversation as callGemini } from './gemini.service'
 import { calculatePriority } from './priority.engine'
+import type { AnalyzeResponse } from '@/types'
 
-export async function analyzeConversation(conversationId: string) {
-    const conversation = await prisma.conversation.findUnique({
-        where: { id: conversationId },
-        include: { messages: { orderBy: { sentAt: 'asc' }, take: 50 }, contact: true, analysis: true },
-    })
-    if (!conversation) throw new Error('Conversation not found')
+export async function analyzeConversation(conversationId: string): Promise<AnalyzeResponse> {
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    include: {
+      messages: { orderBy: { sentAt: 'asc' }, take: 50 },
+      contact: true,
+    },
+  })
+  if (!conversation) throw new Error('Conversation not found')
 
-    const analysis = await aiAnalyze({
-        conversationId,
-        channel: conversation.channel,
-        contactName: conversation.contact?.name ?? 'Unknown',
-        messages: conversation.messages.map((message) => ({
-            direction: message.direction,
-            content: message.content,
-            sentAt: message.sentAt.toISOString(),
-        })),
-    })
+  const analysis = await callGemini({
+    conversationId,
+    channel: conversation.channel,
+    contactName: conversation.contact.name,
+    messages: conversation.messages.map((m) => ({
+      direction: m.direction,
+      content: m.content,
+      sentAt: m.sentAt.toISOString(),
+    })),
+  })
 
-    // Upsert analysis if Prisma available
-    try {
-        await prisma.conversationAnalysis.upsert({
-            where: { conversationId },
-            create: {
-                conversationId,
-                summary: analysis.summary,
-                riskLevel: analysis.riskLevel,
-                riskReasons: analysis.riskReasons,
-                nextAction: analysis.nextAction,
-                lostReason: analysis.lostReason ?? undefined,
-                sentiment: analysis.sentiment,
-            },
-            update: {
-                summary: analysis.summary,
-                riskLevel: analysis.riskLevel,
-                riskReasons: analysis.riskReasons,
-                nextAction: analysis.nextAction,
-                lostReason: analysis.lostReason ?? undefined,
-                sentiment: analysis.sentiment,
-            },
-        })
-    } catch (e) {
-        // ignore in placeholder
-    }
+  await prisma.conversationAnalysis.upsert({
+    where: { conversationId },
+    create: {
+      conversationId,
+      summary: analysis.summary,
+      riskLevel: analysis.riskLevel,
+      riskReasons: analysis.riskReasons,
+      nextAction: analysis.nextAction,
+      lostReason: analysis.lostReason ?? null,
+      sentiment: analysis.sentiment,
+    },
+    update: {
+      summary: analysis.summary,
+      riskLevel: analysis.riskLevel,
+      riskReasons: analysis.riskReasons,
+      nextAction: analysis.nextAction,
+      lostReason: analysis.lostReason ?? null,
+      sentiment: analysis.sentiment,
+    },
+  })
 
-    const priority = calculatePriority(conversation.messages, analysis, conversation.lastMessageAt ?? null)
+  const priority = calculatePriority(
+    conversation.messages,
+    analysis,
+    conversation.lastMessageAt ?? null,
+  )
 
-    await prisma.conversation.update({ where: { id: conversationId }, data: { priority: priority.level, priorityScore: priority.score } })
+  await prisma.conversation.update({
+    where: { id: conversationId },
+    data: {
+      priority: priority.level,
+      priorityScore: priority.score,
+      lastAnalyzedAt: new Date(),
+    },
+  })
 
-    return { analysis, priority }
+  return { analysis, priority }
 }
