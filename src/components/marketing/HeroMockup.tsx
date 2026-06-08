@@ -88,13 +88,7 @@ export default function HeroMockup() {
         </div>
       </div>
 
-      {/* Floating badge */}
-      <div
-        className="reveal-item delay-1000"
-        style={{ position: 'absolute', top: -12, right: -16, background: '#DC2B55', color: '#fff', borderRadius: 100, padding: '5px 12px', fontSize: 11, fontWeight: 700, boxShadow: '0 4px 12px rgba(220,43,85,0.4)', whiteSpace: 'nowrap' }}
-      >
-        3 HOT right now
-      </div>
+
     </div>
   )
 }

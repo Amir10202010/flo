@@ -61,7 +61,7 @@ function IntegrationsContent() {
   }
 
   return (
-    <div style={{ padding: '40px 40px', maxWidth: 760 }}>
+    <div className="dash-page" style={{ padding: '40px 40px', maxWidth: 760 }}>
       <div style={{ marginBottom: 36 }}>
         <h1 style={{ fontSize: 19, fontWeight: 700, margin: '0 0 6px', color: 'var(--text-primary)' }}>Integrations</h1>
         <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 14 }}>Connect your channels to see all conversations in one place.</p>
@@ -94,15 +94,15 @@ function IntegrationsContent() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
         {/* Gmail */}
-        <div style={{ padding: 22, borderRadius: 14, background: '#FFFFFF', border: '1px solid var(--border)', boxShadow: 'var(--shadow-xs)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div className="integration-card" style={{ padding: 22, borderRadius: 14, background: '#FFFFFF', border: '1px solid var(--border)', boxShadow: 'var(--shadow-xs)' }}>
+          <div className="integration-card-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+            <div className="integration-info" style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
               <div style={{ width: 44, height: 44, borderRadius: 11, background: 'rgba(234,67,53,0.08)', border: '1px solid rgba(234,67,53,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Mail size={20} style={{ color: '#EA4335' }} />
               </div>
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>Gmail</div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {loading ? 'Loading…' : gmail
                     ? `Connected · synced ${formatRelative(gmail.syncedAt)}`
                     : 'Not connected'}
@@ -110,15 +110,15 @@ function IntegrationsContent() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+            <div className="integration-actions" style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
               {loading ? null : gmail ? (
                 <>
-                  <button onClick={handleSync} disabled={syncing} className="btn-ghost" style={{ fontSize: 13, padding: '7px 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button onClick={handleSync} disabled={syncing} className="btn-ghost" style={{ fontSize: 13, padding: '7px 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                     {syncing
                       ? <><Loader size={13} style={{ animation: 'spin 1s linear infinite' }} /> Syncing…</>
                       : <><RefreshCw size={13} /> Sync</>}
                   </button>
-                  <button onClick={handleDisconnect} disabled={disconnecting} style={{ fontSize: 13, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--hot-border)', background: 'var(--hot-dim)', color: 'var(--hot)', cursor: 'pointer' }}>
+                  <button onClick={handleDisconnect} disabled={disconnecting} style={{ fontSize: 13, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--hot-border)', background: 'var(--hot-dim)', color: 'var(--hot)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {disconnecting ? 'Disconnecting…' : 'Disconnect'}
                   </button>
                 </>
@@ -132,18 +132,18 @@ function IntegrationsContent() {
         </div>
 
         {/* Telegram — coming soon */}
-        <div style={{ padding: 22, borderRadius: 14, background: '#FFFFFF', border: '1px solid var(--border)', opacity: 0.55 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div className="integration-card" style={{ padding: 22, borderRadius: 14, background: '#FFFFFF', border: '1px solid var(--border)', opacity: 0.55 }}>
+          <div className="integration-card-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+            <div className="integration-info" style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
               <div style={{ width: 44, height: 44, borderRadius: 11, background: 'rgba(42,171,238,0.08)', border: '1px solid rgba(42,171,238,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <span style={{ fontSize: 20 }}>✈</span>
               </div>
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>Telegram</div>
                 <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>Coming soon</div>
               </div>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '5px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>Soon</div>
+            <div className="integration-soon-pill" style={{ fontSize: 12, color: 'var(--text-muted)', padding: '5px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elevated)', flexShrink: 0, alignSelf: 'flex-start' }}>Soon</div>
           </div>
         </div>
 

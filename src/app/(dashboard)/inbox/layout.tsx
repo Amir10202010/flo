@@ -1,6 +1,7 @@
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import ConversationList, { type ConversationSummary } from '@/components/ConversationList'
+import InboxShell from '@/components/InboxShell'
 import Link from 'next/link'
 
 // Demo data shown when the user has no real conversations yet.
@@ -44,36 +45,31 @@ export default async function InboxLayout({ children }: { children: React.ReactN
     }
   }
 
-  return (
-    <div className="inbox-grid" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', height: '100%', flex: 1, overflow: 'hidden' }}>
-
-      {/* Left panel: conversation list — rendered once, router-cached across navigations */}
-      <div style={{ borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#FFFFFF' }}>
-        <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid var(--border-light)', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Inbox</h1>
-            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{isDemo ? 'demo' : conversations.length}</span>
+  const list = (
+    <>
+      <div className="inbox-list-header" style={{ padding: '20px 20px 16px', borderBottom: '1px solid var(--border-light)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+          <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Inbox</h1>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{isDemo ? 'demo' : conversations.length}</span>
+        </div>
+        {isDemo && user && (
+          <div style={{ marginTop: 10, padding: '9px 12px', borderRadius: 9, background: 'var(--accent-dim)', border: '1px solid rgba(79,92,244,0.15)' }}>
+            <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              No conversations yet.{' '}
+              <Link href="/integrations" style={{ color: 'var(--accent)', fontWeight: 500, textDecoration: 'none' }}>
+                Connect Gmail →
+              </Link>
+            </p>
           </div>
-          {isDemo && user && (
-            <div style={{ marginTop: 10, padding: '9px 12px', borderRadius: 9, background: 'var(--accent-dim)', border: '1px solid rgba(79,92,244,0.15)' }}>
-              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                No conversations yet.{' '}
-                <Link href="/integrations" style={{ color: 'var(--accent)', fontWeight: 500, textDecoration: 'none' }}>
-                  Connect Gmail →
-                </Link>
-              </p>
-            </div>
-          )}
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          <ConversationList conversations={conversations} />
-        </div>
+        )}
       </div>
-
-      {/* Right panel: injected child page (empty state or conversation detail) */}
-      <div className="inbox-detail" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg-base)' }}>
-        {children}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        <ConversationList conversations={conversations} />
       </div>
-    </div>
+    </>
   )
+
+  // InboxShell (client) reads the route to decide which pane to show on mobile —
+  // the list, or the conversation thread (children), with a back button to return.
+  return <InboxShell list={list} detail={children} />
 }

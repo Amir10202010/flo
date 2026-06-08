@@ -23,11 +23,23 @@ export default function Navbar() {
         boxShadow: scrolled ? '0 1px 24px rgba(12,18,60,0.07)' : 'none',
       }}
     >
-      <div style={{ maxWidth: 1140, margin: '0 auto', padding: '0 32px', height: 62, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ maxWidth: 1140, margin: '0 auto', padding: '0 32px', height: 62, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
         <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none' }}>
           <span style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1 }}>flo</span>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', marginBottom: 10, display: 'inline-block' }} />
         </Link>
+
+        <nav className="navbar-links" style={{ display: 'flex', alignItems: 'center', gap: 4, position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+          <Link href="/about" style={{ padding: '8px 14px', color: 'var(--text-secondary)', fontSize: 14, fontWeight: 500, textDecoration: 'none', borderRadius: 8 }}>
+            About
+          </Link>
+          <Link href="/contact" style={{ padding: '8px 14px', color: 'var(--text-secondary)', fontSize: 14, fontWeight: 500, textDecoration: 'none', borderRadius: 8 }}>
+            Contact
+          </Link>
+          <Link href="/pricing" style={{ padding: '8px 14px', color: 'var(--text-secondary)', fontSize: 14, fontWeight: 500, textDecoration: 'none', borderRadius: 8 }}>
+            Pricing
+          </Link>
+        </nav>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <Link href="/login" style={{ padding: '8px 16px', color: 'var(--text-secondary)', fontSize: 14, fontWeight: 500, textDecoration: 'none', borderRadius: 8, transition: 'color 0.15s' }}>

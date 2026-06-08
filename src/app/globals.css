@@ -362,6 +362,19 @@
   color: #fff;
 }
 
+/* ── Dashboard mobile top bar ───────────────────────────────────────────── */
+/* Hidden on desktop — the sidebar shows its own logo there. Revealed below   */
+/* 768px, where the sidebar collapses to an icon-only rail and hides its logo.*/
+.dashboard-topbar {
+  display: none;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(250,251,255,0.9);
+  backdrop-filter: blur(12px);
+  flex-shrink: 0;
+}
+
 /* ── Skeleton loading ───────────────────────────────────────────────────── */
 @keyframes skeletonShimmer {
   0%   { background-position: -400px 0; }
@@ -429,6 +442,7 @@
   .hero-grid      { grid-template-columns: 1fr !important; }
   .hero-mockup    { display: none !important; }
   .features-grid  { grid-template-columns: repeat(2, 1fr) !important; }
+  .pricing-grid   { grid-template-columns: 1fr !important; max-width: 480px !important; }
   .section-padded { padding-top: 72px !important; padding-bottom: 72px !important; }
 }
 
@@ -438,7 +452,10 @@
   .sidebar-logo-link { display: none !important; }
   .sidebar-nav-label { display: none !important; }
   .sidebar-user-card { display: none !important; }
-  .nav-item          { padding: 10px !important; justify-content: center !important; gap: 0 !important; }
+  .nav-item          { padding: 13px !important; justify-content: center !important; gap: 0 !important; }
+
+  /* The sidebar logo is hidden in its collapsed state — show the top-bar logo instead */
+  .dashboard-topbar  { display: flex !important; }
 }
 
 @media (max-width: 640px) {
@@ -446,10 +463,35 @@
   .features-grid  { grid-template-columns: 1fr !important; }
   .cta-inner      { padding: 36px 24px !important; }
   .section-padded { padding-top: 48px !important; padding-bottom: 48px !important; }
+  .navbar-links   { display: none !important; }
 }
 
+@media (max-width: 768px) {
+  /* Dashboard pages: tighter padding so content isn't cramped against the edges */
+  .dash-page       { padding: 24px 18px !important; }
+  .thread-header   { padding: 16px 18px !important; }
+  .thread-messages { padding: 16px 18px !important; gap: 10px !important; }
+  .msg-bubble      { max-width: 88% !important; }
+
+  /* Integration cards: stack info above actions instead of squeezing them onto one row */
+  .integration-card     { padding: 16px !important; }
+  .integration-card-row { flex-direction: column !important; align-items: stretch !important; gap: 14px !important; }
+  .integration-actions  { width: 100% !important; }
+  .integration-actions .btn-ghost,
+  .integration-actions button,
+  .integration-actions a {
+    flex: 1 1 0;
+    width: 100%;
+  }
+}
+
+
 @media (max-width: 600px) {
-  /* Inbox: single column on small phones — show list, thread is behind */
-  .inbox-grid   { grid-template-columns: 1fr !important; }
-  .inbox-detail { display: none !important; }
+  /* Inbox: single column on small phones — list and thread swap via InboxShell */
+  .inbox-grid              { grid-template-columns: 1fr !important; }
+  .inbox-grid:not(.show-detail) .inbox-detail { display: none !important; }
+  .inbox-grid.show-detail  .inbox-list        { display: none !important; }
+  .thread-back             { display: inline-flex !important; }
+  .inbox-list-header       { padding: 16px 16px 14px !important; }
+  .conv-item               { padding: 12px 16px !important; }
 }

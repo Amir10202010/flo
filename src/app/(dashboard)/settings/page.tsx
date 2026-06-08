@@ -10,7 +10,7 @@ export default async function SettingsPage() {
   const letter    = display[0]?.toUpperCase() ?? '?'
 
   return (
-    <div style={{ padding: '40px 40px', maxWidth: 760 }}>
+    <div className="dash-page" style={{ padding: '40px 40px', maxWidth: 760 }}>
       <div style={{ marginBottom: 36 }}>
         <h1 style={{ fontSize: 19, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px' }}>Settings</h1>
         <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>Manage your account.</p>
@@ -24,13 +24,13 @@ export default async function SettingsPage() {
             <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Profile</span>
           </div>
           <div style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
               <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'linear-gradient(135deg,#4b6bff,#9b6bff)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                 {letter}
               </div>
-              <div>
-                <p style={{ margin: '0 0 3px', fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{display}</p>
-                {userEmail && userName && <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted)' }}>{userEmail}</p>}
+              <div style={{ minWidth: 0 }}>
+                <p style={{ margin: '0 0 3px', fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{display}</p>
+                {userEmail && userName && <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userEmail}</p>}
               </div>
             </div>
           </div>

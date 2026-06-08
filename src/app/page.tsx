@@ -121,12 +121,7 @@ export default function LandingPage() {
         >
           {/* Left: text */}
           <motion.div variants={stagger} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-            <motion.div variants={fadeUp} style={{ marginBottom: 24 }}>
-              <span className="tag tag-accent">
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' }} />
-                AI for sales managers
-              </span>
-            </motion.div>
+
 
             <motion.h1
               variants={fadeUp}
@@ -203,7 +198,7 @@ export default function LandingPage() {
                 Everything in one place
               </h2>
               <p style={{ fontSize: 16, color: 'var(--text-secondary)', maxWidth: 460, margin: '0 auto', lineHeight: 1.65 }}>
-                AI reads your conversations, sets priorities, and tells you exactly what to do next.
+                Flo sorts your conversations by what needs attention first, so you always know where to start.
               </p>
             </motion.div>
             <motion.div variants={{ hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: 'easeOut' } } }}>
@@ -220,16 +215,16 @@ export default function LandingPage() {
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 60 }}>
               <p style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>FEATURES</p>
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(30px, 4vw, 48px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 14px', letterSpacing: '-0.03em' }}>
-                Everything you need to close deals
+                Built around how you actually work
               </h2>
               <p style={{ fontSize: 15, color: 'var(--text-secondary)', maxWidth: 420, margin: '0 auto', lineHeight: 1.65 }}>
-                From a unified inbox to AI analysis of every conversation.
+                One inbox, a clear sense of who needs you, and a head start on what to say.
               </p>
             </motion.div>
             <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-              <FeatureCard icon={Zap}    title="Unified Inbox"      desc="Telegram and Gmail in one view. Never switch between apps again."                      accent />
-              <FeatureCard icon={Shield} title="Risk Detection"     desc="Flo alerts you when a client is about to churn — and explains why — before it happens." />
-              <FeatureCard icon={Eye}    title="Conversation AI"    desc="A clear summary of every thread and the next concrete action, powered by Gemini." />
+              <FeatureCard icon={Zap}    title="One inbox for everything"   desc="Telegram and Gmail, side by side. Read and reply from one place instead of juggling tabs and apps." accent />
+              <FeatureCard icon={Shield} title="Notice when things go quiet" desc="When a conversation starts cooling off, Flo flags it and tells you why in plain language — so you can step in before it's too late." />
+              <FeatureCard icon={Eye}    title="A head start on every reply" desc="A short recap of where things stand and a suggested next step, so you're never starting from a blank screen." />
             </div>
           </div>
         </Section>
@@ -248,7 +243,7 @@ export default function LandingPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {[
                 { n: 1, title: 'Connect Telegram and Gmail',          desc: 'Takes 2 minutes. Flo securely syncs your conversations and never stores passwords.' },
-                { n: 2, title: 'AI analyzes every conversation',       desc: 'Gemini studies your conversation history and assigns priorities: HOT, ATTENTION, COLD, SPAM.' },
+                { n: 2, title: 'Flo sorts what matters most',          desc: 'Each conversation gets a clear priority — Hot, Needs attention, Cold, or Spam — so you know where to look first.' },
                 { n: 3, title: 'Write to the right clients in time',   desc: 'Flo shows you who to message right now and what to say. No more lost clients.' },
               ].map((s, i, arr) => (
                 <div key={s.n}>

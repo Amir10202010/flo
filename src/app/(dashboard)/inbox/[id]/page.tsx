@@ -1,4 +1,6 @@
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -59,17 +61,25 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
   return (
     <>
       {/* Thread header */}
-      <div style={{ padding: '20px 28px', borderBottom: '1px solid var(--border)', flexShrink: 0, background: '#FFFFFF' }}>
+      <div className="thread-header" style={{ padding: '20px 28px', borderBottom: '1px solid var(--border)', flexShrink: 0, background: '#FFFFFF' }}>
+        <Link
+          href="/inbox"
+          className="thread-back"
+          style={{ display: 'none', alignItems: 'center', gap: 6, marginBottom: 14, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', textDecoration: 'none' }}
+        >
+          <ArrowLeft size={15} />
+          Inbox
+        </Link>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: analysis ? 14 : 0 }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+          <div style={{ minWidth: 0 }}>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {conv.contact.name}
             </h2>
             {conv.subject && (
-              <p style={{ margin: '3px 0 0', fontSize: 13, color: 'var(--text-secondary)' }}>{conv.subject}</p>
+              <p style={{ margin: '3px 0 0', fontSize: 13, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.subject}</p>
             )}
             {conv.contact.email && (
-              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>{conv.contact.email}</p>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.contact.email}</p>
             )}
           </div>
           <span
@@ -101,7 +111,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="thread-messages" style={{ flex: 1, overflowY: 'auto', padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {conv.messages.length === 0 ? (
           <p style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', marginTop: 40 }}>
             No messages yet.

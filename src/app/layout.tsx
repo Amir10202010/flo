@@ -18,7 +18,7 @@ const instrumentSerif = Instrument_Serif({
 })
 
 export const metadata: Metadata = {
-  title: 'Flo — AI inbox for sales managers',
+  title: 'Flo',
   description:
     "Flo unifies Telegram and Gmail, shows you who to write to right now, and explains why you're losing clients.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
