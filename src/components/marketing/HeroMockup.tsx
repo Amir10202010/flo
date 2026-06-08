@@ -25,24 +25,38 @@ export default function HeroMockup() {
             {['#FF5F57','#FEBC2E','#28C840'].map((c,i) => <div key={i} style={{ width: 10, height: 10, borderRadius: '50%', background: c }} />)}
           </div>
           <div style={{ flex: 1, height: 22, borderRadius: 5, background: '#EEF0F9', display: 'flex', alignItems: 'center', paddingLeft: 10 }}>
-            <span style={{ fontSize: 10, color: '#8D93BE', fontFamily: 'monospace' }}>app.flo.ai/inbox</span>
+            <span style={{ fontSize: 10, color: '#8D93BE', fontFamily: 'monospace' }}>flo.app/inbox</span>
           </div>
         </div>
 
         {/* App shell */}
         <div style={{ display: 'flex', height: 400 }}>
-          {/* Mini sidebar */}
-          <div style={{ width: 44, background: '#F6F8FE', borderRight: '1px solid #ECEEF8', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0', gap: 16 }}>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 14, color: '#0C0E1D', letterSpacing: '-0.03em', lineHeight: 1 }}>f·</div>
-            {['≡','⚡','⚙'].map((icon,i) => (
-              <div key={i} style={{ width: 28, height: 28, borderRadius: 7, background: i === 0 ? 'var(--accent-dim)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: i === 0 ? 'var(--accent)' : '#8D93BE' }}>
-                {icon}
-              </div>
-            ))}
+          {/* Sidebar — mirrors the real dashboard nav */}
+          <div style={{ width: 118, background: '#F6F8FE', borderRight: '1px solid #ECEEF8', display: 'flex', flexDirection: 'column', padding: '12px 8px', gap: 12, flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px' }}>
+              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 15, color: '#0C0E1D', letterSpacing: '-0.03em', lineHeight: 1 }}>flo</span>
+              <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)', marginBottom: 6, display: 'inline-block' }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {[
+                { label: 'Inbox', active: true },
+                { label: 'Integrations', active: false },
+                { label: 'Settings', active: false },
+              ].map(item => (
+                <div key={item.label} style={{ padding: '6px 8px', borderRadius: 7, background: item.active ? 'var(--accent-dim)' : 'transparent', color: item.active ? 'var(--accent)' : '#8D93BE', fontSize: 10.5, fontWeight: item.active ? 600 : 500, whiteSpace: 'nowrap' }}>
+                  {item.label}
+                </div>
+              ))}
+            </div>
+            <div style={{ flex: 1 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px', background: '#FFFFFF', borderRadius: 8, border: '1px solid #ECEEF8' }}>
+              <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'linear-gradient(135deg,#4b6bff,#9b6bff)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: '#fff', flexShrink: 0 }}>AM</div>
+              <div style={{ fontSize: 9.5, fontWeight: 600, color: '#0C0E1D', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Amir</div>
+            </div>
           </div>
 
           {/* Conversation list */}
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ padding: '10px 12px', borderBottom: '1px solid #ECEEF8' }}>
               <span style={{ fontSize: 12.5, fontWeight: 700, color: '#0C0E1D' }}>Inbox</span>
             </div>

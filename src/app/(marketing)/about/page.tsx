@@ -116,7 +116,7 @@ export default function AboutPage() {
               Want to talk to us?
             </h2>
             <p style={{ fontSize: 14.5, color: 'rgba(255,255,255,0.8)', margin: '0 0 28px', lineHeight: 1.6 }}>
-              Reach out at <a href="mailto:hello@flo.app" style={{ color: '#fff', fontWeight: 600 }}>hello@flo.app</a> — we read every message.
+              Reach out at <a href="mailto:sagindiktar@gmail.com" style={{ color: '#fff', fontWeight: 600 }}>sagindiktar@gmail.com</a> — we read every message.
             </p>
             <Link href="/signup" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 26px', background: '#FFFFFF', color: 'var(--accent)', borderRadius: 8, fontSize: 14.5, fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
               Try Flo for free <ArrowRight size={15} />

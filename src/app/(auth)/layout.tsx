@@ -14,16 +14,33 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
   if (session) redirect('/inbox')
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', flexDirection: 'column', backgroundImage: 'radial-gradient(circle, #D4D8F0 1px, transparent 1px)', backgroundSize: '28px 28px' }}>
-      <header style={{ padding: '20px 32px', borderBottom: '1px solid var(--border)', background: 'rgba(250,251,255,0.85)', backdropFilter: 'blur(16px)', flexShrink: 0 }}>
-        <div style={{ maxWidth: 1140, margin: '0 auto' }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        overflow: 'hidden',
+        background: 'var(--bg-base)',
+      }}
+    >
+      <div className="mesh mesh-soft" />
+      <div className="mesh-veil" />
+      <div className="dot-grid" />
+
+      <header
+        className="glass"
+        style={{ position: 'relative', zIndex: 2, flexShrink: 0 }}
+      >
+        <div style={{ maxWidth: 1140, margin: '0 auto', padding: '0 32px', height: 62, display: 'flex', alignItems: 'center' }}>
           <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none' }}>
             <span style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1 }}>flo</span>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', marginBottom: 10, display: 'inline-block' }} />
           </Link>
         </div>
       </header>
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
+
+      <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
         {children}
       </div>
     </div>

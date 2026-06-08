@@ -50,7 +50,7 @@ export default function ContactPage() {
             style={{ maxWidth: 760, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 18 }}
           >
             <a
-              href="mailto:hello@flo.app"
+              href="mailto:sagindiktar@gmail.com"
               style={{ display: 'block', padding: '28px 26px', borderRadius: 16, background: '#FFFFFF', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', textDecoration: 'none' }}
             >
               <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
@@ -60,7 +60,7 @@ export default function ContactPage() {
               <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', margin: '0 0 10px', lineHeight: 1.65 }}>
                 For support, sales questions, or anything in between.
               </p>
-              <span style={{ fontSize: 13.5, color: 'var(--accent)', fontWeight: 600 }}>hello@flo.app →</span>
+              <span style={{ fontSize: 13.5, color: 'var(--accent)', fontWeight: 600 }}>sagindiktar@gmail.com →</span>
             </a>
 
             <div

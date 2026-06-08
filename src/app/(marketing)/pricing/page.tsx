@@ -43,12 +43,13 @@ const plans: Plan[] = [
   },
   {
     name: 'Pro',
-    price: '$29',
+    price: '$19',
     period: '/ month',
     desc: 'For managers who live in their inbox every day.',
     features: [
       'Unlimited conversations',
       'Telegram + Instagram + WhatsApp + Gmail',
+      'AI auto-responder bot — lets the bot reply for you',
       'Full AI analysis: where you lost the client, what to say instead',
       'Smart "reply now" notifications',
       'Conversation score (1–10)',

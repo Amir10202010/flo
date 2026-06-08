@@ -1,11 +1,20 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
+const LINKS = [
+  { href: '/about',    label: 'About' },
+  { href: '/features', label: 'Features' },
+  { href: '/contact',  label: 'Contact' },
+  { href: '/pricing',  label: 'Pricing' },
+]
+
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 24)
@@ -29,16 +38,20 @@ export default function Navbar() {
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', marginBottom: 10, display: 'inline-block' }} />
         </Link>
 
-        <nav className="navbar-links" style={{ display: 'flex', alignItems: 'center', gap: 4, position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
-          <Link href="/about" style={{ padding: '8px 14px', color: 'var(--text-secondary)', fontSize: 14, fontWeight: 500, textDecoration: 'none', borderRadius: 8 }}>
-            About
-          </Link>
-          <Link href="/contact" style={{ padding: '8px 14px', color: 'var(--text-secondary)', fontSize: 14, fontWeight: 500, textDecoration: 'none', borderRadius: 8 }}>
-            Contact
-          </Link>
-          <Link href="/pricing" style={{ padding: '8px 14px', color: 'var(--text-secondary)', fontSize: 14, fontWeight: 500, textDecoration: 'none', borderRadius: 8 }}>
-            Pricing
-          </Link>
+        <nav className="navbar-links" style={{ display: 'flex', alignItems: 'center', gap: 2, position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+          {LINKS.map(l => {
+            const active = pathname === l.href
+            return (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={`nav-link${active ? ' nav-link-active' : ''}`}
+                aria-current={active ? 'page' : undefined}
+              >
+                {l.label}
+              </Link>
+            )
+          })}
         </nav>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>

@@ -1,9 +1,9 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
-import { motion, type Variants, MotionConfig } from 'framer-motion'
-import { ArrowRight, Check, Zap, Shield, Eye } from 'lucide-react'
+import { motion, type Variants, MotionConfig, AnimatePresence } from 'framer-motion'
+import { ArrowRight, Check, Inbox, Shield, Sparkles, Bot, Search, SlidersHorizontal, Plus, X } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import HeroMockup from '@/components/marketing/HeroMockup'
@@ -90,6 +90,67 @@ function Step({ n, title, desc }: { n: number; title: string; desc: string }) {
   )
 }
 
+/* ── Marquee items (real brand logos + lucide glyphs) ──────────────────────── */
+const MARQUEE: { name: string; src?: string; Icon?: React.ElementType }[] = [
+  { name: 'Telegram', src: '/icons/telegram.svg' },
+  { name: 'Gmail', src: '/icons/gmail.svg' },
+  { name: 'WhatsApp', src: '/icons/whatsapp.svg' },
+  { name: 'Instagram', src: '/icons/instagram.svg' },
+  { name: 'AI priority', Icon: Sparkles },
+  { name: 'Auto-responder', Icon: Bot },
+  { name: 'Smart search', Icon: Search },
+]
+
+/* ── FAQ ───────────────────────────────────────────────────────────────────── */
+const FAQS = [
+  { q: 'How does Flo connect to Telegram and Gmail?', a: 'You connect each channel in a couple of clicks with secure OAuth — Flo never sees or stores your passwords. Your conversations start syncing into one inbox right away.' },
+  { q: 'What does the AI actually do?', a: 'It reads each conversation, assigns a clear priority (Hot, Needs attention, Cold, Spam), explains the risk in plain language, and drafts a suggested reply you can send in one click.' },
+  { q: 'Can the bot reply for me automatically?', a: 'Yes. On the Pro plan you can set up an auto-responder bot that answers from the context you give it — and hands off to you the moment a conversation needs a human.' },
+  { q: 'Is my data private and secure?', a: 'Your tokens are encrypted at rest (AES-256-GCM) and conversations are only ever used to power your own inbox. We never sell or share your data.' },
+  { q: 'Do I need a credit card to start?', a: 'No. The Starter plan is free forever and needs no card. Upgrade to Pro only when your inbox grows.' },
+]
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="faq-item" data-open={open}>
+      <button className="faq-q" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+        {q}
+        <Plus size={18} className="faq-icon" />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            style={{ overflow: 'hidden' }}
+          >
+            <p style={{ padding: '0 22px 18px', margin: 0, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{a}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+/* ── Comparison ────────────────────────────────────────────────────────────── */
+const COMPARE: { label: string; flo: boolean; crm: boolean; manual: boolean }[] = [
+  { label: 'Telegram + Gmail in one inbox', flo: true,  crm: false, manual: false },
+  { label: 'AI priority on every conversation', flo: true, crm: false, manual: false },
+  { label: 'Explains why a client is going cold', flo: true, crm: false, manual: false },
+  { label: 'One-click suggested replies', flo: true, crm: false, manual: false },
+  { label: 'Auto-responder bot', flo: true, crm: false, manual: false },
+  { label: 'Set up in minutes, no training', flo: true, crm: false, manual: true },
+]
+
+function Cell({ on }: { on: boolean }) {
+  return on
+    ? <Check size={17} style={{ color: 'var(--accent)' }} />
+    : <X size={16} style={{ color: 'var(--text-muted)', opacity: 0.6 }} />
+}
+
 export default function LandingPage() {
   return (
     <MotionConfig reducedMotion="user">
@@ -104,16 +165,14 @@ export default function LandingPage() {
           alignItems: 'center',
           paddingTop: 80,
           paddingBottom: 60,
-          background: `
-            radial-gradient(ellipse 70% 50% at 65% 40%, rgba(79,92,244,0.05) 0%, transparent 70%),
-            radial-gradient(ellipse 50% 40% at 10% 70%, rgba(124,77,255,0.04) 0%, transparent 60%),
-            var(--bg-base)
-          `,
+          background: 'var(--bg-base)',
           position: 'relative',
           overflow: 'hidden',
         }}
       >
-        <div style={{ position: 'absolute', inset: 0, zIndex: 0, backgroundImage: 'radial-gradient(circle, #D4D8F0 1px, transparent 1px)', backgroundSize: '28px 28px', opacity: 0.45, pointerEvents: 'none' }} />
+        <div className="mesh mesh-hero" />
+        <div className="mesh-veil" />
+        <div className="dot-grid" />
 
         <div
           className="hero-grid"
@@ -168,25 +227,24 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Integrations strip ────────────────────────────────────────────── */}
-      <Section>
-        <motion.div variants={fadeUp} style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '36px 32px', background: '#FFFFFF' }}>
-          <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 36, flexWrap: 'wrap' }}>
-            <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>
-              WORKS WITH
-            </p>
-            {[
-              { name: 'Telegram', icon: '✈', bg: 'rgba(42,171,238,0.07)', border: 'rgba(42,171,238,0.2)' },
-              { name: 'Gmail',    icon: '✉', bg: 'rgba(234,67,53,0.06)',  border: 'rgba(234,67,53,0.18)' },
-            ].map(ch => (
-              <motion.div key={ch.name} whileHover={{ y: -1 }} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 20px', borderRadius: 10, border: `1px solid ${ch.border}`, background: ch.bg, cursor: 'default' }}>
-                <span style={{ fontSize: 17 }}>{ch.icon}</span>
-                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{ch.name}</span>
-              </motion.div>
+      {/* ── Marquee strip (works with / value props) ──────────────────────── */}
+      <div style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '26px 0', background: '#FFFFFF' }}>
+        <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', textAlign: 'center', margin: '0 0 20px' }}>
+          One inbox for every channel
+        </p>
+        <div className="marquee">
+          <div className="marquee-track">
+            {[...MARQUEE, ...MARQUEE].map((m, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
+                {m.src
+                  ? <img src={m.src} alt={m.name} width={20} height={20} style={{ display: 'block' }} />
+                  : m.Icon && <m.Icon size={18} style={{ color: 'var(--accent)' }} />}
+                <span style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--text-secondary)' }}>{m.name}</span>
+              </div>
             ))}
           </div>
-        </motion.div>
-      </Section>
+        </div>
+      </div>
 
       {/* ── Product Demo ──────────────────────────────────────────────────── */}
       <section id="demo" className="demo-section" style={{ background: '#FFFFFF', borderBottom: '1px solid var(--border)' }}>
@@ -222,9 +280,12 @@ export default function LandingPage() {
               </p>
             </motion.div>
             <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-              <FeatureCard icon={Zap}    title="One inbox for everything"   desc="Telegram and Gmail, side by side. Read and reply from one place instead of juggling tabs and apps." accent />
-              <FeatureCard icon={Shield} title="Notice when things go quiet" desc="When a conversation starts cooling off, Flo flags it and tells you why in plain language — so you can step in before it's too late." />
-              <FeatureCard icon={Eye}    title="A head start on every reply" desc="A short recap of where things stand and a suggested next step, so you're never starting from a blank screen." />
+              <FeatureCard icon={Inbox}  title="One inbox for everything"   desc="Telegram and Gmail, side by side. Read and reply from one place instead of juggling tabs and apps." accent />
+              <FeatureCard icon={Bot}    title="Auto-responder bot"          desc="Let a bot reply for you from the context you give it — and hand off to you the moment a conversation needs a human touch." />
+              <FeatureCard icon={Sparkles} title="Conversation analyzer"     desc="A clear read on every thread: where it stands, what the risk is, and the next concrete step — explained in plain language." />
+              <FeatureCard icon={Search} title="AI chat search"              desc="Ask in plain words — “who asked about pricing last week?” — and jump straight to the right conversation." />
+              <FeatureCard icon={SlidersHorizontal} title="Smart filtering"  desc="Filter by priority, channel, or status so the inbox always shows exactly who needs you right now." />
+              <FeatureCard icon={Shield} title="Notice when things go quiet" desc="When a conversation starts cooling off, Flo flags it and tells you why — so you can step in before it's too late." />
             </div>
           </div>
         </Section>
@@ -252,6 +313,59 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </Section>
+      </section>
+
+      {/* ── Comparison ────────────────────────────────────────────────────── */}
+      <section className="section-padded" style={{ padding: '100px 32px', background: 'var(--bg-base)', borderTop: '1px solid var(--border)' }}>
+        <Section>
+          <div style={{ maxWidth: 880, margin: '0 auto' }}>
+            <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 44 }}>
+              <p style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>WHY FLO</p>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.03em' }}>
+                Not another CRM to maintain
+              </h2>
+            </motion.div>
+            <motion.div variants={fadeUp} style={{ overflowX: 'auto' }}>
+              <table className="compare">
+                <thead>
+                  <tr>
+                    <th style={{ width: '46%' }}></th>
+                    <th className="col-flo" style={{ textAlign: 'center' }}>Flo</th>
+                    <th style={{ textAlign: 'center' }}>Generic CRM</th>
+                    <th style={{ textAlign: 'center' }}>Inbox + notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {COMPARE.map(row => (
+                    <tr key={row.label}>
+                      <td>{row.label}</td>
+                      <td className="col-flo" style={{ textAlign: 'center' }}><span style={{ display: 'inline-flex' }}><Cell on={row.flo} /></span></td>
+                      <td style={{ textAlign: 'center' }}><span style={{ display: 'inline-flex' }}><Cell on={row.crm} /></span></td>
+                      <td style={{ textAlign: 'center' }}><span style={{ display: 'inline-flex' }}><Cell on={row.manual} /></span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </motion.div>
+          </div>
+        </Section>
+      </section>
+
+      {/* ── FAQ ───────────────────────────────────────────────────────────── */}
+      <section className="section-padded" style={{ padding: '100px 32px', background: '#FFFFFF', borderTop: '1px solid var(--border)' }}>
+        <Section>
+          <div style={{ maxWidth: 720, margin: '0 auto' }}>
+            <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 44 }}>
+              <p style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>FAQ</p>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.03em' }}>
+                Questions, answered
+              </h2>
+            </motion.div>
+            <motion.div variants={fadeUp} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {FAQS.map(f => <FaqItem key={f.q} q={f.q} a={f.a} />)}
+            </motion.div>
           </div>
         </Section>
       </section>
