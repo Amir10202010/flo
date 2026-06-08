@@ -87,8 +87,6 @@ export default function HeroMockup() {
           </div>
         </div>
       </div>
-
-
     </div>
   )
 }

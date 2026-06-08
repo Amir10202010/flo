@@ -34,6 +34,7 @@ GOOGLE_REDIRECT_URI
 GMAIL_USER_EMAIL
 NEXTAUTH_SECRET
 NEXT_PUBLIC_APP_URL
+TOKEN_ENCRYPTION_KEY   # required in prod: encrypts OAuth tokens at rest (AES-256-GCM)
 ```
 
 ## Architecture
@@ -72,6 +73,7 @@ NEXT_PUBLIC_APP_URL
 | GET | `/api/conversations` | List conversations (filter: `status`, `priority`, `channel`, `limit`) |
 | GET/PATCH/DELETE | `/api/conversations/[id]` | Single conversation |
 | POST | `/api/conversations/[id]/analyze` | Trigger AI analysis |
+| POST | `/api/conversations/[id]/reply` | Send a Gmail reply in-thread (ownership-checked) |
 | GET/DELETE | `/api/integrations` | List or deactivate integrations |
 | POST | `/api/integrations/gmail/sync` | Sync Gmail inbox |
 | GET | `/api/auth/gmail` | Start Gmail OAuth flow |

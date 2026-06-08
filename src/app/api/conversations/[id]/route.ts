@@ -1,5 +1,6 @@
 import { getAuthUser, ok, err } from '@/lib/api'
 import { prisma } from '@/lib/prisma'
+import { ensurePlainText } from '@/lib/html'
 import type { ConversationDetail } from '@/types'
 
 type AnalysisShape = NonNullable<ConversationDetail['analysis']>
@@ -39,7 +40,7 @@ export async function GET(
     messages: conv.messages.map((m) => ({
       id: m.id,
       direction: m.direction as MessageShape['direction'],
-      content: m.content,
+      content: ensurePlainText(m.content),
       contentType: m.contentType as MessageShape['contentType'],
       sentAt: m.sentAt.toISOString(),
       isRead: m.isRead,

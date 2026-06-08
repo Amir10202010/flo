@@ -2,6 +2,7 @@ import { type NextRequest } from 'next/server'
 import { getAuthUser, ok, err } from '@/lib/api'
 import { prisma } from '@/lib/prisma'
 import { type ConversationStatus, type PriorityLevel, type ChannelEnum } from '@prisma/client'
+import { ensurePlainText } from '@/lib/html'
 import type { ConversationListItem } from '@/types'
 
 const VALID_STATUS = new Set(['ACTIVE', 'ARCHIVED', 'LOST'])
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
     priorityScore: c.priorityScore,
     lastMessageAt: c.lastMessageAt?.toISOString() ?? null,
     contact: { name: c.contact.name, email: c.contact.email },
-    lastMessage: c.messages[0]?.content.slice(0, 200) ?? null,
+    lastMessage: c.messages[0] ? ensurePlainText(c.messages[0].content).slice(0, 200) : null,
     unreadCount: 0,
   }))
 

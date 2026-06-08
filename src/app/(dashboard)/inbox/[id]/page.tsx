@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { ensurePlainText } from '@/lib/html'
+import Composer from '@/components/Composer'
 
 const RISK: Record<string, { label: string; color: string; bg: string; border: string }> = {
   LOW:      { label: 'Low risk',    color: 'var(--cold)',      bg: 'var(--cold-dim)',      border: 'var(--cold-border)'      },
@@ -44,7 +46,9 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
   const user = await getCurrentUser()
   if (!user) notFound()
 
-  const conv = await prisma.conversation.findUnique({
+  // findFirst (not findUnique) so we can filter by owner — prevents reading
+  // another user's conversation by ID.
+  const conv = await prisma.conversation.findFirst({
     where: { id, userId: user.id },
     include: {
       contact: true,
@@ -123,7 +127,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
               style={{ display: 'flex', flexDirection: 'column', alignItems: msg.direction === 'OUTBOUND' ? 'flex-end' : 'flex-start' }}
             >
               <div className={`msg-bubble ${msg.direction === 'OUTBOUND' ? 'msg-bubble-out' : 'msg-bubble-in'}`}>
-                {msg.content}
+                {ensurePlainText(msg.content)}
               </div>
               <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
                 {formatTime(msg.sentAt)}
@@ -132,6 +136,11 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
           ))
         )}
       </div>
+
+      {/* Reply composer — Gmail only for now */}
+      {conv.channel === 'GMAIL' && conv.contact.email && (
+        <Composer conversationId={conv.id} />
+      )}
     </>
   )
 }
