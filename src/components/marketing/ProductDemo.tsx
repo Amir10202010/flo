@@ -165,7 +165,24 @@ export default function ProductDemo() {
                 <span className={`priority-badge ${won ? 'priority-cold' : 'priority-hot'}`}>{won ? 'WON' : 'HOT'}</span>
               </div>
 
-              <AIPanel analyzing={analyzing} won={won} />
+              {/* Zoom + crossfade to accentuate the AI as it works. */}
+              <motion.div
+                animate={{ scale: analyzing ? 1.04 : 1 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                style={{ transformOrigin: 'center top' }}
+              >
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={won ? 'won' : analyzing ? 'analyzing' : 'risk'}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    <AIPanel analyzing={analyzing} won={won} />
+                  </motion.div>
+                </AnimatePresence>
+              </motion.div>
             </div>
 
             {/* Messages */}
@@ -255,8 +272,6 @@ export default function ProductDemo() {
 
         {!reduce && <Cursor x={cursor.x} y={cursor.y} visible={cursor.visible} clicking={clicking} />}
       </div>
-
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 60, background: 'linear-gradient(to bottom, transparent, var(--bg-base))', pointerEvents: 'none' }} />
     </div>
   )
 }

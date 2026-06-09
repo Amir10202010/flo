@@ -98,7 +98,7 @@ export default function FeaturesPage() {
         <Navbar />
 
         {/* Hero */}
-        <section className="section-padded" style={{ paddingTop: 150, paddingBottom: 70, paddingLeft: 32, paddingRight: 32, position: 'relative', overflow: 'hidden' }}>
+        <section className="hero-top" style={{ paddingLeft: 32, paddingRight: 32, position: 'relative', overflow: 'hidden' }}>
           <div className="mesh mesh-soft" />
           <div className="mesh-veil" />
           <div className="dot-grid" />

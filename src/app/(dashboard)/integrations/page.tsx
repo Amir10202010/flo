@@ -2,10 +2,10 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Mail, CheckCircle, RefreshCw, AlertCircle, Loader } from 'lucide-react'
+import { Mail, CheckCircle, AlertCircle, Loader } from 'lucide-react'
 
 type Integration = { type: 'GMAIL' | 'TELEGRAM'; isActive: boolean; syncedAt: string | null }
-type SyncResult  = { synced: number; created: number; updated: number; errors: string[] }
+type SyncResult  = { synced: number; created: number; updated: number; errors: string[]; queuedAnalyses?: number }
 
 function formatRelative(iso: string | null): string {
   if (!iso) return 'Never'
@@ -29,29 +29,65 @@ function IntegrationsContent() {
   const justConnected = searchParams.get('connected')
   const connectError  = searchParams.get('error')
 
-  useEffect(() => {
-    fetch('/api/integrations')
-      .then(r => r.ok ? r.json() : [])
-      .then((data: Integration[]) => setIntegrations(Array.isArray(data) ? data : []))
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [justConnected])
-
   const gmail = integrations.find(i => i.type === 'GMAIL' && i.isActive)
 
   async function handleSync() {
     setSyncing(true); setSyncResult(null)
     try {
-      const data = await fetch('/api/integrations/gmail/sync', { method: 'POST' }).then(r => r.json())
-      setSyncResult(data)
-      const fresh = await fetch('/api/integrations').then(r => r.json())
-      if (Array.isArray(fresh)) setIntegrations(fresh)
+      // Sync now runs in the background worker: enqueue, then poll for the result.
+      const queued = await fetch('/api/integrations/gmail/sync', { method: 'POST' }).then(r => r.json())
+      if (!queued.jobId) {
+        setSyncResult({ synced: 0, created: 0, updated: 0, errors: [queued.error ?? 'Could not queue sync'] })
+        return
+      }
+
+      const result = await pollJob(queued.jobId)
+      if (result) {
+        setSyncResult(result as SyncResult)
+        const fresh = await fetch('/api/integrations').then(r => r.json())
+        if (Array.isArray(fresh)) setIntegrations(fresh)
+      } else {
+        setSyncResult({ synced: 0, created: 0, updated: 0, errors: ['Sync is taking longer than expected — check back shortly.'] })
+      }
     } catch {
       setSyncResult({ synced: 0, created: 0, updated: 0, errors: ['Network error'] })
     } finally {
       setSyncing(false)
     }
   }
+
+  /** Poll a job until it finishes (or times out after ~90s). */
+  async function pollJob(jobId: string): Promise<unknown | null> {
+    const deadline = Date.now() + 90_000
+    while (Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, 1500))
+      const job = await fetch(`/api/jobs/${jobId}`).then(r => r.ok ? r.json() : null).catch(() => null)
+      if (!job) continue
+      if (job.status === 'COMPLETED') return job.result
+      if (job.status === 'FAILED') return { synced: 0, created: 0, updated: 0, errors: [job.error ?? 'Sync failed'] }
+    }
+    return null
+  }
+
+  // Declared after handleSync so the effect below can reference it safely.
+  useEffect(() => {
+    let active = true
+    fetch('/api/integrations')
+      .then(r => r.ok ? r.json() : [])
+      .then((data: Integration[]) => {
+        if (!active) return
+        const list = Array.isArray(data) ? data : []
+        setIntegrations(list)
+        // Auto-sync immediately after connecting — no manual Sync button.
+        if (justConnected && list.some(i => i.type === 'GMAIL' && i.isActive)) {
+          void handleSync()
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [justConnected])
 
   async function handleDisconnect() {
     setDisconnecting(true)
@@ -70,7 +106,7 @@ function IntegrationsContent() {
       {justConnected && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 10, background: 'var(--accent-dim)', border: '1px solid rgba(79,92,244,0.2)', marginBottom: 20 }}>
           <CheckCircle size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-          <span style={{ fontSize: 14, color: 'var(--text-primary)' }}>Gmail connected. Click <strong>Sync</strong> to import your conversations.</span>
+          <span style={{ fontSize: 14, color: 'var(--text-primary)' }}>Gmail connected — importing your conversations…</span>
         </div>
       )}
 
@@ -86,6 +122,7 @@ function IntegrationsContent() {
           <p style={{ margin: '0 0 4px', fontSize: 14, color: 'var(--text-primary)', fontWeight: 600 }}>Sync complete</p>
           <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>
             {syncResult.synced} conversations processed · {syncResult.created} created · {syncResult.updated} updated
+            {typeof syncResult.queuedAnalyses === 'number' && syncResult.queuedAnalyses > 0 && ` · ${syncResult.queuedAnalyses} queued for AI analysis`}
             {syncResult.errors.length > 0 && ` · ${syncResult.errors.length} errors`}
           </p>
         </div>
@@ -104,7 +141,7 @@ function IntegrationsContent() {
                 <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>Gmail</div>
                 <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {loading ? 'Loading…' : gmail
-                    ? `Connected · synced ${formatRelative(gmail.syncedAt)}`
+                    ? (syncing ? 'Syncing your conversations…' : `Connected · synced ${formatRelative(gmail.syncedAt)}`)
                     : 'Not connected'}
                 </div>
               </div>
@@ -113,17 +150,17 @@ function IntegrationsContent() {
             <div className="integration-actions" style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
               {loading ? null : gmail ? (
                 <>
-                  <button onClick={handleSync} disabled={syncing} className="btn-ghost" style={{ fontSize: 13, padding: '7px 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    {syncing
-                      ? <><Loader size={13} style={{ animation: 'spin 1s linear infinite' }} /> Syncing…</>
-                      : <><RefreshCw size={13} /> Sync</>}
-                  </button>
-                  <button onClick={handleDisconnect} disabled={disconnecting} style={{ fontSize: 13, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--hot-border)', background: 'var(--hot-dim)', color: 'var(--hot)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {syncing && (
+                    <span style={{ fontSize: 12.5, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+                      <Loader size={13} style={{ animation: 'spin 1s linear infinite' }} /> Syncing…
+                    </span>
+                  )}
+                  <button className="integration-btn" onClick={handleDisconnect} disabled={disconnecting} style={{ fontSize: 13, padding: '8px 16px', borderRadius: 8, border: '1px solid var(--hot-border)', background: 'var(--hot-dim)', color: 'var(--hot)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>
                     {disconnecting ? 'Disconnecting…' : 'Disconnect'}
                   </button>
                 </>
               ) : (
-                <a href="/api/auth/gmail" className="btn-primary" style={{ fontSize: 13, padding: '7px 16px', textDecoration: 'none' }}>
+                <a href="/api/auth/gmail" className="btn-primary integration-btn" style={{ fontSize: 13, padding: '8px 18px', textDecoration: 'none' }}>
                   Connect
                 </a>
               )}

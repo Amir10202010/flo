@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Sparkles } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { ensurePlainText } from '@/lib/html'
+import { sanitizeMessageHtml } from '@/lib/html'
 import Composer from '@/components/Composer'
 
 const RISK: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -13,9 +13,14 @@ const RISK: Record<string, { label: string; color: string; bg: string; border: s
   CRITICAL: { label: 'Critical',    color: 'var(--hot)',       bg: 'var(--hot-dim)',        border: 'var(--hot-border)'       },
 }
 
+function initials(name: string): string {
+  return name.split(' ').map(w => w[0]?.toUpperCase() ?? '').slice(0, 2).join('') || '?'
+}
+
 function formatTime(d: Date | string) {
   const diff = Date.now() - new Date(d).getTime()
   const m = Math.floor(diff / 60000)
+  if (m < 1) return 'just now'
   if (m < 60) return `${m}m ago`
   const h = Math.floor(m / 60)
   if (h < 24) return `${h}h ago`
@@ -25,31 +30,14 @@ function formatTime(d: Date | string) {
 export default async function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  // Demo conversations: show a friendly placeholder
-  if (id.startsWith('demo-')) {
-    return (
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 40, textAlign: 'center' }}>
-        <div style={{ width: 44, height: 44, borderRadius: 12, background: '#FFFFFF', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: 'var(--shadow-xs)' }}>
-          💬
-        </div>
-        <div>
-          <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>Demo conversation</p>
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: 260 }}>
-            Connect Gmail to see real conversations with messages and AI analysis.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  // Re-uses the cached result from DashboardLayout + InboxLayout — no third round-trip.
   const user = await getCurrentUser()
   if (!user) notFound()
 
-  // findFirst (not findUnique) so we can filter by owner — prevents reading
-  // another user's conversation by ID.
+  // findFirst (not findUnique) so we can scope by owner + active integration —
+  // prevents reading another user's conversation, and hides chats from
+  // disconnected channels.
   const conv = await prisma.conversation.findFirst({
-    where: { id, userId: user.id },
+    where: { id, userId: user.id, integration: { isActive: true } },
     include: {
       contact: true,
       messages: { orderBy: { sentAt: 'asc' } },
@@ -61,79 +49,64 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
 
   const analysis = conv.analysis
   const r = analysis ? (RISK[analysis.riskLevel] ?? RISK.LOW) : null
+  const channelName = conv.channel === 'GMAIL' ? 'Gmail' : 'Telegram'
 
   return (
-    <>
-      {/* Thread header */}
-      <div className="thread-header" style={{ padding: '20px 28px', borderBottom: '1px solid var(--border)', flexShrink: 0, background: '#FFFFFF' }}>
-        <Link
-          href="/inbox"
-          className="thread-back"
-          style={{ display: 'none', alignItems: 'center', gap: 6, marginBottom: 14, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', textDecoration: 'none' }}
-        >
-          <ArrowLeft size={15} />
-          Inbox
+    <div className="chat">
+      {/* Header */}
+      <div className="chat-header">
+        <Link href="/inbox" className="thread-back">
+          <ArrowLeft size={15} /> Inbox
         </Link>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: analysis ? 14 : 0 }}>
-          <div style={{ minWidth: 0 }}>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {conv.contact.name}
-            </h2>
-            {conv.subject && (
-              <p style={{ margin: '3px 0 0', fontSize: 13, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.subject}</p>
-            )}
-            {conv.contact.email && (
-              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.contact.email}</p>
-            )}
+
+        <div className="chat-head-row">
+          <div className="chat-avatar">{initials(conv.contact.name)}</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h2 className="chat-name">{conv.contact.name}</h2>
+            <div className="chat-sub">
+              <span className="chat-chip">{channelName}</span>
+              {conv.contact.email && <span className="chat-email">{conv.contact.email}</span>}
+            </div>
+            {conv.subject && <p className="chat-subject">{conv.subject}</p>}
           </div>
-          <span
-            className={`priority-badge priority-${conv.priority.toLowerCase()}`}
-            style={{ flexShrink: 0, marginTop: 2 }}
-          >
+          <span className={`priority-badge priority-${conv.priority.toLowerCase()}`} style={{ flexShrink: 0 }}>
             {conv.priority}
           </span>
         </div>
 
         {analysis && r && (
-          <div style={{ padding: '11px 14px', borderRadius: 10, background: r.bg, border: `1px solid ${r.border}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: r.color, flexShrink: 0 }} />
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: r.color, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
-                AI · {r.label}
-              </span>
+          <div className="chat-ai" style={{ background: r.bg, borderColor: r.border }}>
+            <div className="chat-ai-head">
+              <Sparkles size={13} style={{ color: r.color }} />
+              <span style={{ color: r.color }}>AI insight · {r.label}</span>
             </div>
-            <p style={{ margin: '0 0 5px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-              {analysis.summary}
-            </p>
+            <p className="chat-ai-summary">{analysis.summary}</p>
             {analysis.nextAction && (
-              <p style={{ margin: 0, fontSize: 13, color: 'var(--accent)', fontWeight: 500 }}>
-                → {analysis.nextAction}
-              </p>
+              <p className="chat-ai-action">→ {analysis.nextAction}</p>
             )}
           </div>
         )}
       </div>
 
       {/* Messages */}
-      <div className="thread-messages" style={{ flex: 1, overflowY: 'auto', padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="chat-messages thread-messages">
         {conv.messages.length === 0 ? (
           <p style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', marginTop: 40 }}>
             No messages yet.
           </p>
         ) : (
-          conv.messages.map(msg => (
-            <div
-              key={msg.id}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: msg.direction === 'OUTBOUND' ? 'flex-end' : 'flex-start' }}
-            >
-              <div className={`msg-bubble ${msg.direction === 'OUTBOUND' ? 'msg-bubble-out' : 'msg-bubble-in'}`}>
-                {ensurePlainText(msg.content)}
+          conv.messages.map(msg => {
+            const out = msg.direction === 'OUTBOUND'
+            return (
+              <div key={msg.id} className={`chat-row ${out ? 'out' : 'in'}`}>
+                <div
+                  className={`msg-bubble msg-html ${out ? 'msg-bubble-out' : 'msg-bubble-in'}`}
+                  dangerouslySetInnerHTML={{ __html: sanitizeMessageHtml(msg.content) }}
+                />
+                <span className="chat-time">{formatTime(msg.sentAt)}</span>
               </div>
-              <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                {formatTime(msg.sentAt)}
-              </span>
-            </div>
-          ))
+            )
+          })
         )}
       </div>
 
@@ -141,6 +114,6 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
       {conv.channel === 'GMAIL' && conv.contact.email && (
         <Composer conversationId={conv.id} />
       )}
-    </>
+    </div>
   )
 }

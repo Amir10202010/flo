@@ -45,7 +45,7 @@ export default function AboutPage() {
         <Navbar />
 
         {/* ── Intro ─────────────────────────────────────────────────────────── */}
-        <section className="section-padded" style={{ paddingTop: 140, paddingBottom: 60, paddingLeft: 32, paddingRight: 32 }}>
+        <section className="hero-top" style={{ paddingLeft: 32, paddingRight: 32 }}>
           <div style={{ maxWidth: 720, margin: '0 auto', textAlign: 'center' }}>
             <motion.h1
               initial={{ opacity: 0, y: 16 }}

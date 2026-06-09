@@ -3,6 +3,7 @@ import { google } from 'googleapis'
 import { prisma } from '@/lib/prisma'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { encryptSecret } from '@/lib/crypto'
+import { startGmailWatch } from '@/services/gmail.service'
 
 export async function GET(req: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
@@ -46,6 +47,8 @@ export async function GET(req: NextRequest) {
     } catch {
       // Non-fatal: fall back to the Supabase account email.
     }
+    // Normalise so push-notification lookups (by emailAddress) match exactly.
+    connectedEmail = connectedEmail?.toLowerCase() ?? null
 
     // Ensure the Flo user row exists (Supabase auth is separate from Prisma)
     await prisma.user.upsert({
@@ -54,7 +57,7 @@ export async function GET(req: NextRequest) {
       update: {},
     })
 
-    await prisma.integration.upsert({
+    const integration = await prisma.integration.upsert({
       where: { userId_type: { userId: user.id, type: 'GMAIL' } },
       create: {
         userId: user.id,
@@ -71,6 +74,16 @@ export async function GET(req: NextRequest) {
         metadata: { email: connectedEmail },
       },
     })
+
+    // Register a push watch so new mail syncs in real time. Best-effort: if
+    // Pub/Sub isn't configured yet, connect still succeeds (cron polling covers it).
+    if (process.env.GMAIL_PUBSUB_TOPIC) {
+      try {
+        await startGmailWatch(integration)
+      } catch (e) {
+        console.warn('[gmail/callback] startGmailWatch failed (continuing):', e)
+      }
+    }
 
     const res = NextResponse.redirect(`${appUrl}/integrations?connected=gmail`)
     res.cookies.delete('gmail_oauth_state')

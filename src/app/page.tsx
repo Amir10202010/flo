@@ -110,11 +110,10 @@ const FAQS = [
   { q: 'Do I need a credit card to start?', a: 'No. The Starter plan is free forever and needs no card. Upgrade to Pro only when your inbox grows.' },
 ]
 
-function FaqItem({ q, a }: { q: string; a: string }) {
-  const [open, setOpen] = useState(false)
+function FaqItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean; onToggle: () => void }) {
   return (
     <div className="faq-item" data-open={open}>
-      <button className="faq-q" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+      <button className="faq-q" onClick={onToggle} aria-expanded={open}>
         {q}
         <Plus size={18} className="faq-icon" />
       </button>
@@ -136,12 +135,13 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 /* ── Comparison ────────────────────────────────────────────────────────────── */
+// crm = AmoCRM, manual = Pleep
 const COMPARE: { label: string; flo: boolean; crm: boolean; manual: boolean }[] = [
-  { label: 'Telegram + Gmail in one inbox', flo: true,  crm: false, manual: false },
+  { label: 'Telegram + Gmail in one inbox', flo: true,  crm: false, manual: true },
   { label: 'AI priority on every conversation', flo: true, crm: false, manual: false },
   { label: 'Explains why a client is going cold', flo: true, crm: false, manual: false },
-  { label: 'One-click suggested replies', flo: true, crm: false, manual: false },
-  { label: 'Auto-responder bot', flo: true, crm: false, manual: false },
+  { label: 'One-click suggested replies', flo: true, crm: true, manual: false },
+  { label: 'Auto-responder bot', flo: true, crm: true, manual: false },
   { label: 'Set up in minutes, no training', flo: true, crm: false, manual: true },
 ]
 
@@ -152,6 +152,7 @@ function Cell({ on }: { on: boolean }) {
 }
 
 export default function LandingPage() {
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
   return (
     <MotionConfig reducedMotion="user">
     <div style={{ background: 'var(--bg-base)', minHeight: '100vh' }}>
@@ -333,8 +334,8 @@ export default function LandingPage() {
                   <tr>
                     <th style={{ width: '46%' }}></th>
                     <th className="col-flo" style={{ textAlign: 'center' }}>Flo</th>
-                    <th style={{ textAlign: 'center' }}>Generic CRM</th>
-                    <th style={{ textAlign: 'center' }}>Inbox + notes</th>
+                    <th style={{ textAlign: 'center' }}>AmoCRM</th>
+                    <th style={{ textAlign: 'center' }}>Pleep</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -364,7 +365,9 @@ export default function LandingPage() {
               </h2>
             </motion.div>
             <motion.div variants={fadeUp} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {FAQS.map(f => <FaqItem key={f.q} q={f.q} a={f.a} />)}
+              {FAQS.map((f, i) => (
+                <FaqItem key={f.q} q={f.q} a={f.a} open={openFaq === i} onToggle={() => setOpenFaq(o => (o === i ? null : i))} />
+              ))}
             </motion.div>
           </div>
         </Section>

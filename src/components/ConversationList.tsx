@@ -1,6 +1,7 @@
 'use client'
 
-import { useRouter, usePathname } from 'next/navigation'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 export type ConversationSummary = {
   id: string
@@ -37,7 +38,6 @@ const P: Record<string, { badge: string; avatarBg: string; avatarColor: string }
 }
 
 export default function ConversationList({ conversations }: { conversations: ConversationSummary[] }) {
-  const router = useRouter()
   const pathname = usePathname()
 
   if (!conversations.length) {
@@ -56,15 +56,14 @@ export default function ConversationList({ conversations }: { conversations: Con
         const isSelected = pathname === `/inbox/${c.id}`
 
         return (
-          <div
+          // <Link> so Next prefetches the conversation route (+ its loading.tsx)
+          // on hover/viewport — clicks open near-instantly instead of cold.
+          <Link
             key={c.id}
+            href={`/inbox/${c.id}`}
             className={`conv-item${isSelected ? ' selected' : ''}`}
-            onClick={() => router.push(`/inbox/${c.id}`)}
-            role="button"
-            tabIndex={0}
-            aria-pressed={isSelected}
+            aria-current={isSelected ? 'page' : undefined}
             aria-label={`Conversation with ${c.contact.name}`}
-            onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && router.push(`/inbox/${c.id}`)}
           >
             <div
               className="avatar"
@@ -100,7 +99,7 @@ export default function ConversationList({ conversations }: { conversations: Con
                 )}
               </div>
             </div>
-          </div>
+          </Link>
         )
       })}
     </div>

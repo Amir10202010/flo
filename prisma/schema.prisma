@@ -106,6 +106,40 @@ model ConversationAnalysis {
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 }
 
+/// Durable background-job queue. Polled by the sync/ingestion worker
+/// (src/worker.ts) and the cron-driven drain endpoint (/api/jobs/process).
+/// Claimed atomically via SELECT ... FOR UPDATE SKIP LOCKED.
+model Job {
+  id          String    @id @default(cuid())
+  type        JobType
+  status      JobStatus @default(PENDING)
+  userId      String?
+  payload     Json      @default("{}")
+  result      Json?
+  error       String?
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  runAfter    DateTime  @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, runAfter])
+  @@index([userId])
+}
+
+enum JobType {
+  GMAIL_SYNC
+  ANALYZE_CONVERSATION
+}
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
 enum IntegrationTypeEnum {
   TELEGRAM
   GMAIL

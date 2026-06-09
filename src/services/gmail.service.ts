@@ -148,26 +148,38 @@ async function processThread(
 
     const accountEmail = integrationEmail(integration)
 
-    for (const msg of messages) {
-      if (!msg.id) continue
-      const msgFrom = headerValue(msg.payload?.headers, 'from').toLowerCase()
-      const isOutbound = accountEmail ? msgFrom.includes(accountEmail) : false
-      const content = extractBody(msg.payload).slice(0, 5000) || '(no text content)'
-      const sentAt = new Date(parseInt(msg.internalDate ?? '0'))
+    // Batch: fetch which messages already exist, then createMany only the new
+    // ones (one round-trip each instead of an upsert per message).
+    const candidateIds = messages.map((m) => m.id).filter((id): id is string => Boolean(id))
+    const existingMsgs = await prisma.message.findMany({
+      where: { conversationId: conversation.id, externalId: { in: candidateIds } },
+      select: { externalId: true },
+    })
+    const existingIds = new Set(existingMsgs.map((m) => m.externalId))
 
-      await prisma.message.upsert({
-        where: { conversationId_externalId: { conversationId: conversation.id, externalId: msg.id } },
-        create: {
+    let newInbound = 0
+    const toCreate = messages
+      .filter((msg) => msg.id && !existingIds.has(msg.id))
+      .map((msg) => {
+        const msgFrom = headerValue(msg.payload?.headers, 'from').toLowerCase()
+        const isOutbound = accountEmail ? msgFrom.includes(accountEmail) : false
+        if (!isOutbound) newInbound++
+        return {
           conversationId: conversation.id,
-          externalId: msg.id,
-          direction: isOutbound ? 'OUTBOUND' : 'INBOUND',
-          content,
-          contentType: 'TEXT',
-          sentAt,
-        },
-        update: {},
+          externalId: msg.id!,
+          direction: (isOutbound ? 'OUTBOUND' : 'INBOUND') as 'OUTBOUND' | 'INBOUND',
+          content: extractBody(msg.payload).slice(0, 5000) || '(no text content)',
+          contentType: 'TEXT' as const,
+          sentAt: new Date(parseInt(msg.internalDate ?? '0')),
+        }
       })
+
+    if (toCreate.length) {
+      await prisma.message.createMany({ data: toCreate, skipDuplicates: true })
     }
+
+    // A new inbound message means the AI summary/priority is stale → re-analyze.
+    if (newInbound > 0) result.changedConversationIds!.push(conversation.id)
 
     result.synced++
     if (existing) result.updated++
@@ -208,7 +220,7 @@ async function changedThreadIds(gmail: GmailClient, startHistoryId: string): Pro
 }
 
 export async function syncGmailForUser(userId: string): Promise<SyncResult> {
-  const result: SyncResult = { synced: 0, created: 0, updated: 0, errors: [] }
+  const result: SyncResult = { synced: 0, created: 0, updated: 0, errors: [], changedConversationIds: [] }
 
   const integration = await prisma.integration.findUnique({
     where: { userId_type: { userId, type: 'GMAIL' } },
@@ -261,6 +273,50 @@ export async function syncGmailForUser(userId: string): Promise<SyncResult> {
     .catch(() => {})
 
   return result
+}
+
+// ── Push notifications (Gmail watch → Pub/Sub) ──────────────────────────────
+
+export type WatchResult = { historyId?: string; expiration?: string }
+
+/**
+ * Register a Gmail push watch on the INBOX so mailbox changes are delivered to
+ * our Pub/Sub topic (and on to /api/webhooks/gmail). Watches expire within 7
+ * days and must be renewed — see /api/cron/gmail. Seeds `lastHistoryId` when
+ * absent so the first incremental sync has a baseline.
+ */
+export async function startGmailWatch(integration: Integration): Promise<WatchResult> {
+  const topicName = process.env.GMAIL_PUBSUB_TOPIC
+  if (!topicName) throw new Error('GMAIL_PUBSUB_TOPIC is not set')
+
+  const gmail = gmailFor(integration)
+  const res = await gmail.users.watch({
+    userId: 'me',
+    requestBody: { topicName, labelIds: ['INBOX'], labelFilterBehavior: 'INCLUDE' },
+  })
+
+  const historyId = res.data.historyId ?? undefined
+  const expiration = res.data.expiration ?? undefined
+
+  const meta = (integration.metadata as Record<string, unknown> | null) ?? {}
+  await prisma.integration.update({
+    where: { id: integration.id },
+    data: {
+      metadata: {
+        ...meta,
+        watchExpiration: expiration ?? null,
+        ...(meta.lastHistoryId || !historyId ? {} : { lastHistoryId: historyId }),
+      },
+    },
+  })
+
+  return { historyId, expiration }
+}
+
+/** Stop an active Gmail push watch (best-effort). Called on disconnect. */
+export async function stopGmailWatch(integration: Integration): Promise<void> {
+  const gmail = gmailFor(integration)
+  await gmail.users.stop({ userId: 'me' }).catch(() => {})
 }
 
 // ── Reply sending ───────────────────────────────────────────────────────────

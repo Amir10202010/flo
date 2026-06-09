@@ -59,6 +59,23 @@ export interface SyncResult {
   created: number
   updated: number
   errors: string[]
+  /** Conversation IDs that received new inbound messages — candidates for AI analysis. */
+  changedConversationIds?: string[]
+}
+
+// ── Background job queue ────────────────────────────────────────────────────
+
+export type JobStatusValue = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
+export type JobTypeValue = 'GMAIL_SYNC' | 'ANALYZE_CONVERSATION'
+
+/** Shape returned by GET /api/jobs/[id]. */
+export interface JobStatusResponse {
+  id: string
+  type: JobTypeValue
+  status: JobStatusValue
+  result: unknown | null
+  error: string | null
+  finishedAt: string | null
 }
 
 // ── API response types (used by /api/conversations routes) ─────────────────
