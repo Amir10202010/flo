@@ -18,7 +18,7 @@ export default function ContactPage() {
         <Navbar />
 
         {/* ── Intro ─────────────────────────────────────────────────────────── */}
-        <section className="hero-top" style={{ paddingLeft: 32, paddingRight: 32 }}>
+        <section className="hero-top mkt-x" style={{ paddingLeft: 32, paddingRight: 32 }}>
           <div style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center' }}>
             <motion.h1
               initial={{ opacity: 0, y: 16 }}
@@ -40,7 +40,7 @@ export default function ContactPage() {
         </section>
 
         {/* ── Contact options ───────────────────────────────────────────────── */}
-        <section style={{ padding: '0 32px 120px' }}>
+        <section className="mkt-x mkt-pb" style={{ padding: '0 32px 120px' }}>
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -79,7 +79,7 @@ export default function ContactPage() {
         </section>
 
         {/* ── CTA ───────────────────────────────────────────────────────────── */}
-        <section style={{ padding: '0 32px 120px' }}>
+        <section className="mkt-x mkt-pb" style={{ padding: '0 32px 120px' }}>
           <motion.div
             initial="hidden"
             whileInView="visible"

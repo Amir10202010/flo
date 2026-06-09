@@ -98,7 +98,7 @@ export default function FeaturesPage() {
         <Navbar />
 
         {/* Hero */}
-        <section className="hero-top" style={{ paddingLeft: 32, paddingRight: 32, position: 'relative', overflow: 'hidden' }}>
+        <section className="hero-top mkt-x" style={{ paddingLeft: 32, paddingRight: 32, position: 'relative', overflow: 'hidden' }}>
           <div className="mesh mesh-soft" />
           <div className="mesh-veil" />
           <div className="dot-grid" />
@@ -119,14 +119,14 @@ export default function FeaturesPage() {
         </section>
 
         {/* Feature rows */}
-        <section style={{ padding: '0 32px 40px' }}>
-          <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 110 }}>
+        <section className="mkt-x" style={{ padding: '0 32px 40px' }}>
+          <div className="feature-rows" style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 110 }}>
             {ROWS.map((row, i) => <FeatureRow key={row.eyebrow} row={row} flip={i % 2 === 1} />)}
           </div>
         </section>
 
         {/* CTA */}
-        <section style={{ padding: '100px 32px 120px' }}>
+        <section className="mkt-x mkt-pt mkt-pb" style={{ padding: '100px 32px 120px' }}>
           <motion.div
             initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
             className="cta-inner"

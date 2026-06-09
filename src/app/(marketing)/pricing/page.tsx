@@ -128,7 +128,7 @@ export default function PricingPage() {
       <div style={{ background: 'var(--bg-base)', minHeight: '100vh' }}>
         <Navbar />
 
-        <section className="hero-top" style={{ paddingLeft: 32, paddingRight: 32 }}>
+        <section className="hero-top mkt-x" style={{ paddingLeft: 32, paddingRight: 32 }}>
           <div style={{ maxWidth: 720, margin: '0 auto', textAlign: 'center' }}>
             <motion.h1
               initial={{ opacity: 0, y: 16 }}
@@ -149,7 +149,7 @@ export default function PricingPage() {
           </div>
         </section>
 
-        <section className="section-padded" style={{ paddingTop: 24, paddingBottom: 100, paddingLeft: 32, paddingRight: 32 }}>
+        <section className="section-padded mkt-x" style={{ paddingTop: 24, paddingBottom: 100, paddingLeft: 32, paddingRight: 32 }}>
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -162,7 +162,7 @@ export default function PricingPage() {
           </motion.div>
         </section>
 
-        <section style={{ padding: '0 32px 120px' }}>
+        <section className="mkt-x mkt-pb" style={{ padding: '0 32px 120px' }}>
           <div style={{ maxWidth: 680, margin: '0 auto', textAlign: 'center' }}>
             <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.7 }}>
               Have questions about which plan fits your team?{' '}

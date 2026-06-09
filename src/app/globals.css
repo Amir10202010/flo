@@ -596,6 +596,36 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   Marketing — mobile polish (gutters, vertical rhythm, CTAs, footer)
+   These compose onto the existing inline section styles: each rule overrides
+   only what it needs (via !important) at phone widths, leaving desktop intact.
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  /* Comfortable page gutters — override the inline 32px side padding. */
+  .mkt-x    { padding-left: 22px !important; padding-right: 22px !important; }
+  /* Trim oversized vertical rhythm so sections don't feel hollow on phones. */
+  .mkt-pt   { padding-top: 52px !important; }
+  .mkt-pb   { padding-bottom: 76px !important; }
+  /* Cards with generous desktop padding breathe better with a touch less. */
+  .mkt-card { padding: 26px 22px !important; }
+}
+@media (max-width: 400px) {
+  .mkt-x    { padding-left: 16px !important; padding-right: 16px !important; }
+}
+
+/* Hero actions → full-width, comfortably tappable buttons on small phones. */
+@media (max-width: 480px) {
+  .hero-cta     { flex-direction: column; align-items: stretch; gap: 10px; }
+  .hero-cta > a { width: 100%; justify-content: center; padding-top: 14px !important; padding-bottom: 14px !important; }
+}
+
+/* Footer: tidier, tighter column gaps when stacked. */
+@media (max-width: 560px) {
+  .footer-top   { gap: 30px !important; }
+  .footer-links { gap: 32px !important; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    Premium marketing additions
    ══════════════════════════════════════════════════════════════════════════ */
 
@@ -818,6 +848,10 @@
   .feature-row      { grid-template-columns: 1fr !important; gap: 36px !important; }
   .feature-row-text { order: 1 !important; }
   .feature-row-demo { order: 2 !important; }
+}
+@media (max-width: 640px) {
+  /* Stacked rows don't need the wide desktop gap between them. */
+  .feature-rows { gap: 64px !important; }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

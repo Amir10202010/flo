@@ -23,9 +23,9 @@ const columns: { title: string; links: { label: string; href: string }[] }[] = [
 
 export default function Footer() {
   return (
-    <footer style={{ borderTop: '1px solid var(--border)', padding: '56px 32px 32px', background: '#FFFFFF' }}>
+    <footer className="mkt-x" style={{ borderTop: '1px solid var(--border)', padding: '56px 32px 32px', background: '#FFFFFF' }}>
       <div style={{ maxWidth: 1140, margin: '0 auto' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 48, justifyContent: 'space-between', marginBottom: 40 }}>
+        <div className="footer-top" style={{ display: 'flex', flexWrap: 'wrap', gap: 48, justifyContent: 'space-between', marginBottom: 40 }}>
           <div style={{ maxWidth: 280 }}>
             <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none', marginBottom: 12 }}>
               <span style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1 }}>flo</span>
@@ -36,7 +36,7 @@ export default function Footer() {
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: 56, flexWrap: 'wrap' }}>
+          <div className="footer-links" style={{ display: 'flex', gap: 56, flexWrap: 'wrap' }}>
             {columns.map(col => (
               <div key={col.title}>
                 <h4 style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 14px' }}>

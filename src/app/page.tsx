@@ -176,7 +176,7 @@ export default function LandingPage() {
         <div className="dot-grid" />
 
         <div
-          className="hero-grid"
+          className="hero-grid mkt-x"
           style={{ position: 'relative', zIndex: 1, maxWidth: 1140, margin: '0 auto', padding: '0 32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center', width: '100%' }}
         >
           {/* Left: text */}
@@ -185,7 +185,7 @@ export default function LandingPage() {
 
             <motion.h1
               variants={fadeUp}
-              style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(48px, 5.5vw, 76px)', fontWeight: 400, lineHeight: 1.04, letterSpacing: '-0.04em', color: 'var(--text-primary)', margin: '0 0 24px' }}
+              style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(40px, 9vw, 76px)', fontWeight: 400, lineHeight: 1.05, letterSpacing: '-0.04em', color: 'var(--text-primary)', margin: '0 0 24px' }}
             >
               Never lose<br />
               <em style={{ fontStyle: 'italic' }}>another</em>
@@ -200,7 +200,7 @@ export default function LandingPage() {
               Flo unifies Telegram and Gmail, shows you who to message right now, and explains exactly why you&apos;re losing clients.
             </motion.p>
 
-            <motion.div variants={fadeUp} style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 28 }}>
+            <motion.div variants={fadeUp} className="hero-cta" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 28 }}>
               <Link href="/signup" className="btn-primary" style={{ fontSize: 15, padding: '13px 26px' }}>
                 Get started free <ArrowRight size={16} />
               </Link>
@@ -268,7 +268,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Features ──────────────────────────────────────────────────────── */}
-      <section className="section-padded" style={{ padding: '100px 32px', background: 'var(--bg-base)' }}>
+      <section className="section-padded mkt-x" style={{ padding: '100px 32px', background: 'var(--bg-base)' }}>
         <Section>
           <div style={{ maxWidth: 1100, margin: '0 auto' }}>
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 60 }}>
@@ -293,7 +293,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── How it works ──────────────────────────────────────────────────── */}
-      <section id="how" className="section-padded" style={{ padding: '100px 32px', background: '#FFFFFF', borderTop: '1px solid var(--border)' }}>
+      <section id="how" className="section-padded mkt-x" style={{ padding: '100px 32px', background: '#FFFFFF', borderTop: '1px solid var(--border)' }}>
         <Section>
           <div style={{ maxWidth: 680, margin: '0 auto' }}>
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 56 }}>
@@ -319,7 +319,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Comparison ────────────────────────────────────────────────────── */}
-      <section className="section-padded" style={{ padding: '100px 32px', background: 'var(--bg-base)', borderTop: '1px solid var(--border)' }}>
+      <section className="section-padded mkt-x" style={{ padding: '100px 32px', background: 'var(--bg-base)', borderTop: '1px solid var(--border)' }}>
         <Section>
           <div style={{ maxWidth: 880, margin: '0 auto' }}>
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 44 }}>
@@ -355,7 +355,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── FAQ ───────────────────────────────────────────────────────────── */}
-      <section className="section-padded" style={{ padding: '100px 32px', background: '#FFFFFF', borderTop: '1px solid var(--border)' }}>
+      <section className="section-padded mkt-x" style={{ padding: '100px 32px', background: '#FFFFFF', borderTop: '1px solid var(--border)' }}>
         <Section>
           <div style={{ maxWidth: 720, margin: '0 auto' }}>
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 44 }}>
@@ -374,7 +374,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── CTA ───────────────────────────────────────────────────────────── */}
-      <section style={{ padding: '80px 32px 120px', background: 'var(--bg-base)' }}>
+      <section className="mkt-x mkt-pt mkt-pb" style={{ padding: '80px 32px 120px', background: 'var(--bg-base)' }}>
         <Section>
           <motion.div
             variants={fadeUp}

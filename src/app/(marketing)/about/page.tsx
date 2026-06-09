@@ -45,7 +45,7 @@ export default function AboutPage() {
         <Navbar />
 
         {/* ── Intro ─────────────────────────────────────────────────────────── */}
-        <section className="hero-top" style={{ paddingLeft: 32, paddingRight: 32 }}>
+        <section className="hero-top mkt-x" style={{ paddingLeft: 32, paddingRight: 32 }}>
           <div style={{ maxWidth: 720, margin: '0 auto', textAlign: 'center' }}>
             <motion.h1
               initial={{ opacity: 0, y: 16 }}
@@ -68,8 +68,8 @@ export default function AboutPage() {
         </section>
 
         {/* ── Mission ───────────────────────────────────────────────────────── */}
-        <section style={{ padding: '0 32px 80px' }}>
-          <div style={{ maxWidth: 760, margin: '0 auto', padding: '36px 40px', borderRadius: 20, background: '#FFFFFF', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+        <section className="mkt-x mkt-pb" style={{ padding: '0 32px 80px' }}>
+          <div className="mkt-card" style={{ maxWidth: 760, margin: '0 auto', padding: '36px 40px', borderRadius: 20, background: '#FFFFFF', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
             <h2 style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', margin: '0 0 12px' }}>Our mission</h2>
             <p style={{ fontSize: 17, lineHeight: 1.75, color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-serif)', fontWeight: 400 }}>
               Give every service business the clarity of a world-class sales team — one place to see who needs you right now,
@@ -79,7 +79,7 @@ export default function AboutPage() {
         </section>
 
         {/* ── Values ────────────────────────────────────────────────────────── */}
-        <section className="section-padded" style={{ padding: '0 32px 100px' }}>
+        <section className="section-padded mkt-x" style={{ padding: '0 32px 100px' }}>
           <div style={{ maxWidth: 1080, margin: '0 auto' }}>
             <div style={{ textAlign: 'center', marginBottom: 44 }}>
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px, 4vw, 34px)', fontWeight: 400, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 12px' }}>
@@ -103,7 +103,7 @@ export default function AboutPage() {
         </section>
 
         {/* ── CTA ───────────────────────────────────────────────────────────── */}
-        <section style={{ padding: '0 32px 120px' }}>
+        <section className="mkt-x mkt-pb" style={{ padding: '0 32px 120px' }}>
           <motion.div
             initial="hidden"
             whileInView="visible"
