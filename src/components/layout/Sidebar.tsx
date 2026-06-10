@@ -1,33 +1,100 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Inbox, Plug, Settings } from 'lucide-react'
+import {
+  Bot,
+  ChartColumn,
+  Inbox,
+  LayoutDashboard,
+  Lightbulb,
+  Plug,
+  Search,
+  Settings,
+  ShieldAlert,
+  Users,
+} from 'lucide-react'
+import { useUiStore } from '@/stores/ui.store'
 
-const NAV = [
-  { href: '/inbox',        icon: Inbox,    label: 'Inbox' },
-  { href: '/integrations', icon: Plug,     label: 'Integrations' },
-  { href: '/settings',     icon: Settings, label: 'Settings' },
+interface NavEntry {
+  href: string
+  icon: typeof Inbox
+  label: string
+  pill?: string
+}
+
+const SECTIONS: { label: string | null; items: NavEntry[] }[] = [
+  {
+    label: null,
+    items: [
+      { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+      { href: '/inbox', icon: Inbox, label: 'Inbox' },
+    ],
+  },
+  {
+    label: 'Intelligence',
+    items: [
+      { href: '/clients', icon: Users, label: 'Clients' },
+      { href: '/insights', icon: Lightbulb, label: 'Insights' },
+      { href: '/risk', icon: ShieldAlert, label: 'Risk Monitor' },
+      { href: '/analytics', icon: ChartColumn, label: 'Analytics' },
+    ],
+  },
+  {
+    label: 'Assistant',
+    items: [{ href: '/assistant', icon: Bot, label: 'AI Assistant', pill: 'Beta' }],
+  },
 ]
+
+const SYSTEM: NavEntry[] = [
+  { href: '/integrations', icon: Plug, label: 'Integrations' },
+  { href: '/settings', icon: Settings, label: 'Settings' },
+]
+
+function NavItem({ entry, active }: { entry: NavEntry; active: boolean }) {
+  const Icon = entry.icon
+  return (
+    <Link
+      href={entry.href}
+      className={`nav-item${active ? ' active' : ''}`}
+      title={entry.label} /* tooltip for icon-only mobile view */
+    >
+      <Icon size={15} />
+      {/* span allows hiding label text on mobile while keeping icon */}
+      <span className="sidebar-nav-label">{entry.label}</span>
+      {entry.pill && <span className="nav-pill">{entry.pill}</span>}
+    </Link>
+  )
+}
 
 export default function Sidebar({ userName, userEmail }: { userName?: string | null; userEmail?: string | null }) {
   const pathname = usePathname()
+  const togglePalette = useUiStore((s) => s.togglePalette)
+
+  // Render the platform-correct shortcut only after mount (SSR-safe).
+  const [metaKey, setMetaKey] = useState('Ctrl')
+  useEffect(() => {
+    if (/Mac|iPhone|iPad/i.test(navigator.platform ?? '')) setMetaKey('⌘')
+  }, [])
 
   const initials = userName
     ? userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     : userEmail?.[0]?.toUpperCase() ?? '?'
 
+  const isActive = (href: string) => pathname === href || (href !== '/' && pathname.startsWith(href))
+
   return (
     <aside
       className="sidebar-shell"
       style={{
-        width: 220,
+        width: 224,
         height: '100%',
         borderRight: '1px solid var(--border)',
         padding: '16px 10px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
+        gap: 4,
         flexShrink: 0,
         background: 'var(--bg-subtle)',
         overflowY: 'auto',
@@ -37,32 +104,38 @@ export default function Sidebar({ userName, userEmail }: { userName?: string | n
       <Link
         href="/"
         className="sidebar-logo-link"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none', padding: '6px 8px', marginBottom: 8 }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none', padding: '6px 8px', marginBottom: 6 }}
       >
         <span style={{ fontFamily: 'var(--font-serif)', fontSize: 23, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1 }}>velnox</span>
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', marginBottom: 9, display: 'inline-block' }} />
       </Link>
 
+      {/* Command palette trigger */}
+      <button type="button" className="sidebar-search-btn" onClick={togglePalette} title="Search (Ctrl/⌘ K)">
+        <Search size={14} />
+        <span className="sidebar-nav-label">Search</span>
+        <span className="cmdk-kbd">{metaKey} K</span>
+      </button>
+
       {/* Navigation */}
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {NAV.map(({ href, icon: Icon, label }) => {
-          const active = pathname === href || (href !== '/' && pathname.startsWith(href))
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`nav-item${active ? ' active' : ''}`}
-              title={label}  /* tooltip for icon-only mobile view */
-            >
-              <Icon size={15} />
-              {/* span allows hiding label text on mobile while keeping icon */}
-              <span className="sidebar-nav-label">{label}</span>
-            </Link>
-          )
-        })}
-      </nav>
+      {SECTIONS.map((section, si) => (
+        <nav key={si} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {section.label && <div className="sidebar-section-label">{section.label}</div>}
+          {!section.label && si === 0 && <div style={{ height: 6 }} />}
+          {section.items.map((entry) => (
+            <NavItem key={entry.href} entry={entry} active={isActive(entry.href)} />
+          ))}
+        </nav>
+      ))}
 
       <div style={{ flex: 1 }} />
+
+      {/* System */}
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 8, borderBottom: '1px solid var(--border-light)', marginBottom: 8 }}>
+        {SYSTEM.map((entry) => (
+          <NavItem key={entry.href} entry={entry} active={isActive(entry.href)} />
+        ))}
+      </nav>
 
       {/* User profile — hidden on mobile via .sidebar-user-card */}
       <div
