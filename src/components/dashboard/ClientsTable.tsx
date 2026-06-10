@@ -21,6 +21,37 @@ function engagementColor(v: number) {
   return v >= 60 ? 'var(--success)' : v >= 35 ? 'var(--attention)' : 'var(--hot)'
 }
 
+function SortHead({
+  k,
+  sortKey,
+  sortDir,
+  onToggle,
+  width,
+  children,
+}: {
+  k: SortKey
+  sortKey: SortKey
+  sortDir: 'asc' | 'desc'
+  onToggle: (k: SortKey) => void
+  width?: number
+  children: React.ReactNode
+}) {
+  const active = sortKey === k
+  return (
+    <th
+      className="sortable"
+      style={{ width }}
+      onClick={() => onToggle(k)}
+      aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: active ? 'var(--accent)' : undefined }}>
+        {children}
+        {active && (sortDir === 'asc' ? <ArrowUp size={11} /> : <ArrowDown size={11} />)}
+      </span>
+    </th>
+  )
+}
+
 export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
   const router = useRouter()
   const [query, setQuery] = useState('')
@@ -58,17 +89,7 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
     }
   }
 
-  function SortHead({ k, children, width }: { k: SortKey; children: React.ReactNode; width?: number }) {
-    const active = sortKey === k
-    return (
-      <th className="sortable" style={{ width }} onClick={() => toggleSort(k)} aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: active ? 'var(--accent)' : undefined }}>
-          {children}
-          {active && (sortDir === 'asc' ? <ArrowUp size={11} /> : <ArrowDown size={11} />)}
-        </span>
-      </th>
-    )
-  }
+  const sortHeadProps = { sortKey, sortDir, onToggle: toggleSort }
 
   return (
     <WidgetShell
@@ -99,13 +120,13 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
           <table className="clients-table">
             <thead>
               <tr>
-                <SortHead k="name">Client</SortHead>
+                <SortHead k="name" {...sortHeadProps}>Client</SortHead>
                 <th style={{ width: 90 }}>Channel</th>
-                <SortHead k="threads" width={84}>Threads</SortHead>
-                <SortHead k="engagement" width={170}>Engagement</SortHead>
+                <SortHead k="threads" width={84} {...sortHeadProps}>Threads</SortHead>
+                <SortHead k="engagement" width={170} {...sortHeadProps}>Engagement</SortHead>
                 <th style={{ width: 120 }}>Risk</th>
                 <th style={{ width: 110 }}>Sentiment</th>
-                <SortHead k="lastActivity" width={120}>Last activity</SortHead>
+                <SortHead k="lastActivity" width={120} {...sortHeadProps}>Last activity</SortHead>
                 <th style={{ width: 36 }} />
               </tr>
             </thead>

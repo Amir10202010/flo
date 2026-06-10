@@ -57,21 +57,16 @@ function matches(q: string, label: string, keywords: string): number {
 
 /**
  * Global ⌘K / Ctrl+K command palette: navigate the workspace, trigger a Gmail
- * sync, and jump straight into any conversation (fetched once per open).
+ * sync, and jump straight into any conversation. The dialog component mounts
+ * fresh on every open, so its local state (query, selection) resets for free;
+ * the fetched conversation list is cached here across opens.
  */
 export default function CommandPalette() {
-  const router = useRouter()
   const reduced = useReducedMotion()
   const open = useUiStore((s) => s.paletteOpen)
   const setOpen = useUiStore((s) => s.setPaletteOpen)
   const toggle = useUiStore((s) => s.togglePalette)
-
-  const [query, setQuery] = useState('')
-  const [index, setIndex] = useState(0)
   const [convs, setConvs] = useState<ConversationListItem[] | null>(null)
-  const [syncState, setSyncState] = useState<'idle' | 'starting' | 'started' | 'failed'>('idle')
-  const inputRef = useRef<HTMLInputElement>(null)
-  const listRef = useRef<HTMLDivElement>(null)
 
   // Global shortcut.
   useEffect(() => {
@@ -85,34 +80,74 @@ export default function CommandPalette() {
     return () => window.removeEventListener('keydown', onKey)
   }, [toggle])
 
-  // Reset + focus + lazy-load conversations on open; lock body scroll.
+  // Lazy-load the conversation list once per session (on first open).
   useEffect(() => {
-    if (!open) return
-    setQuery('')
-    setIndex(0)
-    setSyncState('idle')
-    const t = setTimeout(() => inputRef.current?.focus(), 30)
-    document.body.style.overflow = 'hidden'
-    if (convs === null) {
-      fetch('/api/conversations?limit=50')
-        .then((r) => (r.ok ? r.json() : []))
-        .then((items: ConversationListItem[]) => setConvs(Array.isArray(items) ? items : []))
-        .catch(() => setConvs([]))
-    }
+    if (!open || convs !== null) return
+    let alive = true
+    fetch('/api/conversations?limit=50')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((items: ConversationListItem[]) => {
+        if (alive) setConvs(Array.isArray(items) ? items : [])
+      })
+      .catch(() => {
+        if (alive) setConvs([])
+      })
     return () => {
-      clearTimeout(t)
-      document.body.style.overflow = ''
+      alive = false
     }
   }, [open, convs])
 
+  // Lock body scroll while open.
+  useEffect(() => {
+    if (!open) return
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [open])
+
   const close = useCallback(() => setOpen(false), [setOpen])
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            className="cmdk-overlay"
+            onClick={close}
+            initial={reduced ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
+          />
+          <PaletteDialog convs={convs} onClose={close} reduced={Boolean(reduced)} />
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
+function PaletteDialog({
+  convs,
+  onClose,
+  reduced,
+}: {
+  convs: ConversationListItem[] | null
+  onClose: () => void
+  reduced: boolean
+}) {
+  const router = useRouter()
+  const [query, setQuery] = useState('')
+  const [rawIndex, setRawIndex] = useState(0)
+  const [syncState, setSyncState] = useState<'idle' | 'starting' | 'started' | 'failed'>('idle')
+  const listRef = useRef<HTMLDivElement>(null)
 
   const go = useCallback(
     (href: string) => {
-      close()
+      onClose()
       router.push(href)
     },
-    [close, router],
+    [onClose, router],
   )
 
   const startSync = useCallback(async () => {
@@ -121,11 +156,11 @@ export default function CommandPalette() {
     try {
       const res = await fetch('/api/integrations/gmail/sync', { method: 'POST' })
       setSyncState(res.ok ? 'started' : 'failed')
-      if (res.ok) setTimeout(close, 1100)
+      if (res.ok) setTimeout(onClose, 1100)
     } catch {
       setSyncState('failed')
     }
-  }, [close, syncState])
+  }, [onClose, syncState])
 
   const entries = useMemo<PaletteEntry[]>(() => {
     const q = query.trim().toLowerCase()
@@ -150,7 +185,7 @@ export default function CommandPalette() {
           : syncState === 'failed'
             ? 'Sync failed — is Gmail connected?'
             : 'Sync Gmail now'
-    const actions: PaletteEntry[] = [
+    const actionDefs: PaletteEntry[] = [
       {
         id: 'action-sync',
         group: 'Actions',
@@ -167,7 +202,8 @@ export default function CommandPalette() {
         keywords: 'gmail integration add account',
         run: () => go('/integrations'),
       },
-    ].filter((a) => matches(q, a.label, a.keywords) > 0)
+    ]
+    const actions = actionDefs.filter((a) => matches(q, a.label, a.keywords) > 0)
 
     const conversations: PaletteEntry[] = (convs ?? [])
       .map((c) => ({
@@ -195,11 +231,10 @@ export default function CommandPalette() {
     return [...pages, ...actions, ...conversations]
   }, [query, convs, go, startSync, syncState])
 
-  // Keep the active row in view and the index in range.
-  useEffect(() => {
-    setIndex((i) => Math.min(i, Math.max(0, entries.length - 1)))
-  }, [entries.length])
+  // Clamp at render time instead of syncing state in an effect.
+  const index = Math.min(rawIndex, Math.max(0, entries.length - 1))
 
+  // Keep the active row visible (DOM-only side effect).
   useEffect(() => {
     const el = listRef.current?.querySelector<HTMLElement>(`[data-idx="${index}"]`)
     el?.scrollIntoView({ block: 'nearest' })
@@ -208,113 +243,99 @@ export default function CommandPalette() {
   function onInputKey(e: React.KeyboardEvent) {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setIndex((i) => Math.min(entries.length - 1, i + 1))
+      setRawIndex(Math.min(entries.length - 1, index + 1))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
-      setIndex((i) => Math.max(0, i - 1))
+      setRawIndex(Math.max(0, index - 1))
     } else if (e.key === 'Enter') {
       e.preventDefault()
       entries[index]?.run()
     } else if (e.key === 'Escape') {
       e.preventDefault()
-      close()
+      onClose()
     }
   }
 
   let lastGroup: string | null = null
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            className="cmdk-overlay"
-            onClick={close}
-            initial={reduced ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.16 }}
-          />
-          <motion.div
-            className="cmdk-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Command palette"
-            initial={reduced ? false : { opacity: 0, scale: 0.98, x: '-50%', y: -8 }}
-            animate={{ opacity: 1, scale: 1, x: '-50%', y: 0 }}
-            exit={{ opacity: 0, scale: 0.98, x: '-50%', y: -6 }}
-            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-            style={{ x: '-50%' }}
-          >
-            <div className="cmdk-input-row">
-              <Search size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-              <input
-                ref={inputRef}
-                className="cmdk-input"
-                placeholder="Search pages, actions, conversations…"
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value)
-                  setIndex(0)
-                }}
-                onKeyDown={onInputKey}
-                aria-label="Command palette search"
-              />
-              <span className="cmdk-kbd">esc</span>
-            </div>
+    <motion.div
+      className="cmdk-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Command palette"
+      initial={reduced ? false : { opacity: 0, scale: 0.98, x: '-50%', y: -8 }}
+      animate={{ opacity: 1, scale: 1, x: '-50%', y: 0 }}
+      exit={{ opacity: 0, scale: 0.98, x: '-50%', y: -6 }}
+      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+      style={{ x: '-50%' }}
+    >
+      <div className="cmdk-input-row">
+        <Search size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+        <input
+          autoFocus
+          className="cmdk-input"
+          placeholder="Search pages, actions, conversations…"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value)
+            setRawIndex(0)
+          }}
+          onKeyDown={onInputKey}
+          aria-label="Command palette search"
+        />
+        <span className="cmdk-kbd">esc</span>
+      </div>
 
-            <div className="cmdk-list" ref={listRef}>
-              {entries.length === 0 ? (
-                <div style={{ padding: '26px 16px', textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>
-                  No results for “{query}”
-                </div>
-              ) : (
-                entries.map((entry, i) => {
-                  const showGroup = entry.group !== lastGroup
-                  lastGroup = entry.group
-                  return (
-                    <div key={entry.id}>
-                      {showGroup && <div className="cmdk-group">{entry.group}</div>}
-                      <button
-                        type="button"
-                        className="cmdk-item"
-                        data-active={i === index}
-                        data-idx={i}
-                        onMouseEnter={() => setIndex(i)}
-                        onClick={() => entry.run()}
-                      >
-                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, flexShrink: 0, color: 'inherit' }}>
-                          {entry.icon}
-                        </span>
-                        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {entry.label}
-                          {entry.hint && (
-                            <span style={{ color: 'var(--text-muted)', fontSize: 12 }}> — {entry.hint}</span>
-                          )}
-                        </span>
-                        {i === index && <CornerDownLeft size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />}
-                      </button>
-                    </div>
-                  )
-                })
-              )}
-              {convs === null && (
-                <div style={{ padding: '10px 12px', fontSize: 11.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <Mail size={12} />
-                  Loading conversations…
-                </div>
-              )}
-            </div>
+      <div className="cmdk-list" ref={listRef}>
+        {entries.length === 0 ? (
+          <div style={{ padding: '26px 16px', textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>
+            No results for “{query}”
+          </div>
+        ) : (
+          entries.map((entry, i) => {
+            const showGroup = entry.group !== lastGroup
+            lastGroup = entry.group
+            return (
+              <div key={entry.id}>
+                {showGroup && <div className="cmdk-group">{entry.group}</div>}
+                <button
+                  type="button"
+                  className="cmdk-item"
+                  data-active={i === index}
+                  data-idx={i}
+                  onMouseEnter={() => setRawIndex(i)}
+                  onClick={() => entry.run()}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, flexShrink: 0, color: 'inherit' }}>
+                    {entry.icon}
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {entry.label}
+                    {entry.hint && (
+                      <span style={{ color: 'var(--text-muted)', fontSize: 12 }}> — {entry.hint}</span>
+                    )}
+                  </span>
+                  {i === index && <CornerDownLeft size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />}
+                </button>
+              </div>
+            )
+          })
+        )}
+        {convs === null && (
+          <div style={{ padding: '10px 12px', fontSize: 11.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 7 }}>
+            <Mail size={12} />
+            Loading conversations…
+          </div>
+        )}
+      </div>
 
-            <div className="cmdk-foot">
-              <span><strong>↑↓</strong> navigate</span>
-              <span><strong>↵</strong> open</span>
-              <span><strong>esc</strong> close</span>
-              <span style={{ marginLeft: 'auto' }}>Velnox Command</span>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+      <div className="cmdk-foot">
+        <span><strong>↑↓</strong> navigate</span>
+        <span><strong>↵</strong> open</span>
+        <span><strong>esc</strong> close</span>
+        <span style={{ marginLeft: 'auto' }}>Velnox Command</span>
+      </div>
+    </motion.div>
   )
 }

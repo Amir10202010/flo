@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -68,15 +68,16 @@ function NavItem({ entry, active }: { entry: NavEntry; active: boolean }) {
   )
 }
 
+// Platform-correct shortcut hint, hydration-safe: the server snapshot renders
+// "Ctrl", the client snapshot swaps to "⌘" on Apple devices after hydration.
+const emptySubscribe = () => () => {}
+const isApplePlatform = () => /Mac|iPhone|iPad/i.test(navigator.platform ?? '')
+const serverIsApple = () => false
+
 export default function Sidebar({ userName, userEmail }: { userName?: string | null; userEmail?: string | null }) {
   const pathname = usePathname()
   const togglePalette = useUiStore((s) => s.togglePalette)
-
-  // Render the platform-correct shortcut only after mount (SSR-safe).
-  const [metaKey, setMetaKey] = useState('Ctrl')
-  useEffect(() => {
-    if (/Mac|iPhone|iPad/i.test(navigator.platform ?? '')) setMetaKey('⌘')
-  }, [])
+  const metaKey = useSyncExternalStore(emptySubscribe, isApplePlatform, serverIsApple) ? '⌘' : 'Ctrl'
 
   const initials = userName
     ? userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)

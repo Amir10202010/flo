@@ -728,7 +728,7 @@ export async function getRiskOverview(userId: string): Promise<RiskOverview> {
     .map(toThread)
 
   const watchlist = facts
-    .filter((f) => f.risk === 'MEDIUM' || (!f.highRisk && f.risk !== 'MEDIUM' && f.waitHours >= 48))
+    .filter((f) => f.risk === 'MEDIUM' || (!f.highRisk && f.waitHours >= 48))
     .sort((a, b) => b.waitHours - a.waitHours)
     .slice(0, 8)
     .map(toThread)

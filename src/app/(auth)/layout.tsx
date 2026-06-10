@@ -11,7 +11,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
   // the login/signup pages. The real auth guard in (dashboard)/layout.tsx
   // calls getUser() which verifies the token with Supabase.
   const { data: { session } } = await supabase.auth.getSession()
-  if (session) redirect('/inbox')
+  if (session) redirect('/dashboard')
 
   return (
     <div

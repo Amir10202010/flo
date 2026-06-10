@@ -21,8 +21,8 @@ No test suite is configured yet.
 Populate `.env.local` before running the app:
 
 ```
-DATABASE_URL
-DIRECT_URL
+DATABASE_URL   # Supabase TRANSACTION POOLER url (port 6543): ?pgbouncer=true&connection_limit=5&pool_timeout=20
+DIRECT_URL     # direct connection (port 5432) — used by prisma migrate only
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
@@ -49,7 +49,7 @@ NEXT_PUBLIC_CHECKOUT_URL          # optional: Stripe Payment Link / LemonSqueezy
 
 **App Router layout:**
 - `src/app/(auth)/` — login, signup, OAuth callback pages (unauthenticated shell); OAuth exchange is a Route Handler at `(auth)/callback/route.ts`, not a page
-- `src/app/(dashboard)/` — inbox, integrations, settings behind the `DashboardLayout` with `Sidebar`
+- `src/app/(dashboard)/` — the platform shell (`DashboardLayout` + sectioned `Sidebar` + global `CommandPalette`). Pages: `dashboard` (executive home — post-login landing), `inbox` (+ `inbox/[id]`), `clients`, `insights`, `risk`, `analytics`, `assistant` (beta shell), `integrations`, `settings`. Every data page has a matching `loading.tsx` skeleton
 - `src/app/api/` — REST API route handlers (conversations CRUD, integrations, Gmail OAuth + sync)
 - `src/app/page.tsx` — landing/marketing page
 
@@ -65,14 +65,18 @@ NEXT_PUBLIC_CHECKOUT_URL          # optional: Stripe Payment Link / LemonSqueezy
 - `conversation.analyzer.ts` — orchestrates analysis: fetches conversation + messages from DB → `gemini.service` → upserts `ConversationAnalysis` → `priority.engine` → updates `Conversation.priority`
 - `priority.engine.ts` — pure function; scores 0–100 and maps to `HOT | ATTENTION | COLD | SPAM` based on recency, inbound-awaiting-reply status, and AI risk level
 - `gmail.service.ts` — `syncGmailForUser()` fetches up to 50 inbox threads via Google API, upserts `Contact` / `Conversation` / `Message` rows, and auto-refreshes OAuth tokens via the `tokens` event
+- `metrics.helpers.ts` — `loadWorkspace(userId)` (one batched Prisma fetch: integration + conversations w/ analysis + 35d of message events + sync jobs) plus pure derivations (daily volume, reply pairs, engagement score, per-contact activity). Shared by the three read-model services below
+- `dashboard.service.ts` — read-models for `/dashboard` (`getDashboardData`: exec stats, inbox-health score, command-center queue, risk clients, relationship health, activity timeline, smart insights), `/risk` (`getRiskOverview`) and `/insights` (`getInsightsFeed`). All relative-time strings are pre-formatted server-side to avoid hydration mismatches
+- `analytics.service.ts` — `getAnalyticsData` for `/analytics`: response-time trend, volume series, priority/risk/sentiment distributions, inbound heatmap, top contacts
+- `clients.service.ts` — `getClientDirectory` for `/clients`: one row per contact with engagement, max risk, latest sentiment, awaiting-reply flag
 
 **Not yet wired up:** Gmail is the only functional ingestion channel. `TELEGRAM_API_ID/HASH` env vars and Telegram references in the UI/marketing/`types` are placeholders with no backing service. `gemini.service.ts` returns mock data — implement it before AI analysis produces real results.
 
-**Client state:** `src/stores/inbox.store.ts` — Zustand store tracking the selected conversation ID in the inbox split-view.
+**Client state:** `src/stores/inbox.store.ts` — selected conversation in the inbox split-view; `src/stores/ui.store.ts` — command-palette open state (shared by the sidebar button and the global Ctrl/⌘+K shortcut).
 
 **Shared types:** `src/types/index.ts` — canonical TypeScript interfaces (`ConversationWithDetails`, `AnalysisResult`, `PriorityScoreResult`, `SyncResult`, etc.) used across services and components.
 
-**Components:** `src/components/ui/` — primitive UI components (Button, Input, Avatar, PriorityBadge); `src/components/layout/` — Sidebar, Navbar, Footer; `src/components/auth/` — AuthForm; `src/components/marketing/` — landing page sections.
+**Components:** `src/components/ui/` — primitive UI components (Button, Input, Avatar, PriorityBadge); `src/components/layout/` — Sidebar, Navbar, Footer; `src/components/auth/` — AuthForm; `src/components/marketing/` — landing page sections; `src/components/dashboard/` — platform widgets (StatCard, HealthRing, CommandCenter, RiskMonitor, RelationshipHealth, ActivityTimeline, SmartInsights, ClientsTable, WidgetShell, ModulePill, etc.); `src/components/charts/` — dependency-free SVG charts (AreaChart, Donut, HBars, WeekBars, Heatmap, `path.ts` math) animated with framer-motion; `src/components/CommandPalette.tsx` — global Ctrl/⌘+K palette (pages, actions incl. "Sync Gmail now", conversation search).
 
 ## API Routes
 
@@ -96,7 +100,10 @@ NEXT_PUBLIC_CHECKOUT_URL          # optional: Stripe Payment Link / LemonSqueezy
 - **Monolith Next.js** (ADR-001): single repo, server route handlers instead of a separate API service; chosen for single-developer speed.
 - **Prisma over raw SQL:** migrations tracked in `prisma/migrations/`; always run `prisma generate` after schema edits.
 - **Two Supabase clients:** `supabase.ts` (browser) for client-side auth flows; `supabase-server.ts` (server, cookie-based) for Route Handlers and Server Components. Never use the browser client server-side.
-- **Auth callback is a Route Handler** (`(auth)/callback/route.ts`): exchanges the PKCE code for a session server-side so the session cookie is set before the redirect to `/inbox`.
+- **Auth callback is a Route Handler** (`(auth)/callback/route.ts`): exchanges the PKCE code for a session server-side so the session cookie is set before the redirect to `/dashboard` (the post-login landing since the platform-dashboard rework; `(auth)/layout.tsx` and `AuthForm` redirect there too).
+- **Dashboard pages query Prisma directly** (no `/api/dashboard/*` endpoints): `/dashboard`, `/analytics`, `/clients`, `/insights` and `/risk` are Server Components calling the read-model services, so widgets receive plain serialized props. The dashboard layout itself stays DB-query-free to keep navigation fast (see `getCurrentUser` header fast-path). Relative-time strings are formatted in the services — never call `Date.now()` formatting inside client components.
+- **Small connection pool ⇒ sequential Prisma queries:** the runtime pool goes through Supabase's transaction pooler with a small `connection_limit`. Do NOT fan out Prisma queries with `Promise.all` in request paths — extra queries sit in Prisma's pool queue and time out under concurrent renders (P2024). `loadWorkspace()` runs its four queries sequentially (≤1 connection per request) and fetches messages by `conversationId IN (...)` to hit `@@index([conversationId, sentAt])`. `/dashboard` streams its data section via `<Suspense>` (static header paints first), degrades to `MetricsUnavailable` on DB errors, and `(dashboard)/error.tsx` is the boundary for every other dashboard page.
+- **Module honesty policy:** every dashboard module carries a `ModulePill` status — `live` (real data), `beta`/`soon` (visually real but explicitly labelled, e.g. the AI Assistant shell and the Weekly Digest card). Don't ship unlabelled mock data into the dashboard.
 - **Background jobs** (`src/services/jobs/`): a durable Postgres `Job` queue decouples slow/expensive work (Gmail sync, Gemini analysis) from the request path. Jobs are claimed atomically via `SELECT … FOR UPDATE SKIP LOCKED` (`queue.ts`), executed by `handlers.ts`, and driven by `runner.ts`. Two interchangeable processors: the standalone `src/worker.ts` (`npm run worker`, for always-on hosts) and the cron-driven `/api/jobs/process` (Vercel Cron, secret-protected). Gmail sync enqueues an `ANALYZE_CONVERSATION` job per conversation with new inbound messages (**auto-analyze**).
 - **Gmail sync is incremental** (`gmail.service.ts`): uses Gmail `historyId` (stored in `Integration.metadata.lastHistoryId`) for delta sync, with a bounded full-sync fallback when history expires; threads are fetched with bounded concurrency. OAuth tokens are encrypted at rest (`src/lib/crypto.ts`) and the connect flow is CSRF-protected with a `state` cookie.
 - **Real-time ingestion via Gmail push** (Phase 3): on connect, `startGmailWatch` registers a `users.watch` on INBOX → Google Pub/Sub → push to `/api/webhooks/gmail`, which decodes `{ emailAddress, historyId }`, finds the integration by `metadata.email`, and enqueues an incremental `GMAIL_SYNC`. Watches expire ≤7 days and are renewed by the hourly `/api/cron/gmail`, which also enqueues a safety sync as a backstop. Requires a GCP Pub/Sub topic granting publish to `gmail-api-push@system.gserviceaccount.com` and a push subscription to the webhook URL with `?token=GMAIL_PUBSUB_VERIFICATION_TOKEN`. If `GMAIL_PUBSUB_TOPIC` is unset, the app falls back to cron polling only.

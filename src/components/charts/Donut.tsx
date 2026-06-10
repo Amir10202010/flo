@@ -28,13 +28,12 @@ export default function Donut({
   const c = size / 2
   const gap = segments.length > 1 ? 1.6 : 0
 
-  let acc = 0
-  const arcs = segments.map((s) => {
-    const frac = total > 0 ? (s.value / total) * 100 : 0
-    const arc = { ...s, frac, start: acc }
-    acc += frac
-    return arc
-  })
+  const fracs = segments.map((s) => (total > 0 ? (s.value / total) * 100 : 0))
+  const arcs = segments.map((s, i) => ({
+    ...s,
+    frac: fracs[i],
+    start: fracs.slice(0, i).reduce((a, b) => a + b, 0),
+  }))
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>

@@ -25,63 +25,72 @@ export interface MsgEvent {
 export async function loadWorkspace(userId: string) {
   const since = daysAgoDate(35)
 
-  const [integration, conversations, messages, syncJobs] = await Promise.all([
-    prisma.integration.findFirst({
-      where: { userId, isActive: true },
-      select: { type: true, metadata: true, syncedAt: true },
-    }),
-    prisma.conversation.findMany({
-      where: { userId, integration: { isActive: true } },
-      select: {
-        id: true,
-        subject: true,
-        status: true,
-        priority: true,
-        priorityScore: true,
-        lastMessageAt: true,
-        createdAt: true,
-        channel: true,
-        contact: { select: { id: true, name: true, email: true, createdAt: true } },
-        analysis: {
-          select: {
-            summary: true,
-            riskLevel: true,
-            riskReasons: true,
-            nextAction: true,
-            lostReason: true,
-            sentiment: true,
-            updatedAt: true,
-          },
+  // The runtime pool is intentionally small (Supabase transaction pooler —
+  // see DATABASE_URL's connection_limit). Queries run SEQUENTIALLY on purpose:
+  // a Promise.all() here makes the extra queries sit in Prisma's pool queue,
+  // and under concurrent page renders those waiters exceed pool_timeout
+  // (P2024: "Timed out fetching a new connection from the connection pool").
+  // Four short sequential queries borrow at most one connection per request.
+  const integration = await prisma.integration.findFirst({
+    where: { userId, isActive: true },
+    select: { type: true, metadata: true, syncedAt: true },
+  })
+
+  const conversations = await prisma.conversation.findMany({
+    where: { userId, integration: { isActive: true } },
+    select: {
+      id: true,
+      subject: true,
+      status: true,
+      priority: true,
+      priorityScore: true,
+      lastMessageAt: true,
+      createdAt: true,
+      channel: true,
+      contact: { select: { id: true, name: true, email: true, createdAt: true } },
+      analysis: {
+        select: {
+          summary: true,
+          riskLevel: true,
+          riskReasons: true,
+          nextAction: true,
+          lostReason: true,
+          sentiment: true,
+          updatedAt: true,
         },
-        messages: { orderBy: { sentAt: 'desc' }, take: 1, select: { direction: true, sentAt: true } },
       },
-      orderBy: [{ priorityScore: 'desc' }, { lastMessageAt: 'desc' }],
-      take: 400,
-    }),
-    prisma.message.findMany({
+      messages: { orderBy: { sentAt: 'desc' }, take: 1, select: { direction: true, sentAt: true } },
+    },
+    orderBy: [{ priorityScore: 'desc' }, { lastMessageAt: 'desc' }],
+    take: 400,
+  })
+
+  // Message events by conversation id — hits @@index([conversationId, sentAt])
+  // directly instead of joining through user → integration. Fetched newest-first
+  // so the row cap keeps the most recent window, then reversed to chronological
+  // order (consumers like the timeline expect ascending sentAt).
+  let messages: MsgEvent[] = []
+  if (conversations.length > 0) {
+    const rows = await prisma.message.findMany({
       where: {
+        conversationId: { in: conversations.map((c) => c.id) },
         sentAt: { gte: since },
-        conversation: { userId, integration: { isActive: true } },
       },
       select: { conversationId: true, direction: true, sentAt: true },
-      orderBy: { sentAt: 'asc' },
-      take: 10_000,
-    }),
-    prisma.job.findMany({
-      where: { userId, type: 'GMAIL_SYNC', status: 'COMPLETED' },
-      orderBy: { finishedAt: 'desc' },
-      take: 3,
-      select: { id: true, finishedAt: true, result: true },
-    }),
-  ])
-
-  return {
-    integration,
-    conversations,
-    messages: messages.map((m) => ({ ...m, direction: m.direction as Dir })) as MsgEvent[],
-    syncJobs,
-    now: Date.now(),
+      orderBy: { sentAt: 'desc' },
+      take: 4000,
+    })
+    messages = rows.reverse().map((m) => ({ ...m, direction: m.direction as Dir }))
   }
+
+  const syncJobs = await prisma.job.findMany({
+    where: { userId, type: 'GMAIL_SYNC', status: 'COMPLETED' },
+    orderBy: { finishedAt: 'desc' },
+    take: 3,
+    select: { id: true, finishedAt: true, result: true },
+  })
+
+  return { integration, conversations, messages, syncJobs, now: Date.now() }
 }
 
 export type Workspace = Awaited<ReturnType<typeof loadWorkspace>>

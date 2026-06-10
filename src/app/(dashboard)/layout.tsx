@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getCurrentUser } from '@/lib/auth'
 import Sidebar from '@/components/layout/Sidebar'
+import CommandPalette from '@/components/CommandPalette'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // getCurrentUser() is request-scoped and cached via React.cache().
@@ -29,6 +30,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {children}
         </main>
       </div>
+
+      {/* Global ⌘K / Ctrl+K command palette (client island) */}
+      <CommandPalette />
     </div>
   )
 }

@@ -43,8 +43,8 @@ export async function GET(request: Request) {
 
     if (!error) {
       // Hard redirect — the session cookies are now set in the response,
-      // and /inbox will receive them on the fresh server request.
-      return NextResponse.redirect(`${origin}/inbox`)
+      // and /dashboard will receive them on the fresh server request.
+      return NextResponse.redirect(`${origin}/dashboard`)
     }
   }
 
