@@ -39,7 +39,7 @@ export default function Sidebar({ userName, userEmail }: { userName?: string | n
         className="sidebar-logo-link"
         style={{ display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none', padding: '6px 8px', marginBottom: 8 }}
       >
-        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 23, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1 }}>flo</span>
+        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 23, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1 }}>velnox</span>
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', marginBottom: 9, display: 'inline-block' }} />
       </Link>
 

@@ -108,7 +108,7 @@ function ConnectEmpty() {
       <div>
         <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>No channels connected yet</p>
         <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: 240 }}>
-          Connect Gmail to pull your conversations into Flo and start prioritising them.
+          Connect Gmail to pull your conversations into Velnox and start prioritising them.
         </p>
       </div>
       <Link href="/integrations" className="btn-primary" style={{ fontSize: 13.5, padding: '9px 18px', textDecoration: 'none' }}>

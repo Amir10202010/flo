@@ -27,52 +27,56 @@ type Plan = {
   accent?: boolean
 }
 
+// Drop a Stripe Payment Link / LemonSqueezy / Paddle checkout URL into
+// NEXT_PUBLIC_CHECKOUT_URL to turn the Pro CTA into a real paid checkout.
+// Until then it falls back to /signup so the flow still works end-to-end.
+const CHECKOUT_URL = process.env.NEXT_PUBLIC_CHECKOUT_URL || '/signup'
+
 const plans: Plan[] = [
   {
     name: 'Starter',
     price: 'Free',
-    desc: 'For solo managers getting their inbox under control.',
+    desc: 'See Velnox on your own Gmail and get your inbox sorted.',
     features: [
-      'Up to 200 conversations / month',
-      'Unified Gmail inbox',
+      'Connect 1 Gmail account',
+      'Up to 100 client threads / month',
       'AI priority labels (Hot · Attention · Cold · Spam)',
       'Basic conversation analysis',
     ],
-    cta: 'Get started free',
+    cta: 'Get early access',
     href: '/signup',
   },
   {
     name: 'Pro',
-    price: '$19',
+    price: '$39',
     period: '/ month',
-    desc: 'For managers who live in their inbox every day.',
+    desc: 'For client-facing teams who can’t afford to let a deal go cold.',
     features: [
-      'Unlimited conversations',
-      'Telegram + Instagram + WhatsApp + Gmail',
-      'AI auto-responder bot — lets the bot reply for you',
-      'Full AI analysis: where you lost the client, what to say instead',
-      'Smart "reply now" notifications',
-      'Conversation score (1–10)',
-      'Priority support',
+      'Unlimited client threads',
+      'Full AI analysis — why a deal is at risk and what to say instead',
+      'One-click AI-drafted replies',
+      'Smart “reply now” alerts before a client goes cold',
+      'Conversation health score',
+      'Priority email support',
     ],
-    cta: 'Start free trial',
-    href: '/signup',
+    cta: 'Get Velnox Pro',
+    href: CHECKOUT_URL,
     accent: true,
   },
   {
-    name: 'Team',
+    name: 'Agency',
     price: 'Custom',
-    desc: 'For agencies and teams managing multiple inboxes.',
+    desc: 'For agencies and studios running several inboxes at once.',
     features: [
       'Everything in Pro',
-      'Team access & shared inbox',
-      'Weekly mistakes report',
+      'Multiple Gmail accounts',
+      'Shared team inbox',
+      'Weekly missed-client report',
       'Win / loss analysis',
-      'Lightweight CRM features',
       'Dedicated onboarding',
     ],
     cta: 'Talk to us',
-    href: '/about',
+    href: '/contact',
   },
 ]
 
@@ -136,7 +140,7 @@ export default function PricingPage() {
               transition={{ duration: 0.55, ease: 'easeOut' }}
               style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 400, color: 'var(--text-primary)', letterSpacing: '-0.03em', margin: '0 0 16px' }}
             >
-              Simple pricing, <span style={{ color: 'var(--accent)' }}>for every team size</span>
+              Pricing that pays for itself <span style={{ color: 'var(--accent)' }}>the first client you keep</span>
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
@@ -144,7 +148,7 @@ export default function PricingPage() {
               transition={{ duration: 0.55, ease: 'easeOut', delay: 0.1 }}
               style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.65, margin: 0 }}
             >
-              Start free, upgrade when your inbox grows. No hidden fees, cancel anytime.
+              Start free on your own Gmail. Upgrade to Pro the moment you’re done losing deals to a buried inbox — cancel anytime, no card to start.
             </motion.p>
           </div>
         </section>
@@ -162,11 +166,23 @@ export default function PricingPage() {
           </motion.div>
         </section>
 
+        {/* ── ROI / value framing ─────────────────────────────────────────── */}
+        <section className="mkt-x" style={{ padding: '0 32px 64px' }}>
+          <div style={{ maxWidth: 680, margin: '0 auto', padding: '28px 32px', borderRadius: 18, background: 'linear-gradient(180deg, rgba(79,92,244,0.05), #FFFFFF)', border: '1px solid rgba(79,92,244,0.18)', textAlign: 'center' }}>
+            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 10px', letterSpacing: '-0.02em' }}>
+              One saved client pays for a year of Velnox.
+            </p>
+            <p style={{ fontSize: 14.5, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
+              If a single client is worth more than $39 to you, Pro pays for itself the first time it catches a deal going cold — and gives you back the hours you’d spend digging through Gmail.
+            </p>
+          </div>
+        </section>
+
         <section className="mkt-x mkt-pb" style={{ padding: '0 32px 120px' }}>
           <div style={{ maxWidth: 680, margin: '0 auto', textAlign: 'center' }}>
             <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.7 }}>
               Have questions about which plan fits your team?{' '}
-              <Link href="/about" style={{ color: 'var(--accent)', fontWeight: 500, textDecoration: 'none' }}>Get in touch</Link>.
+              <Link href="/contact" style={{ color: 'var(--accent)', fontWeight: 500, textDecoration: 'none' }}>Get in touch</Link>.
             </p>
           </div>
         </section>

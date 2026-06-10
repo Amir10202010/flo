@@ -71,7 +71,7 @@ export default function ContactPage() {
               </div>
               <h3 style={{ fontSize: 15.5, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 8px' }}>Talk to us first</h3>
               <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', margin: '0 0 10px', lineHeight: 1.65 }}>
-                Not sure if Flo fits your workflow? Try it free — no card required — and tell us what you find.
+                Not sure if Velnox fits your workflow? Try it free — no card required — and tell us what you find.
               </p>
               <Link href="/signup" style={{ fontSize: 13.5, color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>Create a free account →</Link>
             </div>
@@ -95,7 +95,7 @@ export default function ContactPage() {
               Set up your inbox in a couple of minutes — free to start, no credit card needed.
             </p>
             <Link href="/signup" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 26px', background: '#FFFFFF', color: 'var(--accent)', borderRadius: 8, fontSize: 14.5, fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
-              Try Flo for free <ArrowRight size={15} />
+              Try Velnox for free <ArrowRight size={15} />
             </Link>
           </motion.div>
         </section>

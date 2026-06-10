@@ -36,7 +36,7 @@ export default function Navbar() {
     >
       <div style={{ maxWidth: 1140, margin: '0 auto', padding: '0 32px', height: 62, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
         <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none' }}>
-          <span style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1 }}>flo</span>
+          <span style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1 }}>velnox</span>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', marginBottom: 10, display: 'inline-block' }} />
         </Link>
 

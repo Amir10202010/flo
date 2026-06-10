@@ -1,7 +1,7 @@
 const ITEMS = [
-  { ini: 'AP', bg: 'rgba(220,43,85,0.1)',  col: '#DC2B55', name: 'Alex Peterson', badge: 'HOT',  bCls: 'priority-hot',      msg: "Sounds good, price works — when can we start?",        ch: 'Telegram', t: '2m',  delayClass: 'delay-100' },
-  { ini: 'KL', bg: 'rgba(194,98,10,0.1)',  col: '#C2620A', name: 'Karina Lee',    badge: 'ATTN', bCls: 'priority-attention', msg: 'Still thinking it over, need to check with my team...', ch: 'Gmail',    t: '3h',  delayClass: 'delay-300' },
-  { ini: 'MJ', bg: 'rgba(79,92,244,0.1)',  col: '#4F5CF4', name: 'Mark Johnson',  badge: 'COLD', bCls: 'priority-cold',     msg: "Thanks, I'll follow up later. Busy right now.",          ch: 'Telegram', t: '1d',  delayClass: 'delay-500' },
+  { ini: 'AP', bg: 'rgba(220,43,85,0.1)',  col: '#DC2B55', name: 'Alex Peterson', badge: 'HOT',  bCls: 'priority-hot',      msg: "Sounds good, price works — when can we start?",        ch: 'Gmail', t: '2m',  delayClass: 'delay-100' },
+  { ini: 'KL', bg: 'rgba(194,98,10,0.1)',  col: '#C2620A', name: 'Karina Lee',    badge: 'ATTN', bCls: 'priority-attention', msg: 'Still thinking it over, need to check with my team...', ch: 'Gmail', t: '3h',  delayClass: 'delay-300' },
+  { ini: 'MJ', bg: 'rgba(79,92,244,0.1)',  col: '#4F5CF4', name: 'Mark Johnson',  badge: 'COLD', bCls: 'priority-cold',     msg: "Thanks, I'll follow up later. Busy right now.",          ch: 'Gmail', t: '1d',  delayClass: 'delay-500' },
 ]
 
 export default function HeroMockup() {
@@ -25,7 +25,7 @@ export default function HeroMockup() {
             {['#FF5F57','#FEBC2E','#28C840'].map((c,i) => <div key={i} style={{ width: 10, height: 10, borderRadius: '50%', background: c }} />)}
           </div>
           <div style={{ flex: 1, height: 22, borderRadius: 5, background: '#EEF0F9', display: 'flex', alignItems: 'center', paddingLeft: 10 }}>
-            <span style={{ fontSize: 10, color: '#8D93BE', fontFamily: 'monospace' }}>flo.app/inbox</span>
+            <span style={{ fontSize: 10, color: '#8D93BE', fontFamily: 'monospace' }}>velnox.app/inbox</span>
           </div>
         </div>
 
@@ -34,7 +34,7 @@ export default function HeroMockup() {
           {/* Sidebar — mirrors the real dashboard nav */}
           <div style={{ width: 118, background: '#F6F8FE', borderRight: '1px solid #ECEEF8', display: 'flex', flexDirection: 'column', padding: '12px 8px', gap: 12, flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px' }}>
-              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 15, color: '#0C0E1D', letterSpacing: '-0.03em', lineHeight: 1 }}>flo</span>
+              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 15, color: '#0C0E1D', letterSpacing: '-0.03em', lineHeight: 1 }}>velnox</span>
               <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)', marginBottom: 6, display: 'inline-block' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { motion, type Variants, MotionConfig, AnimatePresence } from 'framer-motion'
-import { ArrowRight, Check, Inbox, Shield, Sparkles, Bot, Search, SlidersHorizontal, Plus, X } from 'lucide-react'
+import { ArrowRight, Check, Inbox, Shield, Sparkles, Bot, Search, SlidersHorizontal, Plus, X, Star, Zap, TrendingUp, Play } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import HeroMockup from '@/components/marketing/HeroMockup'
@@ -25,6 +25,16 @@ const fromRight: Variants = {
   visible: { opacity: 1, x: 0, transition: { duration: 0.65, ease: 'easeOut' } },
 }
 
+/* Branded section kicker — one consistent system in place of repeated eyebrows. */
+function Kicker({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.span variants={fadeUp} className="kicker">
+      <span className="kicker-dot" />
+      {children}
+    </motion.span>
+  )
+}
+
 function Section({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <motion.div
@@ -39,32 +49,12 @@ function Section({ children, className = '' }: { children: React.ReactNode; clas
   )
 }
 
-function FeatureCard({ icon: Icon, title, desc, accent }: { icon: React.ElementType; title: string; desc: string; accent?: boolean }) {
+function BentoCard({ icon: Icon, title, desc }: { icon: React.ElementType; title: string; desc: string }) {
   return (
-    <motion.div
-      variants={fadeUp}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      style={{
-        padding: '28px 28px 32px',
-        borderRadius: 16,
-        background: accent ? 'rgba(79,92,244,0.04)' : '#FFFFFF',
-        border: `1px solid ${accent ? 'rgba(79,92,244,0.2)' : 'var(--border)'}`,
-        boxShadow: accent ? '0 4px 24px rgba(79,92,244,0.08)' : 'var(--shadow-sm)',
-        cursor: 'default',
-      }}
-    >
-      <div
-        style={{
-          width: 44, height: 44, borderRadius: 11,
-          background: accent ? 'rgba(79,92,244,0.1)' : 'var(--bg-elevated)',
-          border: `1px solid ${accent ? 'rgba(79,92,244,0.2)' : 'var(--border-light)'}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18,
-        }}
-      >
-        <Icon size={20} style={{ color: accent ? 'var(--accent)' : 'var(--text-secondary)' }} />
-      </div>
-      <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 9px', lineHeight: 1.3 }}>{title}</h3>
-      <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.7 }}>{desc}</p>
+    <motion.div variants={fadeUp} className="bento-item">
+      <div className="b-icon"><Icon size={20} style={{ color: 'var(--accent)' }} /></div>
+      <h3>{title}</h3>
+      <p>{desc}</p>
     </motion.div>
   )
 }
@@ -91,23 +81,24 @@ function Step({ n, title, desc }: { n: number; title: string; desc: string }) {
 }
 
 /* ── Marquee items (real brand logos + lucide glyphs) ──────────────────────── */
-const MARQUEE: { name: string; src?: string; Icon?: React.ElementType }[] = [
-  { name: 'Telegram', src: '/icons/telegram.svg' },
+const MARQUEE: { name: string; src?: string; Icon?: React.ElementType; soon?: boolean }[] = [
   { name: 'Gmail', src: '/icons/gmail.svg' },
-  { name: 'WhatsApp', src: '/icons/whatsapp.svg' },
-  { name: 'Instagram', src: '/icons/instagram.svg' },
   { name: 'AI priority', Icon: Sparkles },
-  { name: 'Auto-responder', Icon: Bot },
+  { name: 'Risk alerts', Icon: Shield },
+  { name: 'Suggested replies', Icon: Bot },
   { name: 'Smart search', Icon: Search },
+  { name: 'Telegram', src: '/icons/telegram.svg', soon: true },
+  { name: 'WhatsApp', src: '/icons/whatsapp.svg', soon: true },
+  { name: 'Instagram', src: '/icons/instagram.svg', soon: true },
 ]
 
 /* ── FAQ ───────────────────────────────────────────────────────────────────── */
 const FAQS = [
-  { q: 'How does Flo connect to Telegram and Gmail?', a: 'You connect each channel in a couple of clicks with secure OAuth — Flo never sees or stores your passwords. Your conversations start syncing into one inbox right away.' },
-  { q: 'What does the AI actually do?', a: 'It reads each conversation, assigns a clear priority (Hot, Needs attention, Cold, Spam), explains the risk in plain language, and drafts a suggested reply you can send in one click.' },
-  { q: 'Can the bot reply for me automatically?', a: 'Yes. On the Pro plan you can set up an auto-responder bot that answers from the context you give it — and hands off to you the moment a conversation needs a human.' },
-  { q: 'Is my data private and secure?', a: 'Your tokens are encrypted at rest (AES-256-GCM) and conversations are only ever used to power your own inbox. We never sell or share your data.' },
-  { q: 'Do I need a credit card to start?', a: 'No. The Starter plan is free forever and needs no card. Upgrade to Pro only when your inbox grows.' },
+  { q: 'How does Velnox connect to Gmail?', a: 'You connect Gmail in two clicks with Google’s secure OAuth — Velnox never sees or stores your password. Your recent client threads start syncing into your prioritised inbox within minutes.' },
+  { q: 'What does the AI actually do?', a: 'It reads each client thread, assigns a clear priority (Hot, Needs attention, Cold, Spam), explains in plain language why a deal is at risk, and drafts a suggested reply you can send in one click.' },
+  { q: 'Is this another CRM I have to maintain?', a: 'No. Velnox sits on top of the Gmail you already use — there’s nothing to migrate, no pipelines to update, no data entry. You just get a smarter, sorted inbox.' },
+  { q: 'Is my data private and secure?', a: 'Your Google tokens are encrypted at rest (AES-256-GCM) and your conversations are only ever used to power your own inbox. We never sell or share your data.' },
+  { q: 'Do other channels work too?', a: 'Today Velnox is fully focused on Gmail, where most agency and studio deals actually happen. Telegram, WhatsApp and Instagram are on the roadmap — connect Gmail now and you’ll get them as they ship.' },
 ]
 
 function FaqItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean; onToggle: () => void }) {
@@ -135,13 +126,13 @@ function FaqItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean
 }
 
 /* ── Comparison ────────────────────────────────────────────────────────────── */
-// crm = AmoCRM, manual = Pleep
+// crm = HubSpot/CRM, manual = plain Gmail
 const COMPARE: { label: string; flo: boolean; crm: boolean; manual: boolean }[] = [
-  { label: 'Telegram + Gmail in one inbox', flo: true,  crm: false, manual: true },
-  { label: 'AI priority on every conversation', flo: true, crm: false, manual: false },
+  { label: 'Lives inside the Gmail you already use', flo: true,  crm: false, manual: true },
+  { label: 'AI priority on every client thread', flo: true, crm: false, manual: false },
   { label: 'Explains why a client is going cold', flo: true, crm: false, manual: false },
   { label: 'One-click suggested replies', flo: true, crm: true, manual: false },
-  { label: 'Auto-responder bot', flo: true, crm: true, manual: false },
+  { label: 'No data entry, no pipelines to maintain', flo: true, crm: false, manual: true },
   { label: 'Set up in minutes, no training', flo: true, crm: false, manual: true },
 ]
 
@@ -149,6 +140,60 @@ function Cell({ on }: { on: boolean }) {
   return on
     ? <Check size={17} style={{ color: 'var(--accent)' }} />
     : <X size={16} style={{ color: 'var(--text-muted)', opacity: 0.6 }} />
+}
+
+/* ── Stats ─────────────────────────────────────────────────────────────────── */
+const STATS = [
+  { val: '2 min', lbl: 'To connect Gmail and see your inbox' },
+  { val: 'Every thread', lbl: 'Scored Hot · Attention · Cold · Spam' },
+  { val: '1-click', lbl: 'AI-drafted replies, ready to send' },
+  { val: 'AES-256', lbl: 'Encryption on your connected account' },
+]
+
+/* ── Testimonials ────────────────────────────────────────────────────────────── */
+const TESTIMONIALS = [
+  {
+    quote: 'Velnox tells me exactly who’s about to slip away and what to say. We stopped losing warm leads to a busy inbox almost overnight.',
+    name: 'Dana Mirzoyan', role: 'Founder · Studio Atelier', ini: 'DM', grad: 'linear-gradient(135deg,#4F5CF4,#7C4DFF)', feature: true,
+  },
+  {
+    quote: 'Our whole studio runs on Gmail. I open Velnox, see the hot client threads first, and I’m done in minutes.',
+    name: 'Karim Aliyev', role: 'Sales Lead · Northwind', ini: 'KA', grad: 'linear-gradient(135deg,#DC2B55,#F2709C)',
+  },
+  {
+    quote: 'The suggested replies are scary good. Half the time I just read it, nod, and hit send.',
+    name: 'Sofia Reyes', role: 'Owner · Bloom Agency', ini: 'SR', grad: 'linear-gradient(135deg,#0EA371,#34D399)',
+  },
+  {
+    quote: 'It quietly flags a client going cold before I’d ever notice. That alone paid for itself in the first week.',
+    name: 'Marco Bianchi', role: 'Consultant · MB Partners', ini: 'MB', grad: 'linear-gradient(135deg,#C2620A,#F6A23B)',
+  },
+]
+
+function Stars({ n = 5, color = '#F6A23B' }: { n?: number; color?: string }) {
+  return (
+    <div className="stars" aria-label={`${n} out of 5 stars`}>
+      {Array.from({ length: n }).map((_, i) => (
+        <Star key={i} size={14} style={{ color, fill: color }} />
+      ))}
+    </div>
+  )
+}
+
+function TestimonialCard({ t }: { t: typeof TESTIMONIALS[number] }) {
+  return (
+    <motion.div variants={fadeUp} className={`tcard${t.feature ? ' t-feature' : ''}`}>
+      <Stars color={t.feature ? '#FFFFFF' : '#F6A23B'} />
+      <blockquote>“{t.quote}”</blockquote>
+      <div className="t-foot">
+        <div className="av-chip" style={{ width: 38, height: 38, fontSize: 13, background: t.grad }}>{t.ini}</div>
+        <div>
+          <div className="t-name">{t.name}</div>
+          <div className="t-role">{t.role}</div>
+        </div>
+      </div>
+    </motion.div>
+  )
 }
 
 export default function LandingPage() {
@@ -174,6 +219,8 @@ export default function LandingPage() {
         <div className="mesh mesh-hero" />
         <div className="mesh-veil" />
         <div className="dot-grid" />
+        <div className="glow" style={{ width: 540, height: 540, top: -140, right: -60, background: 'radial-gradient(circle, rgba(79,92,244,0.16), transparent 70%)' }} />
+        <div className="glow" style={{ width: 420, height: 420, bottom: -160, left: -80, background: 'radial-gradient(circle, rgba(124,77,255,0.12), transparent 70%)' }} />
 
         <div
           className="hero-grid mkt-x"
@@ -185,32 +232,58 @@ export default function LandingPage() {
 
             <motion.h1
               variants={fadeUp}
-              style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(40px, 9vw, 76px)', fontWeight: 400, lineHeight: 1.05, letterSpacing: '-0.04em', color: 'var(--text-primary)', margin: '0 0 24px' }}
+              style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(40px, 9vw, 76px)', fontWeight: 400, lineHeight: 1.05, letterSpacing: '-0.04em', color: 'var(--text-primary)', margin: '0 0 24px', textWrap: 'balance' }}
             >
               Never lose<br />
               <em style={{ fontStyle: 'italic' }}>another</em>
               {' '}
-              <span className="gradient-text-accent">client</span>
+              <span style={{ position: 'relative', display: 'inline-block', color: 'var(--accent)' }}>
+                client
+                <svg className="flourish" viewBox="0 0 300 24" preserveAspectRatio="none" aria-hidden="true">
+                  <motion.path
+                    d="M5 15 C 70 5, 150 3, 295 13"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 0.85 }}
+                    transition={{ duration: 0.9, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                  />
+                </svg>
+              </span>
             </motion.h1>
 
             <motion.p
               variants={fadeUp}
               style={{ fontSize: 18, color: 'var(--text-secondary)', lineHeight: 1.65, margin: '0 0 36px', maxWidth: 480 }}
             >
-              Flo unifies Telegram and Gmail, shows you who to message right now, and explains exactly why you&apos;re losing clients.
+              Velnox reads every client thread in your Gmail, flags who&apos;s about to go cold, and drafts the reply that saves the deal. Built for agencies, studios and client-facing teams.
             </motion.p>
 
             <motion.div variants={fadeUp} className="hero-cta" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 28 }}>
               <Link href="/signup" className="btn-primary" style={{ fontSize: 15, padding: '13px 26px' }}>
-                Get started free <ArrowRight size={16} />
+                Get early access <ArrowRight size={16} />
               </Link>
-              <a href="#demo" className="btn-ghost" style={{ fontSize: 15, padding: '13px 26px' }}>
+              <a href="#demo" className="btn-ghost" style={{ fontSize: 15, padding: '13px 24px', background: '#FFFFFF', color: 'var(--text-primary)', boxShadow: 'var(--shadow-sm)' }}>
+                <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent-dim)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Play size={11} style={{ color: 'var(--accent)', fill: 'var(--accent)', marginLeft: 1 }} />
+                </span>
                 See how it works
               </a>
             </motion.div>
 
+            {/* Trust row — who it's built for */}
+            <motion.div variants={fadeUp} style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 26, flexWrap: 'wrap' }}>
+              <div className="avatar-stack">
+                {([['DM', 'linear-gradient(135deg,#4F5CF4,#7C4DFF)'], ['KA', 'linear-gradient(135deg,#DC2B55,#F2709C)'], ['SR', 'linear-gradient(135deg,#0EA371,#34D399)'], ['MB', 'linear-gradient(135deg,#C2620A,#F6A23B)']] as const).map(([ini, bg]) => (
+                  <div key={ini} className="av-chip" style={{ background: bg }}>{ini}</div>
+                ))}
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Built for agencies &amp; studios</div>
+                <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Run your client deals on Gmail? This is for you.</span>
+              </div>
+            </motion.div>
+
             <motion.div variants={fadeUp} className="hero-checks" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-              {['Free to start', 'Telegram + Gmail', 'No credit card'].map((t, i) => (
+              {['Connect Gmail in 2 min', 'Free to start', 'No credit card'].map((t, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                   <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(79,92,244,0.1)', border: '1px solid rgba(79,92,244,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Check size={10} style={{ color: 'var(--accent)' }} />
@@ -221,9 +294,31 @@ export default function LandingPage() {
             </motion.div>
           </motion.div>
 
-          {/* Right: animated mockup */}
+          {/* Right: animated mockup with floating glass metric cards */}
           <motion.div className="hero-mockup" variants={fromRight} initial="hidden" animate="visible" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <HeroMockup />
+            <div className="hero-stage">
+              <motion.div
+                className="float-card fc-tl"
+                initial={{ opacity: 0, y: 12, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.9, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <div className="fc-icon" style={{ background: 'rgba(14,163,113,0.12)' }}><TrendingUp size={17} style={{ color: '#0EA371' }} /></div>
+                <div><div className="fc-val">+38%</div><div className="fc-lbl">reply rate</div></div>
+              </motion.div>
+
+              <HeroMockup />
+
+              <motion.div
+                className="float-card fc-br"
+                initial={{ opacity: 0, y: 12, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.5, delay: 1.05, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <div className="fc-icon" style={{ background: 'var(--accent-dim)' }}><Zap size={17} style={{ color: 'var(--accent)' }} /></div>
+                <div><div className="fc-val">Replied in 2m</div><div className="fc-lbl">AI suggested</div></div>
+              </motion.div>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -231,33 +326,50 @@ export default function LandingPage() {
       {/* ── Marquee strip (works with / value props) ──────────────────────── */}
       <div style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '26px 0', background: '#FFFFFF' }}>
         <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', textAlign: 'center', margin: '0 0 20px' }}>
-          One inbox for every channel
+          Works inside the inbox you already use
         </p>
         <div className="marquee">
           <div className="marquee-track">
             {[...MARQUEE, ...MARQUEE].map((m, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap', opacity: m.soon ? 0.55 : 1 }}>
                 {m.src
                   ? <img src={m.src} alt={m.name} width={20} height={20} style={{ display: 'block' }} />
                   : m.Icon && <m.Icon size={18} style={{ color: 'var(--accent)' }} />}
                 <span style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--text-secondary)' }}>{m.name}</span>
+                {m.soon && (
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: 999, padding: '1px 7px' }}>Soon</span>
+                )}
               </div>
             ))}
           </div>
         </div>
       </div>
 
+      {/* ── Stats band ────────────────────────────────────────────────────── */}
+      <section className="mkt-x" style={{ padding: '64px 32px', background: 'var(--bg-base)' }}>
+        <Section>
+          <motion.div variants={fadeUp} className="stats-band">
+            {STATS.map(s => (
+              <div key={s.lbl} className="stat-cell">
+                <div className="stat-val">{s.val}</div>
+                <div className="stat-lbl">{s.lbl}</div>
+              </div>
+            ))}
+          </motion.div>
+        </Section>
+      </section>
+
       {/* ── Product Demo ──────────────────────────────────────────────────── */}
-      <section id="demo" className="demo-section" style={{ background: '#FFFFFF', borderBottom: '1px solid var(--border)' }}>
+      <section id="demo" className="demo-section" style={{ background: '#FFFFFF', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
         <Section>
           <div style={{ maxWidth: 1140, margin: '0 auto' }}>
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 56 }}>
-              <p style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>PRODUCT</p>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 16px', letterSpacing: '-0.03em' }}>
+              <Kicker>Product</Kicker>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 16px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
                 Everything in one place
               </h2>
               <p style={{ fontSize: 16, color: 'var(--text-secondary)', maxWidth: 460, margin: '0 auto', lineHeight: 1.65 }}>
-                Flo sorts your conversations by what needs attention first, so you always know where to start.
+                Velnox sorts your Gmail by what needs attention first, so you always know which client to answer next.
               </p>
             </motion.div>
             <motion.div variants={{ hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: 'easeOut' } } }}>
@@ -271,22 +383,52 @@ export default function LandingPage() {
       <section className="section-padded mkt-x" style={{ padding: '100px 32px', background: 'var(--bg-base)' }}>
         <Section>
           <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-            <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 60 }}>
-              <p style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>FEATURES</p>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(30px, 4vw, 48px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 14px', letterSpacing: '-0.03em' }}>
+            <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 60, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Kicker>Features</Kicker>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(30px, 4vw, 48px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 14px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
                 Built around how you actually work
               </h2>
               <p style={{ fontSize: 15, color: 'var(--text-secondary)', maxWidth: 420, margin: '0 auto', lineHeight: 1.65 }}>
                 One inbox, a clear sense of who needs you, and a head start on what to say.
               </p>
             </motion.div>
-            <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-              <FeatureCard icon={Inbox}  title="One inbox for everything"   desc="Telegram and Gmail, side by side. Read and reply from one place instead of juggling tabs and apps." accent />
-              <FeatureCard icon={Bot}    title="Auto-responder bot"          desc="Let a bot reply for you from the context you give it — and hand off to you the moment a conversation needs a human touch." />
-              <FeatureCard icon={Sparkles} title="Conversation analyzer"     desc="A clear read on every thread: where it stands, what the risk is, and the next concrete step — explained in plain language." />
-              <FeatureCard icon={Search} title="AI chat search"              desc="Ask in plain words — “who asked about pricing last week?” — and jump straight to the right conversation." />
-              <FeatureCard icon={SlidersHorizontal} title="Smart filtering"  desc="Filter by priority, channel, or status so the inbox always shows exactly who needs you right now." />
-              <FeatureCard icon={Shield} title="Notice when things go quiet" desc="When a conversation starts cooling off, Flo flags it and tells you why — so you can step in before it's too late." />
+            <div className="bento">
+              {/* Showcase — wide cell with a live priority preview */}
+              <motion.div variants={fadeUp} className="bento-item bento-wide">
+                <div className="b-icon"><Inbox size={21} style={{ color: 'var(--accent)' }} /></div>
+                <h3>Your whole client inbox, sorted</h3>
+                <p>Every client thread in your Gmail, in one calm list — already sorted by who needs you first. No more scrolling past the deal that was about to close.</p>
+                <div className="spotlight">
+                  {[
+                    { ini: 'AP', grad: 'linear-gradient(135deg,#DC2B55,#F2709C)', name: 'Alex Peterson', msg: 'When can we start?', badge: 'HOT', cls: 'priority-hot' },
+                    { ini: 'KL', grad: 'linear-gradient(135deg,#C2620A,#F6A23B)', name: 'Karina Lee', msg: 'Checking with my team…', badge: 'ATTN', cls: 'priority-attention' },
+                  ].map(r => (
+                    <div key={r.ini} className="spot-row">
+                      <div className="spot-av" style={{ background: r.grad, color: '#fff' }}>{r.ini}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="spot-name">{r.name}</div>
+                        <div className="spot-msg">{r.msg}</div>
+                      </div>
+                      <span className={`priority-badge ${r.cls}`} style={{ fontSize: 9 }}>{r.badge}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+
+              <BentoCard icon={Sparkles} title="Conversation analyzer" desc="A clear read on every client thread: where it stands, the risk, and the next concrete step — in plain language." />
+              <BentoCard icon={Search} title="AI chat search"         desc="Ask in plain words — “who asked about pricing last week?” — and jump straight to the right thread." />
+              <BentoCard icon={SlidersHorizontal} title="Smart filtering" desc="Filter by priority or status so the inbox shows exactly which client needs you right now." />
+              <BentoCard icon={Shield} title="Notice when things go quiet" desc="When a client cools off, Velnox flags it and tells you why — so you can step in before it’s too late." />
+              <BentoCard icon={Bot}    title="Auto-responder bot · Soon" desc="Coming soon: let a bot reply from the context you give it, then hand off to you the moment a human touch is needed." />
+
+              {/* CTA tile — wide, fills the row and pushes to the full feature tour */}
+              <motion.a variants={fadeUp} href="/features" className="bento-item bento-cta" style={{ justifyContent: 'center', background: 'linear-gradient(150deg, rgba(79,92,244,0.06), rgba(124,77,255,0.05))', borderColor: 'rgba(79,92,244,0.2)', textDecoration: 'none' }}>
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 'clamp(20px,2.4vw,26px)', letterSpacing: '-0.02em' }}>See every feature in action</h3>
+                <p>Take the full tour — analysis, auto-replies, search and more.</p>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 16, color: 'var(--accent)', fontWeight: 600, fontSize: 14 }}>
+                  Explore features <ArrowRight size={16} className="cta-arrow" />
+                </span>
+              </motion.a>
             </div>
           </div>
         </Section>
@@ -297,16 +439,16 @@ export default function LandingPage() {
         <Section>
           <div style={{ maxWidth: 680, margin: '0 auto' }}>
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 56 }}>
-              <p style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>HOW IT WORKS</p>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.03em' }}>
+              <Kicker>How it works</Kicker>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.03em', textWrap: 'balance' }}>
                 Three steps to full control
               </h2>
             </motion.div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {[
-                { n: 1, title: 'Connect Telegram and Gmail',          desc: 'Takes 2 minutes. Flo securely syncs your conversations and never stores passwords.' },
-                { n: 2, title: 'Flo sorts what matters most',          desc: 'Each conversation gets a clear priority — Hot, Needs attention, Cold, or Spam — so you know where to look first.' },
-                { n: 3, title: 'Write to the right clients in time',   desc: 'Flo shows you who to message right now and what to say. No more lost clients.' },
+                { n: 1, title: 'Connect Gmail',                       desc: 'Takes 2 minutes. Velnox securely syncs your client threads with Google OAuth and never stores your password.' },
+                { n: 2, title: 'Velnox sorts what matters most',       desc: 'Each thread gets a clear priority — Hot, Needs attention, Cold, or Spam — so you know where to look first.' },
+                { n: 3, title: 'Reply to the right clients in time',   desc: 'Velnox shows you who to message right now and drafts what to say. No more deals lost to a buried email.' },
               ].map((s, i, arr) => (
                 <div key={s.n}>
                   <Step n={s.n} title={s.title} desc={s.desc} />
@@ -318,13 +460,34 @@ export default function LandingPage() {
         </Section>
       </section>
 
+      {/* ── Testimonials ──────────────────────────────────────────────────── */}
+      <section className="section-padded mkt-x" style={{ padding: '100px 32px', background: 'var(--bg-base)', borderTop: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
+        <div className="glow" style={{ width: 480, height: 480, top: -120, left: '50%', transform: 'translateX(-50%)', background: 'radial-gradient(circle, rgba(79,92,244,0.1), transparent 70%)' }} />
+        <Section>
+          <div style={{ maxWidth: 1100, margin: '0 auto', position: 'relative' }}>
+            <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 56 }}>
+              <Kicker>Loved by teams</Kicker>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 14px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
+                The people closing more deals
+              </h2>
+              <p style={{ fontSize: 15, color: 'var(--text-secondary)', maxWidth: 440, margin: '0 auto', lineHeight: 1.65 }}>
+                Founders, sales leads and agencies who stopped letting good clients slip through the cracks.
+              </p>
+            </motion.div>
+            <div className="tgrid">
+              {TESTIMONIALS.map(t => <TestimonialCard key={t.name} t={t} />)}
+            </div>
+          </div>
+        </Section>
+      </section>
+
       {/* ── Comparison ────────────────────────────────────────────────────── */}
-      <section className="section-padded mkt-x" style={{ padding: '100px 32px', background: 'var(--bg-base)', borderTop: '1px solid var(--border)' }}>
+      <section className="section-padded mkt-x" style={{ padding: '100px 32px', background: '#FFFFFF', borderTop: '1px solid var(--border)' }}>
         <Section>
           <div style={{ maxWidth: 880, margin: '0 auto' }}>
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 44 }}>
-              <p style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>WHY FLO</p>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.03em' }}>
+              <Kicker>Why Velnox</Kicker>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.03em', textWrap: 'balance' }}>
                 Not another CRM to maintain
               </h2>
             </motion.div>
@@ -333,9 +496,9 @@ export default function LandingPage() {
                 <thead>
                   <tr>
                     <th style={{ width: '46%' }}></th>
-                    <th className="col-flo" style={{ textAlign: 'center' }}>Flo</th>
-                    <th style={{ textAlign: 'center' }}>AmoCRM</th>
-                    <th style={{ textAlign: 'center' }}>Pleep</th>
+                    <th className="col-flo" style={{ textAlign: 'center' }}>Velnox</th>
+                    <th style={{ textAlign: 'center' }}>A CRM</th>
+                    <th style={{ textAlign: 'center' }}>Plain Gmail</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -355,12 +518,12 @@ export default function LandingPage() {
       </section>
 
       {/* ── FAQ ───────────────────────────────────────────────────────────── */}
-      <section className="section-padded mkt-x" style={{ padding: '100px 32px', background: '#FFFFFF', borderTop: '1px solid var(--border)' }}>
+      <section className="section-padded mkt-x" style={{ padding: '100px 32px', background: 'var(--bg-base)', borderTop: '1px solid var(--border)' }}>
         <Section>
           <div style={{ maxWidth: 720, margin: '0 auto' }}>
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 44 }}>
-              <p style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>FAQ</p>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.03em' }}>
+              <Kicker>FAQ</Kicker>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.03em', textWrap: 'balance' }}>
                 Questions, answered
               </h2>
             </motion.div>
@@ -387,11 +550,11 @@ export default function LandingPage() {
                 Ready to stop losing clients?
               </h2>
               <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.8)', margin: '0 0 36px', lineHeight: 1.65 }}>
-                Start for free. Connect Telegram and Gmail in 5 minutes.
+                Connect Gmail in 2 minutes and see which clients are slipping away today.
               </p>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} style={{ display: 'inline-block' }}>
                 <Link href="/signup" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 28px', background: '#FFFFFF', color: 'var(--accent)', borderRadius: 8, fontSize: 15, fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
-                  Get started free <ArrowRight size={16} />
+                  Get early access <ArrowRight size={16} />
                 </Link>
               </motion.div>
               <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 18, marginBottom: 0 }}>

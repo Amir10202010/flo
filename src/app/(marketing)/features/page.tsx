@@ -25,28 +25,28 @@ type Row = {
 
 const ROWS: Row[] = [
   {
+    icon: Mail,
+    eyebrow: 'One-click setup',
+    title: 'Connect Gmail in seconds',
+    desc: 'Secure Google sign-in, no passwords stored. Velnox imports your recent client threads and starts prioritising them right away.',
+    points: ['Secure OAuth — no passwords', 'Imports recent threads automatically', 'Live priority from the first sync'],
+    demo: <GmailConnectDemo />,
+  },
+  {
     icon: Search,
     eyebrow: 'AI chat search',
-    title: 'Find any conversation by meaning',
-    desc: 'Ask in plain words — “who asked about the premium plan?” — and Flo surfaces the right thread instantly, then helps you close it.',
-    points: ['Semantic search, not just keywords', 'Works across Telegram + Gmail', 'Jump from search straight to a reply'],
+    title: 'Find any client thread by meaning',
+    desc: 'Ask in plain words — “who asked about the premium package?” — and Velnox surfaces the right Gmail thread instantly, then helps you close it.',
+    points: ['Semantic search, not just keywords', 'Works across your whole Gmail', 'Jump from search straight to a reply'],
     demo: <SearchDemo />,
   },
   {
     icon: Bot,
-    eyebrow: 'Auto-responder bot',
-    title: 'Let a bot reply for you',
-    desc: 'Paste in your business details once. The bot answers common questions from that context in your tone — and hands off to you the moment a human is needed.',
+    eyebrow: 'Auto-responder bot · Coming soon',
+    title: 'Soon: let a bot reply for you',
+    desc: 'Paste in your business details once. The bot will answer common questions from that context in your tone — and hand off to you the moment a human is needed.',
     points: ['Answers from your own knowledge', 'Always on, even after hours', 'Seamless human hand-off'],
     demo: <BotSetupDemo />,
-  },
-  {
-    icon: Mail,
-    eyebrow: 'One-click setup',
-    title: 'Connect Gmail in seconds',
-    desc: 'Secure Google sign-in, no passwords stored. Flo imports your recent conversations and starts prioritising them right away.',
-    points: ['Secure OAuth — no passwords', 'Imports recent threads automatically', 'Live priority from the first sync'],
-    demo: <GmailConnectDemo />,
   },
 ]
 
@@ -110,7 +110,7 @@ export default function FeaturesPage() {
               initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: 'easeOut' }}
               style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(36px, 5.5vw, 60px)', fontWeight: 400, color: 'var(--text-primary)', letterSpacing: '-0.04em', lineHeight: 1.05, margin: '0 0 20px' }}
             >
-              Everything you need to <span className="gradient-text-accent">close more deals</span>
+              Everything you need to <span style={{ fontStyle: 'italic', color: 'var(--accent)' }}>close more deals</span>
             </motion.h1>
             <motion.p initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: 'easeOut', delay: 0.1 }} style={{ fontSize: 18, color: 'var(--text-secondary)', lineHeight: 1.65, margin: '0 auto', maxWidth: 520 }}>
               Search, automation, and one-click setup — built to turn conversations into customers.
@@ -138,7 +138,7 @@ export default function FeaturesPage() {
                 See it on your own inbox
               </h2>
               <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.82)', margin: '0 0 32px', lineHeight: 1.65 }}>
-                Connect Telegram and Gmail in minutes. Free to start, no credit card.
+                Connect Gmail in minutes. Free to start, no credit card.
               </p>
               <Link href="/signup" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 28px', background: '#FFFFFF', color: 'var(--accent)', borderRadius: 8, fontSize: 15, fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
                 Get started free <ArrowRight size={16} />

@@ -40,6 +40,7 @@ CRON_SECRET            # Vercel Cron bearer token that authorizes /api/jobs/proc
 WORKER_SECRET          # alt shared secret for triggering cron/drain endpoints via x-worker-secret
 GMAIL_PUBSUB_TOPIC                # full Pub/Sub topic for Gmail push: projects/<proj>/topics/<topic>
 GMAIL_PUBSUB_VERIFICATION_TOKEN   # shared token checked on the push webhook (?token=...)
+NEXT_PUBLIC_CHECKOUT_URL          # optional: Stripe Payment Link / LemonSqueezy / Paddle checkout URL. Wires the "Get Velnox Pro" (pricing) and "Upgrade to Pro" (settings) buttons. Falls back to /signup and /pricing if unset.
 ```
 
 ## Architecture

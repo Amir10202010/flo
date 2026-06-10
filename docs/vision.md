@@ -1,6 +1,6 @@
-# Flo — Vision
+# Velnox — Vision
 
-Product: Flo — AI Inbox for service business managers.
+Product: Velnox — AI Gmail inbox for client-facing teams.
 
 Problem: Managers lose clients due to slow replies and lack of prioritization across Telegram and Gmail.
 

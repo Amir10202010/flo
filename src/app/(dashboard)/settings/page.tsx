@@ -36,6 +36,27 @@ export default async function SettingsPage() {
           </div>
         </div>
 
+        {/* Plan / Billing — drop NEXT_PUBLIC_CHECKOUT_URL (Stripe Payment Link,
+            LemonSqueezy, or Paddle) to turn the button into a real checkout. */}
+        <div style={{ background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--shadow-xs)' }}>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-light)' }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Plan</span>
+          </div>
+          <div style={{ padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ margin: '0 0 3px', fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>Starter · Free</p>
+              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted)' }}>Upgrade to Pro for unlimited threads and full AI analysis.</p>
+            </div>
+            <a
+              href={process.env.NEXT_PUBLIC_CHECKOUT_URL || '/pricing'}
+              className="btn-primary"
+              style={{ fontSize: 13.5, padding: '9px 18px', textDecoration: 'none', flexShrink: 0 }}
+            >
+              Upgrade to Pro — $39/mo
+            </a>
+          </div>
+        </div>
+
         {/* Account */}
         <div style={{ background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--shadow-xs)' }}>
           <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-light)' }}>
@@ -46,7 +67,7 @@ export default async function SettingsPage() {
           </div>
         </div>
 
-        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, paddingLeft: 4 }}>Flo · Early Access</p>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, paddingLeft: 4 }}>Velnox · Early Access</p>
       </div>
     </div>
   )

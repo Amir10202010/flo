@@ -1,7 +1,7 @@
 const CONVS = [
-  { initials: 'AP', color: '#3B5BDB', bg: 'rgba(59,91,219,0.18)', name: 'Alex Peterson', priority: 'HOT' as const, cls: 'priority-hot', text: "Sounds good, price works — when can we start?", meta: 'Telegram · 2m', unread: 3 },
+  { initials: 'AP', color: '#3B5BDB', bg: 'rgba(59,91,219,0.18)', name: 'Alex Peterson', priority: 'HOT' as const, cls: 'priority-hot', text: "Sounds good, price works — when can we start?", meta: 'Gmail · 2m', unread: 3 },
   { initials: 'KL', color: '#A855F7', bg: 'rgba(168,85,247,0.18)', name: 'Karina Lee',    priority: 'ATTENTION' as const, cls: 'priority-attention', text: 'Still thinking it over, need to check with my team...', meta: 'Gmail · 3h',    unread: 1 },
-  { initials: 'MJ', color: '#6B7280', bg: 'rgba(107,114,128,0.18)', name: 'Mark Johnson', priority: 'COLD' as const, cls: 'priority-cold', text: "Thanks, I'll follow up later. Busy right now.", meta: 'Telegram · yesterday', unread: 0 },
+  { initials: 'MJ', color: '#6B7280', bg: 'rgba(107,114,128,0.18)', name: 'Mark Johnson', priority: 'COLD' as const, cls: 'priority-cold', text: "Thanks, I'll follow up later. Busy right now.", meta: 'Gmail · yesterday', unread: 0 },
 ]
 
 export default function InboxPreview() {
@@ -23,7 +23,7 @@ export default function InboxPreview() {
             ))}
           </div>
           <div style={{ flex: 1, marginLeft: 8, height: 24, borderRadius: 5, background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', paddingLeft: 12 }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>flo.ai/inbox</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>velnox.app/inbox</span>
           </div>
         </div>
 

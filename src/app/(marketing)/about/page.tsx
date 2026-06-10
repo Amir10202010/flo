@@ -61,7 +61,7 @@ export default function AboutPage() {
               transition={{ duration: 0.55, ease: 'easeOut', delay: 0.1 }}
               style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}
             >
-              Flo started from a simple frustration: every customer conversation lives in a different app, and by the time
+              Velnox started from a simple frustration: client emails pile up in Gmail, and by the time
               you notice someone is losing interest, they&apos;ve already gone to a competitor. We built the inbox we wished we had.
             </motion.p>
           </div>
@@ -119,7 +119,7 @@ export default function AboutPage() {
               Reach out at <a href="mailto:sagindiktar@gmail.com" style={{ color: '#fff', fontWeight: 600 }}>sagindiktar@gmail.com</a> — we read every message.
             </p>
             <Link href="/signup" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 26px', background: '#FFFFFF', color: 'var(--accent)', borderRadius: 8, fontSize: 14.5, fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
-              Try Flo for free <ArrowRight size={15} />
+              Try Velnox for free <ArrowRight size={15} />
             </Link>
           </motion.div>
         </section>

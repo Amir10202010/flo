@@ -7,9 +7,9 @@ import Cursor from './Cursor'
 
 /* ── Static data ──────────────────────────────────────────────────────────── */
 const CONVS = [
-  { ini: 'AP', bg: 'rgba(220,43,85,0.1)', col: '#DC2B55', name: 'Alex Peterson', priority: 'HOT',  cls: 'priority-hot',       preview: 'Sounds good, the price works. When could we start?', meta: 'Telegram · 2m', unread: 3 },
+  { ini: 'AP', bg: 'rgba(220,43,85,0.1)', col: '#DC2B55', name: 'Alex Peterson', priority: 'HOT',  cls: 'priority-hot',       preview: 'Sounds good, the price works. When could we start?', meta: 'Gmail · 2m', unread: 3 },
   { ini: 'KL', bg: 'rgba(194,98,10,0.1)', col: '#C2620A', name: 'Karina Lee',    priority: 'ATTN', cls: 'priority-attention', preview: 'Still thinking it over, need to check with my team…', meta: 'Gmail · 3h',    unread: 1 },
-  { ini: 'MJ', bg: 'rgba(79,92,244,0.1)', col: '#4F5CF4', name: 'Mark Johnson',  priority: 'COLD', cls: 'priority-cold',      preview: "Thanks, I'll follow up later. Busy right now.",        meta: 'Telegram · 1d', unread: 0 },
+  { ini: 'MJ', bg: 'rgba(79,92,244,0.1)', col: '#4F5CF4', name: 'Mark Johnson',  priority: 'COLD', cls: 'priority-cold',      preview: "Thanks, I'll follow up later. Busy right now.",        meta: 'Gmail · 1d', unread: 0 },
 ]
 
 const BASE_MESSAGES = [
@@ -86,7 +86,7 @@ export default function ProductDemo() {
           </div>
           <div style={{ flex: 1, maxWidth: 240, height: 26, borderRadius: 6, background: 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'rgba(79,92,244,0.4)' }} />
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>flo.app/inbox</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>velnox.app/inbox</span>
           </div>
         </div>
 
@@ -95,7 +95,7 @@ export default function ProductDemo() {
           {/* Sidebar */}
           <div className="demo-sidebar" style={{ width: 200, borderRight: '1px solid var(--border-light)', padding: '16px 10px', display: 'flex', flexDirection: 'column', gap: 14, flexShrink: 0, background: 'var(--bg-subtle)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 8px' }}>
-              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1 }}>flo</span>
+              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1 }}>velnox</span>
               <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', marginBottom: 7, display: 'inline-block' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -160,7 +160,7 @@ export default function ProductDemo() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
                   <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>Alex Peterson</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Telegram · last message 2 minutes ago</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Gmail · last message 2 minutes ago</div>
                 </div>
                 <span className={`priority-badge ${won ? 'priority-cold' : 'priority-hot'}`}>{won ? 'WON' : 'HOT'}</span>
               </div>

@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     // Normalise so push-notification lookups (by emailAddress) match exactly.
     connectedEmail = connectedEmail?.toLowerCase() ?? null
 
-    // Ensure the Flo user row exists (Supabase auth is separate from Prisma)
+    // Ensure the Velnox user row exists (Supabase auth is separate from Prisma)
     await prisma.user.upsert({
       where: { id: user.id },
       create: { id: user.id, email: user.email! },
