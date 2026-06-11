@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { enqueueGmailSync } from '@/services/jobs/queue'
+import { kickJobQueue } from '@/services/jobs/kick'
 
 export const dynamic = 'force-dynamic'
+// Allow the post-ack `after()` drain to run up to the platform max.
+export const maxDuration = 60
 
 /**
  * Gmail push notification receiver (Google Pub/Sub push subscription).
@@ -56,5 +59,6 @@ export async function POST(req: NextRequest) {
   }
 
   await enqueueGmailSync(integration.userId)
+  kickJobQueue()
   return NextResponse.json({ ok: true, queued: true })
 }

@@ -31,3 +31,21 @@ export async function drain(max = 25): Promise<number> {
   }
   return processed
 }
+
+/**
+ * Drain jobs until the queue empties or the wall-clock budget is exhausted.
+ * The deadline is checked between jobs, so a single in-flight job may overrun;
+ * keep `budgetMs` comfortably under the caller's serverless `maxDuration`.
+ * Used by the post-response `after()` kick and the cron drain so a single
+ * trigger clears as much of the backlog as it can in one invocation.
+ */
+export async function drainFor(budgetMs: number, max = Infinity): Promise<number> {
+  const deadline = Date.now() + budgetMs
+  let processed = 0
+  while (processed < max && Date.now() < deadline) {
+    const did = await processOne()
+    if (!did) break
+    processed++
+  }
+  return processed
+}

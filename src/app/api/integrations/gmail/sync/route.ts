@@ -2,11 +2,16 @@ import { NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { prisma } from '@/lib/prisma'
 import { enqueueGmailSync } from '@/services/jobs/queue'
+import { kickJobQueue } from '@/services/jobs/kick'
+
+// Allow the post-response `after()` drain to run up to the platform max.
+export const maxDuration = 60
 
 /**
  * Enqueue a Gmail sync job and return immediately (202). The sync runs in the
- * background worker / cron drain — it no longer blocks the request. The client
- * polls GET /api/jobs/[id] for the result.
+ * background — a post-response `after()` kick starts draining it instantly, and
+ * the cron-driven /api/jobs/process drain is the backstop. The client polls
+ * GET /api/jobs/[id] for the result.
  */
 export async function POST() {
   const supabase = await getSupabaseServerClient()
@@ -24,5 +29,6 @@ export async function POST() {
   }
 
   const job = await enqueueGmailSync(user.id)
+  kickJobQueue()
   return NextResponse.json({ jobId: job.id, status: 'queued' }, { status: 202 })
 }
