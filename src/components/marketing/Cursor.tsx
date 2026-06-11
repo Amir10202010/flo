@@ -10,11 +10,14 @@ export default function Cursor({ x, y, visible, clicking }: { x: number; y: numb
     <motion.div
       className="demo-cursor"
       initial={false}
-      animate={{ x, y, opacity: visible ? 1 : 0, scale: clicking ? 0.82 : 1 }}
+      animate={{ x, y, opacity: visible ? 1 : 0, scale: clicking ? 0.8 : 1, rotate: clicking ? -6 : 0 }}
       transition={{
-        x: { type: 'spring', stiffness: 120, damping: 18, mass: 0.7 },
-        y: { type: 'spring', stiffness: 120, damping: 18, mass: 0.7 },
-        scale: { duration: 0.18 },
+        // Slightly under-damped so the pointer glides in a natural arc and
+        // settles with a hint of overshoot, like a human hand.
+        x: { type: 'spring', stiffness: 95, damping: 16, mass: 0.85 },
+        y: { type: 'spring', stiffness: 95, damping: 16, mass: 0.85 },
+        scale: { type: 'spring', stiffness: 500, damping: 24 },
+        rotate: { type: 'spring', stiffness: 500, damping: 24 },
         opacity: { duration: 0.3 },
       }}
     >
@@ -30,8 +33,8 @@ export default function Cursor({ x, y, visible, clicking }: { x: number; y: numb
       {clicking && (
         <motion.span
           initial={{ scale: 0, opacity: 0.55 }}
-          animate={{ scale: 2.4, opacity: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
+          animate={{ scale: 2.6, opacity: 0 }}
+          transition={{ duration: 0.55, ease: 'easeOut' }}
           style={{
             position: 'absolute', top: 2, left: 2, width: 20, height: 20,
             borderRadius: '50%', background: 'rgba(79,92,244,0.35)',

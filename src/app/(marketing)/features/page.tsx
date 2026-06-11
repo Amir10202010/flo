@@ -3,10 +3,10 @@
 import React from 'react'
 import Link from 'next/link'
 import { motion, type Variants, MotionConfig } from 'framer-motion'
-import { ArrowRight, Check, Search, Bot, Mail } from 'lucide-react'
+import { ArrowRight, Check, Search, Bot, Mail, LayoutDashboard } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
-import { SearchDemo, BotSetupDemo, GmailConnectDemo } from '@/components/marketing/FeatureDemos'
+import { SearchDemo, BotSetupDemo, GmailConnectDemo, DashboardDemo } from '@/components/marketing/FeatureDemos'
 
 const fadeUp: Variants = {
   hidden:  { opacity: 0, y: 22 },
@@ -31,6 +31,14 @@ const ROWS: Row[] = [
     desc: 'Secure Google sign-in, no passwords stored. Velnox imports your recent client threads and starts prioritising them right away.',
     points: ['Secure OAuth — no passwords', 'Imports recent threads automatically', 'Live priority from the first sync'],
     demo: <GmailConnectDemo />,
+  },
+  {
+    icon: LayoutDashboard,
+    eyebrow: 'Executive dashboard',
+    title: 'Your whole pipeline on one screen',
+    desc: 'Open Velnox and instantly see your inbox health, who’s waiting on you, and which clients are at risk — with AI telling you the next best action to take.',
+    points: ['Inbox health score at a glance', 'AI-ranked next best actions', 'Risk alerts before clients go quiet'],
+    demo: <DashboardDemo />,
   },
   {
     icon: Search,

@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { Search, Sparkles, Check, Bot, Zap, PartyPopper, ShieldCheck } from 'lucide-react'
+import { motion, AnimatePresence, useReducedMotion, animate } from 'framer-motion'
+import { Search, Sparkles, Check, Bot, Zap, PartyPopper, ShieldCheck, ShieldAlert, MessagesSquare, Flame, Gauge, TrendingUp } from 'lucide-react'
+import { HealthRing } from '@/components/dashboard/HealthRing'
+import { SPRING, EASE_OUT, bubbleIn, sceneStagger, sceneItem } from './demo-motion'
 
 /* Shared step-machine hook: loops through `durations`, or jumps to `final` when
  * the user prefers reduced motion. */
@@ -29,6 +31,22 @@ function Chrome({ url }: { url: string }) {
         <span style={{ fontSize: 10.5, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{url}</span>
       </div>
     </div>
+  )
+}
+
+/* Scene shell: browser chrome + staggered build-in of the inner blocks, so
+ * each demo assembles like a real app painting its UI rather than popping in. */
+function SceneBody({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <motion.div
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: '-40px' }}
+      variants={sceneStagger}
+      style={style}
+    >
+      {children}
+    </motion.div>
   )
 }
 
@@ -62,6 +80,7 @@ export function SearchDemo() {
 
   const typed = step === 0 ? 0 : step >= 2 ? SEARCH_QUERY.length : chars
 
+  const focused = step === 1
   const filtering = step >= 2
   const opened = step >= 3
   const analyzing = step === 3
@@ -71,89 +90,130 @@ export function SearchDemo() {
 
   return (
     <div className="scene" style={{ minHeight: 420 }}>
-      <Chrome url="flo.app/inbox" />
-      <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14, minHeight: 376 }}>
-        {/* Search bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderRadius: 11, border: `1.5px solid ${step >= 1 ? 'var(--accent)' : 'var(--border)'}`, background: '#FFFFFF', boxShadow: step >= 1 ? '0 0 0 3px rgba(79,92,244,0.12)' : 'var(--shadow-xs)', transition: 'all 0.2s' }}>
-          <Search size={16} style={{ color: step >= 1 ? 'var(--accent)' : 'var(--text-muted)', flexShrink: 0 }} />
-          <span style={{ fontSize: 14, color: 'var(--text-primary)' }}>
-            {SEARCH_QUERY.slice(0, typed)}
-            {!reduce && step === 1 && <span className="animate-blink" style={{ color: 'var(--accent)' }}>|</span>}
-            {step === 0 && <span style={{ color: 'var(--text-muted)' }}>Search conversations…</span>}
-          </span>
-        </div>
+      <Chrome url="velnox.app/inbox" />
+      <SceneBody style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14, minHeight: 376 }}>
+        {/* Search bar — lifts slightly while it has focus, like a real input */}
+        <motion.div variants={sceneItem}>
+          <motion.div
+            animate={{ scale: focused ? 1.012 : 1, y: focused ? -1 : 0 }}
+            transition={SPRING.snap}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderRadius: 11, border: `1.5px solid ${step >= 1 ? 'var(--accent)' : 'var(--border)'}`, background: '#FFFFFF', boxShadow: step >= 1 ? '0 0 0 3px rgba(79,92,244,0.12), 0 6px 18px rgba(79,92,244,0.08)' : 'var(--shadow-xs)', transition: 'border-color 0.25s, box-shadow 0.25s' }}
+          >
+            <Search size={16} style={{ color: step >= 1 ? 'var(--accent)' : 'var(--text-muted)', flexShrink: 0, transition: 'color 0.25s' }} />
+            <span style={{ fontSize: 14, color: 'var(--text-primary)' }}>
+              {SEARCH_QUERY.slice(0, typed)}
+              {!reduce && step === 1 && <span className="animate-blink" style={{ color: 'var(--accent)' }}>|</span>}
+              {step === 0 && <span style={{ color: 'var(--text-muted)' }}>Search conversations…</span>}
+            </span>
+          </motion.div>
+        </motion.div>
 
-        {filtering && (
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ margin: 0, fontSize: 11.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Sparkles size={12} style={{ color: 'var(--accent)' }} /> 1 match found by meaning, not just keywords
-          </motion.p>
-        )}
+        <AnimatePresence>
+          {filtering && (
+            <motion.p
+              initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.35, ease: EASE_OUT }}
+              style={{ margin: 0, fontSize: 11.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <Sparkles size={12} style={{ color: 'var(--accent)' }} /> 1 match found by meaning, not just keywords
+            </motion.p>
+          )}
+        </AnimatePresence>
 
-        {/* Results */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* Results — the match lifts toward you, the rest fall out of focus */}
+        <motion.div variants={sceneItem} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {SEARCH_RESULTS.map(r => {
             const dim = filtering && !r.match
             const highlight = filtering && r.match
             return (
               <motion.div
                 key={r.name}
-                animate={{ opacity: dim ? 0.32 : 1, scale: highlight ? 1 : 0.998 }}
-                transition={{ duration: 0.4 }}
+                animate={{
+                  opacity: dim ? 0.3 : 1,
+                  scale: highlight ? 1.015 : 1,
+                  y: highlight ? -2 : 0,
+                  filter: dim ? 'blur(1.4px)' : 'blur(0px)',
+                }}
+                transition={{ type: 'spring', stiffness: 260, damping: 26 }}
                 style={{
                   padding: '11px 13px', borderRadius: 11, background: '#FFFFFF', display: 'flex', gap: 11, alignItems: 'center',
                   border: `1px solid ${highlight ? 'rgba(79,92,244,0.4)' : 'var(--border)'}`,
-                  boxShadow: highlight ? '0 6px 20px rgba(79,92,244,0.12)' : 'var(--shadow-xs)',
+                  boxShadow: highlight ? '0 8px 24px rgba(79,92,244,0.14)' : 'var(--shadow-xs)',
+                  transition: 'border-color 0.3s, box-shadow 0.3s',
                 }}
               >
                 <div style={{ width: 32, height: 32, borderRadius: '50%', background: r.bg, color: r.col, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{r.ini}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{r.name}</span>
-                    {highlight && won && <span className="priority-badge priority-cold" style={{ fontSize: 9 }}>Won</span>}
+                    <AnimatePresence>
+                      {highlight && won && (
+                        <motion.span
+                          initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }}
+                          transition={SPRING.snap}
+                          className="priority-badge priority-cold" style={{ fontSize: 9 }}
+                        >
+                          Won
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
                   </div>
                   <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.snippet}</p>
                 </div>
               </motion.div>
             )
           })}
-        </div>
+        </motion.div>
 
         {/* Opened deal flow */}
         <AnimatePresence>
           {opened && (
             <motion.div
-              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 240, damping: 24 }}
+              layout
+              initial={{ opacity: 0, y: 18, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }}
+              transition={SPRING.panel}
               style={{ marginTop: 'auto', padding: 14, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-subtle)' }}
             >
-              {won ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <PartyPopper size={15} style={{ color: '#16A34A' }} />
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#16A34A' }}>Maria upgraded to Premium — deal won 🎉</span>
-                </div>
-              ) : analyzing ? (
-                <div className="ai-shimmer" style={{ padding: '8px 11px', borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                  <Sparkles size={13} style={{ color: 'var(--accent)' }} />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>AI is drafting the perfect reply…</span>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {sent && (
-                    <div style={{ alignSelf: 'flex-end', maxWidth: '85%' }}>
-                      <div className="msg-bubble msg-bubble-out" style={{ fontSize: 12.5 }}>Great choice! Premium is perfect for small teams — I’ll upgrade you now and send the invoice. 🚀</div>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={won ? 'won' : analyzing ? 'gen' : 'thread'}
+                  initial={{ opacity: 0, y: 8, filter: 'blur(3px)' }}
+                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, y: -6, filter: 'blur(3px)' }}
+                  transition={{ duration: 0.3, ease: EASE_OUT }}
+                >
+                  {won ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <motion.span initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ ...SPRING.snap, delay: 0.08 }} style={{ display: 'inline-flex' }}>
+                        <PartyPopper size={15} style={{ color: '#16A34A' }} />
+                      </motion.span>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: '#16A34A' }}>Maria upgraded to Premium — deal won 🎉</span>
+                    </div>
+                  ) : analyzing ? (
+                    <div className="ai-shimmer" style={{ padding: '8px 11px', borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <Sparkles size={13} style={{ color: 'var(--accent)' }} />
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>AI is drafting the perfect reply…</span>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {sent && (
+                        <motion.div {...bubbleIn} transition={SPRING.pop} style={{ alignSelf: 'flex-end', maxWidth: '85%' }}>
+                          <div className="msg-bubble msg-bubble-out" style={{ fontSize: 12.5 }}>Great choice! Premium is perfect for small teams — I’ll upgrade you now and send the invoice. 🚀</div>
+                        </motion.div>
+                      )}
+                      {replied && (
+                        <motion.div {...bubbleIn} transition={SPRING.pop} style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
+                          <div className="msg-bubble msg-bubble-in" style={{ fontSize: 12.5 }}>Perfect, let’s do it! 🙌</div>
+                        </motion.div>
+                      )}
                     </div>
                   )}
-                  {replied && (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
-                      <div className="msg-bubble msg-bubble-in" style={{ fontSize: 12.5 }}>Perfect, let’s do it! 🙌</div>
-                    </motion.div>
-                  )}
-                </div>
-              )}
+                </motion.div>
+              </AnimatePresence>
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </SceneBody>
     </div>
   )
 }
@@ -164,7 +224,7 @@ export function SearchDemo() {
 const BOT_DUR = [1500, 1200, 1500, 1600, 2600]
 
 export function BotSetupDemo() {
-  const { step } = useTimeline(BOT_DUR, 4)
+  const { step, reduce } = useTimeline(BOT_DUR, 4)
   const on = step >= 1
   const incoming = step >= 2
   const generating = step === 3
@@ -172,62 +232,110 @@ export function BotSetupDemo() {
 
   return (
     <div className="scene" style={{ minHeight: 420 }}>
-      <Chrome url="flo.app/bot" />
-      <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14, minHeight: 376 }}>
-        {/* Knowledge card */}
-        <div style={{ padding: 14, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-subtle)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
+      <Chrome url="velnox.app/bot" />
+      <SceneBody style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14, minHeight: 376 }}>
+        {/* Knowledge card — the bot visibly "reads" it while drafting */}
+        <motion.div
+          variants={sceneItem}
+          style={{
+            position: 'relative', overflow: 'hidden', padding: 14, borderRadius: 12,
+            border: `1px solid ${generating ? 'rgba(79,92,244,0.35)' : 'var(--border)'}`,
+            boxShadow: generating ? '0 0 0 3px rgba(79,92,244,0.07)' : 'none',
+            background: 'var(--bg-subtle)', transition: 'border-color 0.35s, box-shadow 0.35s',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9, position: 'relative', zIndex: 1 }}>
             <Bot size={14} style={{ color: 'var(--accent)' }} />
             <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent)' }}>Bot knowledge</span>
+            <AnimatePresence>
+              {generating && (
+                <motion.span
+                  initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+                  style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent)', marginLeft: 'auto' }}
+                >
+                  reading…
+                </motion.span>
+              )}
+            </AnimatePresence>
           </div>
-          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, position: 'relative', zIndex: 1 }}>
             “We’re open 9–6 Mon–Sat. Same-day delivery in the city for orders before 3pm. Free returns within 14 days.”
           </p>
-        </div>
+          {generating && !reduce && (
+            <motion.div
+              initial={{ left: '-35%' }}
+              animate={{ left: '110%' }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+              style={{ position: 'absolute', top: 0, bottom: 0, width: '30%', background: 'linear-gradient(90deg, transparent, rgba(79,92,244,0.12), transparent)', pointerEvents: 'none' }}
+            />
+          )}
+        </motion.div>
 
         {/* Auto-reply toggle */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 12, border: `1px solid ${on ? 'rgba(79,92,244,0.3)' : 'var(--border)'}`, background: '#FFFFFF' }}>
+        <motion.div
+          variants={sceneItem}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 12,
+            border: `1px solid ${on ? 'rgba(79,92,244,0.3)' : 'var(--border)'}`,
+            boxShadow: on ? '0 0 0 3px rgba(79,92,244,0.06)' : 'none',
+            background: '#FFFFFF', transition: 'border-color 0.3s, box-shadow 0.3s',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <Zap size={15} style={{ color: on ? 'var(--accent)' : 'var(--text-muted)' }} />
+            <Zap size={15} style={{ color: on ? 'var(--accent)' : 'var(--text-muted)', transition: 'color 0.3s' }} />
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Auto-reply</span>
           </div>
-          <div style={{ width: 42, height: 24, borderRadius: 999, padding: 3, background: on ? 'var(--accent)' : 'var(--border)', transition: 'background 0.25s', display: 'flex' }}>
-            <motion.div animate={{ x: on ? 18 : 0 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+          <div style={{ position: 'relative', display: 'flex' }}>
+            <AnimatePresence>
+              {step === 1 && (
+                <motion.span
+                  key="ring"
+                  initial={{ opacity: 0.55, scale: 0.75 }}
+                  animate={{ opacity: 0, scale: 1.8 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                  style={{ position: 'absolute', inset: -4, borderRadius: 999, border: '2px solid rgba(79,92,244,0.5)', pointerEvents: 'none' }}
+                />
+              )}
+            </AnimatePresence>
+            <div style={{ width: 42, height: 24, borderRadius: 999, padding: 3, background: on ? 'var(--accent)' : 'var(--border)', transition: 'background 0.25s', display: 'flex' }}>
+              <motion.div animate={{ x: on ? 18 : 0 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+            </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Live thread */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 9, justifyContent: 'flex-end' }}>
+        <motion.div variants={sceneItem} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 9, justifyContent: 'flex-end' }}>
           <AnimatePresence>
             {incoming && (
-              <motion.div key="in" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
+              <motion.div key="in" {...bubbleIn} transition={SPRING.pop} style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
                 <div className="msg-bubble msg-bubble-in" style={{ fontSize: 12.5 }}>Hi! Do you offer same-day delivery?</div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          <AnimatePresence>
+          <AnimatePresence mode="popLayout">
             {generating && (
-              <motion.div key="gen" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ alignSelf: 'flex-end' }}>
+              <motion.div key="gen" layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.16 } }} transition={SPRING.pop} style={{ alignSelf: 'flex-end' }}>
                 <div style={{ display: 'inline-flex', gap: 4, padding: '11px 14px', borderRadius: '13px 13px 3px 13px', background: 'var(--accent)' }}>
                   <span className="typing-dot" style={{ background: '#fff' }} /><span className="typing-dot" style={{ background: '#fff', animationDelay: '0.15s' }} /><span className="typing-dot" style={{ background: '#fff', animationDelay: '0.3s' }} />
                 </div>
               </motion.div>
             )}
-          </AnimatePresence>
-
-          <AnimatePresence>
             {answered && (
-              <motion.div key="out" initial={{ opacity: 0, y: 12, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 22 }} style={{ alignSelf: 'flex-end', maxWidth: '85%', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <motion.div key="out" layout {...bubbleIn} transition={SPRING.pop} style={{ alignSelf: 'flex-end', maxWidth: '85%', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                 <div className="msg-bubble msg-bubble-out" style={{ fontSize: 12.5 }}>Yes! Same-day delivery in the city for orders placed before 3pm. 🚚</div>
-                <span style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <motion.span
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.35 }}
+                  style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                >
                   <Bot size={11} style={{ color: 'var(--accent)' }} /> Sent by bot · from your knowledge
-                </span>
+                </motion.span>
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-      </div>
+        </motion.div>
+      </SceneBody>
     </div>
   )
 }
@@ -235,7 +343,13 @@ export function BotSetupDemo() {
 /* ════════════════════════════════════════════════════════════════════════════
    3 · Connect Gmail in one click
    ════════════════════════════════════════════════════════════════════════════ */
-const GMAIL_DUR = [1400, 1400, 1700, 1800, 2400]
+const GMAIL_DUR = [1400, 1400, 1700, 1900, 3000]
+
+const SYNCED_ROWS = [
+  { ini: 'MR', bg: 'rgba(220,43,85,0.1)', col: '#DC2B55', name: 'Maria Rossi', snippet: 'Is the premium plan worth it?', badge: 'Urgent', cls: 'priority-hot' },
+  { ini: 'TK', bg: 'rgba(194,98,10,0.1)', col: '#C2620A', name: 'Tom Keller', snippet: 'Can you send the contract draft?', badge: 'High', cls: 'priority-attention' },
+  { ini: 'JD', bg: 'rgba(79,92,244,0.1)', col: '#4F5CF4', name: 'Jana Diehl', snippet: 'Thanks, talk next week!', badge: 'Normal', cls: 'priority-cold' },
+]
 
 export function GmailConnectDemo() {
   const { step } = useTimeline(GMAIL_DUR, 4)
@@ -247,14 +361,20 @@ export function GmailConnectDemo() {
 
   return (
     <div className="scene" style={{ minHeight: 420 }}>
-      <Chrome url="flo.app/integrations" />
-      <div style={{ padding: 18, position: 'relative', minHeight: 376 }}>
-        <p style={{ margin: '0 0 14px', fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Integrations</p>
+      <Chrome url="velnox.app/integrations" />
+      <SceneBody style={{ padding: 18, position: 'relative', minHeight: 376 }}>
+        <motion.p variants={sceneItem} style={{ margin: '0 0 14px', fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Integrations</motion.p>
 
         {/* Gmail card */}
         <motion.div
-          animate={{ borderColor: connected ? 'rgba(40,170,90,0.4)' : 'var(--border)' }}
-          style={{ padding: 16, borderRadius: 14, border: '1px solid var(--border)', background: '#FFFFFF', boxShadow: 'var(--shadow-sm)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}
+          variants={sceneItem}
+          style={{
+            padding: 16, borderRadius: 14,
+            border: `1px solid ${connected ? 'rgba(40,170,90,0.4)' : 'var(--border)'}`,
+            background: '#FFFFFF', boxShadow: 'var(--shadow-sm)',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
+            transition: 'border-color 0.4s',
+          }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(234,67,53,0.08)', border: '1px solid rgba(234,67,53,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -262,28 +382,39 @@ export function GmailConnectDemo() {
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>Gmail</div>
-              <div style={{ fontSize: 11.5, color: connected ? '#16A34A' : 'var(--text-muted)', fontWeight: connected ? 600 : 400 }}>
+              <div style={{ fontSize: 11.5, color: connected ? '#16A34A' : 'var(--text-muted)', fontWeight: connected ? 600 : 400, transition: 'color 0.3s' }}>
                 {done ? 'Connected · 50 conversations synced' : connected ? 'Connected' : 'Not connected'}
               </div>
             </div>
           </div>
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="popLayout" initial={false}>
             {connected ? (
-              <motion.span key="ok" initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 8, background: 'rgba(40,200,100,0.1)', color: '#16A34A', fontSize: 12.5, fontWeight: 700, flexShrink: 0 }}>
+              <motion.span
+                key="ok"
+                initial={{ scale: 0, rotate: -12 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0, opacity: 0 }}
+                transition={SPRING.snap}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 8, background: 'rgba(40,200,100,0.1)', color: '#16A34A', fontSize: 12.5, fontWeight: 700, flexShrink: 0 }}
+              >
                 <Check size={14} /> Done
               </motion.span>
             ) : (
-              <motion.button key="btn" animate={{ scale: step === 1 ? 0.94 : 1 }} className="btn-primary" style={{ padding: '8px 16px', fontSize: 12.5, flexShrink: 0 }}>
+              <motion.button
+                key="btn"
+                exit={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: step === 1 ? 0.94 : 1 }}
+                transition={SPRING.snap}
+                className="btn-primary" style={{ padding: '8px 16px', fontSize: 12.5, flexShrink: 0 }}
+              >
                 Connect
               </motion.button>
             )}
           </AnimatePresence>
         </motion.div>
 
-        {/* Sync progress */}
+        {/* Sync progress + first conversations landing in */}
         <AnimatePresence>
           {connected && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ marginTop: 14 }}>
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={SPRING.panel} style={{ marginTop: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 6 }}>
                 <span>{done ? 'Sync complete' : 'Importing conversations…'}</span>
                 <span>{done ? '50 / 50' : ''}</span>
@@ -291,10 +422,44 @@ export function GmailConnectDemo() {
               <div style={{ height: 7, borderRadius: 4, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
                 <motion.div
                   initial={{ width: '0%' }}
-                  animate={{ width: done ? '100%' : syncing ? '70%' : '0%' }}
-                  transition={{ duration: syncing ? 1.6 : 0.5, ease: 'easeInOut' }}
+                  animate={{ width: done ? '100%' : syncing ? '76%' : '0%' }}
+                  transition={done ? { duration: 0.45, ease: 'easeOut' } : { duration: 1.7, ease: [0.3, 0.6, 0.4, 1] }}
                   style={{ height: '100%', borderRadius: 4, background: 'linear-gradient(90deg,#4F5CF4,#7C4DFF)' }}
                 />
+              </div>
+
+              {/* Threads appear as they sync: skeletons → prioritised rows */}
+              <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {syncing && [0, 1, 2].map(i => (
+                    <motion.div
+                      key={`skel-${i}`}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.15 } }}
+                      transition={{ ...SPRING.pop, delay: i * 0.1 }}
+                      className="skeleton"
+                      style={{ height: 44, borderRadius: 11 }}
+                    />
+                  ))}
+                  {done && SYNCED_ROWS.map((r, i) => (
+                    <motion.div
+                      key={r.ini}
+                      initial={{ opacity: 0, y: 14, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ ...SPRING.pop, delay: i * 0.12 }}
+                      style={{ padding: '9px 12px', borderRadius: 11, border: '1px solid var(--border)', background: '#FFFFFF', boxShadow: 'var(--shadow-xs)', display: 'flex', gap: 10, alignItems: 'center' }}
+                    >
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: r.bg, color: r.col, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{r.ini}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{r.name}</div>
+                        <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.snippet}</p>
+                      </div>
+                      <span className={`priority-badge ${r.cls}`} style={{ fontSize: 8.5, flexShrink: 0 }}>{r.badge}</span>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             </motion.div>
           )}
@@ -305,31 +470,201 @@ export function GmailConnectDemo() {
           {popup && (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              style={{ position: 'absolute', inset: 0, background: 'rgba(12,18,60,0.18)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{ position: 'absolute', inset: 0, background: 'rgba(12,18,60,0.18)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 0, zIndex: 5 }}
             >
               <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
+                initial={{ scale: 0.92, opacity: 0, y: 14, filter: 'blur(4px)' }}
+                animate={{ scale: 1, opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ scale: 0.95, opacity: 0, filter: 'blur(2px)' }}
+                transition={SPRING.panel}
                 style={{ width: 260, borderRadius: 14, background: '#FFFFFF', border: '1px solid var(--border)', boxShadow: 'var(--shadow-xl)', overflow: 'hidden' }}
               >
                 <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <ShieldCheck size={15} style={{ color: '#16A34A' }} />
                   <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>Sign in with Google</span>
                 </div>
-                <motion.div
-                  animate={{ background: choosing ? 'var(--accent-dim)' : '#FFFFFF' }}
-                  style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 11 }}
+                <div
+                  style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 11, background: choosing ? 'var(--accent-dim)' : '#FFFFFF', transition: 'background 0.3s' }}
                 >
                   <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg,#4b6bff,#9b6bff)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>A</div>
-                  <div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>Amir M.</div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>amir@company.com</div>
                   </div>
-                </motion.div>
+                  <AnimatePresence>
+                    {choosing && (
+                      <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={SPRING.snap} style={{ display: 'inline-flex' }}>
+                        <Check size={14} style={{ color: 'var(--accent)' }} />
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </SceneBody>
+    </div>
+  )
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   4 · Executive dashboard — the workspace assembles itself
+   ════════════════════════════════════════════════════════════════════════════ */
+const DASH_DUR = [900, 1600, 1900, 2100, 3200]
+//               shell stats command risk  hold
+
+/** Animated counter for stat values; resolves instantly under reduced motion. */
+function CountUp({ to, active, reduce }: { to: number; active: boolean; reduce: boolean }) {
+  const [n, setN] = useState(0)
+  useEffect(() => {
+    if (!active || reduce) return
+    const controls = animate(0, to, { duration: 0.9, ease: 'easeOut', onUpdate: (v: number) => setN(Math.round(v)) })
+    return () => controls.stop()
+  }, [active, reduce, to])
+  return <>{reduce ? to : active ? n : 0}</>
+}
+
+const statLabel: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 5,
+  fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)',
+  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+}
+
+export function DashboardDemo() {
+  const { step, reduce } = useTimeline(DASH_DUR, 4)
+  const statsIn = step >= 1
+  const commandIn = step >= 2
+  const riskIn = step >= 3
+
+  return (
+    <div className="scene" style={{ minHeight: 420, background: 'var(--bg-subtle)' }}>
+      <Chrome url="velnox.app/dashboard" />
+      <SceneBody style={{ padding: 16, minHeight: 376, display: 'flex', flexDirection: 'column', gap: 11, background: 'var(--bg-subtle)' }}>
+        {/* Header — paints first, like the real dashboard shell */}
+        <motion.div variants={sceneItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <div>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 400, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Good to see you, Amir</div>
+            <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 2 }}>Thursday, June 11</div>
+          </div>
+          <AnimatePresence>
+            {statsIn && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+                transition={SPRING.snap}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10.5, fontWeight: 600, color: 'var(--success)', background: 'var(--success-dim)', border: '1px solid var(--success-border)', borderRadius: 100, padding: '4px 10px', whiteSpace: 'nowrap', flexShrink: 0 }}
+              >
+                <span className="animate-pulse-s" style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--success)' }} />
+                Synced just now
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Executive stats — health ring draws, numbers count up */}
+        <motion.div variants={sceneItem} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 9 }}>
+          {[0, 1, 2].map(i => (
+            <motion.div
+              key={i}
+              animate={{ opacity: statsIn ? 1 : 0, y: statsIn ? 0 : 14, scale: statsIn ? 1 : 0.97 }}
+              transition={{ ...SPRING.pop, delay: statsIn ? i * 0.1 : 0 }}
+              className="widget"
+              style={{ padding: '11px 12px', borderRadius: 13 }}
+            >
+              {i === 0 ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {statsIn && <HealthRing score={78} size={42} />}
+                  <div style={{ minWidth: 0 }}>
+                    <span style={statLabel}><Gauge size={11} /> Health</span>
+                    <div style={{ marginTop: 4, fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>Held back by 2 unanswered</div>
+                  </div>
+                </div>
+              ) : i === 1 ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                    <span style={statLabel}><MessagesSquare size={11} /> Conversations</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 9.5, fontWeight: 700, color: 'var(--success)', background: 'var(--success-dim)', borderRadius: 6, padding: '1px 5px' }}>
+                      <TrendingUp size={10} /> +12%
+                    </span>
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: 21, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, color: 'var(--text-primary)' }}>
+                    <CountUp to={48} active={statsIn} reduce={!!reduce} />
+                  </div>
+                  <div style={{ marginTop: 5, fontSize: 10, color: 'var(--text-muted)' }}>9 active this week</div>
+                </>
+              ) : (
+                <>
+                  <span style={statLabel}><Flame size={11} /> High priority</span>
+                  <div style={{ marginTop: 8, fontSize: 21, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, color: 'var(--hot)' }}>
+                    <CountUp to={3} active={statsIn} reduce={!!reduce} />
+                  </div>
+                  <div style={{ marginTop: 5, fontSize: 10, color: 'var(--text-muted)' }}>2 urgent · 1 high</div>
+                </>
+              )}
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* AI Command Center — next best action lands */}
+        <AnimatePresence>
+          {commandIn && (
+            <motion.div
+              initial={{ opacity: 0, y: 18, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }}
+              transition={SPRING.panel}
+              className="widget" style={{ borderRadius: 14 }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderBottom: '1px solid var(--border-light)' }}>
+                <span style={{ width: 22, height: 22, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid rgba(79,92,244,0.15)', flexShrink: 0 }}>
+                  <Sparkles size={11} />
+                </span>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-primary)' }}>AI Command Center</span>
+                <span className="module-pill" style={{ marginLeft: 'auto', fontSize: 8.5, color: 'var(--success)', background: 'var(--success-dim)', border: '1px solid var(--success-border)' }}>LIVE</span>
+              </div>
+              <div style={{ padding: '10px 12px' }}>
+                <div style={{ background: 'linear-gradient(135deg, rgba(79,92,244,0.06), rgba(124,77,255,0.05))', border: '1px solid rgba(79,92,244,0.2)', borderRadius: 11, padding: '10px 12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                    <Zap size={10} style={{ color: 'var(--accent)' }} />
+                    <span style={{ fontSize: 8.5, fontWeight: 800, letterSpacing: '0.08em', color: 'var(--accent)', textTransform: 'uppercase' }}>Next best action</span>
+                    <span style={{ marginLeft: 'auto', fontSize: 9.5, fontWeight: 700, color: 'var(--attention)', background: 'var(--attention-dim)', border: '1px solid var(--attention-border)', borderRadius: 6, padding: '1px 6px', whiteSpace: 'nowrap' }}>waiting 2h</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+                    <div className="avatar" style={{ width: 28, height: 28, fontSize: 9.5, background: 'linear-gradient(135deg,#DC2B55,#F2709C)', color: '#fff' }}>AP</div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Alex Peterson</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Project kickoff — full package</div>
+                    </div>
+                    <span className="priority-badge priority-hot" style={{ fontSize: 8.5, flexShrink: 0 }}><span className="priority-dot" aria-hidden />Urgent</span>
+                  </div>
+                  <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>AI suggests:</strong> Reply with a concrete start date — client is ready to buy.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Risk Monitor — a quiet client gets flagged */}
+        <AnimatePresence>
+          {riskIn && (
+            <motion.div
+              initial={{ opacity: 0, y: 14, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }}
+              transition={SPRING.pop}
+              className="widget" style={{ borderRadius: 13, padding: '10px 12px', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 10 }}
+            >
+              <span style={{ width: 26, height: 26, borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--attention-dim)', color: 'var(--attention)', border: '1px solid var(--attention-border)', flexShrink: 0 }}>
+                <ShieldAlert size={13} />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-primary)' }}>Karina Lee is going quiet</div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>No reply in 3 days — follow up before the deal cools</div>
+              </div>
+              <span className="priority-badge priority-attention" style={{ fontSize: 8.5, flexShrink: 0 }}><span className="priority-dot" aria-hidden />High</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </SceneBody>
     </div>
   )
 }
