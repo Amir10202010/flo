@@ -1269,6 +1269,8 @@
 }
 .footer-social a:hover { color: var(--accent); border-color: rgba(79,92,244,0.3); background: var(--accent-dim); transform: translateY(-2px); }
 .footer-link:hover { color: var(--accent) !important; }
+.legal-toc-link { transition: color 0.15s; }
+.legal-toc-link:hover { color: var(--accent) !important; }
 
 /* ══════════════════════════════════════════════════════════════════════════
    Platform dashboard — tokens, widgets, grids, command palette, sidebar v2

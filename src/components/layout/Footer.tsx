@@ -22,10 +22,10 @@ const columns: { title: string; links: { label: string; href: string }[] }[] = [
     ],
   },
   {
-    title: 'Resources',
+    title: 'Legal',
     links: [
-      { label: 'Gmail inbox', href: '/features' },
-      { label: 'Conversation AI', href: '/features' },
+      { label: 'Privacy Policy', href: '/privacy' },
+      { label: 'Terms of Service', href: '/terms' },
       { label: 'Privacy & security', href: '/about' },
     ],
   },
@@ -81,9 +81,13 @@ export default function Footer() {
           <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
             © 2026 Velnox · AI Gmail inbox for client-facing teams
           </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--text-muted)' }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16A34A', boxShadow: '0 0 0 3px rgba(22,163,74,0.15)' }} />
-            All systems operational
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18, fontSize: 12.5, color: 'var(--text-muted)' }}>
+            <Link href="/privacy" style={{ ...linkStyle, fontSize: 12.5 }} className="footer-link">Privacy</Link>
+            <Link href="/terms" style={{ ...linkStyle, fontSize: 12.5 }} className="footer-link">Terms</Link>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16A34A', boxShadow: '0 0 0 3px rgba(22,163,74,0.15)' }} />
+              All systems operational
+            </span>
           </div>
         </div>
       </div>
