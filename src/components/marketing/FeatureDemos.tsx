@@ -109,7 +109,7 @@ export function SearchDemo() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{r.name}</span>
-                    {highlight && won && <span className="priority-badge priority-cold" style={{ fontSize: 9 }}>WON</span>}
+                    {highlight && won && <span className="priority-badge priority-cold" style={{ fontSize: 9 }}>Won</span>}
                   </div>
                   <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.snippet}</p>
                 </div>

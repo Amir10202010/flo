@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Send, Loader } from 'lucide-react'
+import { AlertCircle, Loader, Send } from 'lucide-react'
 
 export default function Composer({ conversationId }: { conversationId: string }) {
   const router = useRouter()
@@ -10,6 +10,13 @@ export default function Composer({ conversationId }: { conversationId: string })
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  function autoGrow() {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 180)}px`
+  }
 
   async function send() {
     const trimmed = body.trim()
@@ -27,6 +34,7 @@ export default function Composer({ conversationId }: { conversationId: string })
         throw new Error(data.error ?? 'Failed to send')
       }
       setBody('')
+      if (textareaRef.current) textareaRef.current.style.height = 'auto'
       router.refresh() // re-fetch the server component to show the new message
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to send')
@@ -44,45 +52,34 @@ export default function Composer({ conversationId }: { conversationId: string })
   }
 
   return (
-    <div style={{ borderTop: '1px solid var(--border)', padding: '14px 20px', background: '#FFFFFF', flexShrink: 0 }}>
+    <div className="composer">
       {error && (
-        <p style={{ margin: '0 0 8px', fontSize: 12.5, color: 'var(--hot)' }}>{error}</p>
+        <p className="composer-error" role="alert">
+          <AlertCircle size={13} style={{ flexShrink: 0 }} />
+          {error}
+        </p>
       )}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+      <div className="composer-row">
         <textarea
           ref={textareaRef}
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={(e) => { setBody(e.target.value); autoGrow() }}
           onKeyDown={onKeyDown}
-          placeholder="Type a reply…  (Enter to send, Shift+Enter for new line)"
+          placeholder="Write a reply…"
           rows={1}
           disabled={sending}
-          style={{
-            flex: 1,
-            resize: 'none',
-            maxHeight: 160,
-            minHeight: 42,
-            padding: '11px 14px',
-            borderRadius: 10,
-            border: '1.5px solid var(--border)',
-            background: 'var(--bg-surface)',
-            fontFamily: 'var(--font-sans)',
-            fontSize: 14,
-            lineHeight: 1.5,
-            color: 'var(--text-primary)',
-            outline: 'none',
-          }}
+          aria-label="Reply"
         />
         <button
           onClick={() => void send()}
           disabled={sending || !body.trim()}
-          className="btn-primary"
-          style={{ padding: '11px 16px', opacity: sending || !body.trim() ? 0.6 : 1 }}
+          className="composer-send"
           aria-label="Send reply"
         >
-          {sending ? <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={16} />}
+          {sending ? <Loader size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={15} />}
         </button>
       </div>
+      <p className="composer-hint">Enter to send · Shift+Enter for a new line</p>
     </div>
   )
 }

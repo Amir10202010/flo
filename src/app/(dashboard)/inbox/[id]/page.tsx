@@ -1,10 +1,13 @@
+import { Fragment } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Sparkles } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sanitizeMessageHtml } from '@/lib/html'
+import PriorityBadge from '@/components/ui/PriorityBadge'
 import Composer from '@/components/Composer'
+import type { PriorityLevel } from '@/types'
 
 const RISK: Record<string, { label: string; color: string; bg: string; border: string }> = {
   LOW:      { label: 'Low risk',    color: 'var(--cold)',      bg: 'var(--cold-dim)',      border: 'var(--cold-border)'      },
@@ -25,6 +28,19 @@ function formatTime(d: Date | string) {
   const h = Math.floor(m / 60)
   if (h < 24) return `${h}h ago`
   return `${Math.floor(h / 24)}d ago`
+}
+
+/** Day label for the separator: Today / Yesterday / "Mar 4" / "Mar 4, 2025". */
+function dayLabel(d: Date, now: Date): string {
+  const day = (x: Date) => Math.floor((x.getTime() - x.getTimezoneOffset() * 60000) / 86_400_000)
+  const diff = day(now) - day(d)
+  if (diff === 0) return 'Today'
+  if (diff === 1) return 'Yesterday'
+  const opts: Intl.DateTimeFormatOptions =
+    d.getFullYear() === now.getFullYear()
+      ? { month: 'short', day: 'numeric' }
+      : { month: 'short', day: 'numeric', year: 'numeric' }
+  return d.toLocaleDateString('en-US', opts)
 }
 
 export default async function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
@@ -50,6 +66,27 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
   const analysis = conv.analysis
   const r = analysis ? (RISK[analysis.riskLevel] ?? RISK.LOW) : null
   const channelName = conv.channel === 'GMAIL' ? 'Gmail' : 'Telegram'
+  const now = new Date()
+
+  // Pre-compute grouping: day separators + "continuation" rows (same sender,
+  // <10 min apart) that render tighter and without a repeated timestamp.
+  const rows = conv.messages.map((msg, i) => {
+    const prev = conv.messages[i - 1]
+    const next = conv.messages[i + 1]
+    const sentAt = new Date(msg.sentAt)
+    const newDay = !prev || new Date(prev.sentAt).toDateString() !== sentAt.toDateString()
+    const cont =
+      !newDay &&
+      prev !== undefined &&
+      prev.direction === msg.direction &&
+      sentAt.getTime() - new Date(prev.sentAt).getTime() < 10 * 60_000
+    const groupEnd =
+      !next ||
+      next.direction !== msg.direction ||
+      new Date(next.sentAt).getTime() - sentAt.getTime() >= 10 * 60_000 ||
+      new Date(next.sentAt).toDateString() !== sentAt.toDateString()
+    return { msg, sentAt, newDay, cont, groupEnd }
+  })
 
   return (
     <div className="chat">
@@ -69,9 +106,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
             </div>
             {conv.subject && <p className="chat-subject">{conv.subject}</p>}
           </div>
-          <span className={`priority-badge priority-${conv.priority.toLowerCase()}`} style={{ flexShrink: 0 }}>
-            {conv.priority}
-          </span>
+          <PriorityBadge level={conv.priority as PriorityLevel} />
         </div>
 
         {analysis && r && (
@@ -90,21 +125,31 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
 
       {/* Messages */}
       <div className="chat-messages thread-messages">
-        {conv.messages.length === 0 ? (
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', marginTop: 40 }}>
-            No messages yet.
-          </p>
+        {rows.length === 0 ? (
+          <div className="inbox-empty" style={{ padding: '60px 24px' }}>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>No messages yet</p>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
+              New messages in this thread will appear here after the next sync.
+            </p>
+          </div>
         ) : (
-          conv.messages.map(msg => {
+          rows.map(({ msg, sentAt, newDay, cont, groupEnd }) => {
             const out = msg.direction === 'OUTBOUND'
             return (
-              <div key={msg.id} className={`chat-row ${out ? 'out' : 'in'}`}>
-                <div
-                  className={`msg-bubble msg-html ${out ? 'msg-bubble-out' : 'msg-bubble-in'}`}
-                  dangerouslySetInnerHTML={{ __html: sanitizeMessageHtml(msg.content) }}
-                />
-                <span className="chat-time">{formatTime(msg.sentAt)}</span>
-              </div>
+              <Fragment key={msg.id}>
+                {newDay && (
+                  <div className="chat-day-sep">
+                    <span>{dayLabel(sentAt, now)}</span>
+                  </div>
+                )}
+                <div className={`chat-row ${out ? 'out' : 'in'}${cont ? ' cont' : ''}`}>
+                  <div
+                    className={`msg-bubble msg-html ${out ? 'msg-bubble-out' : 'msg-bubble-in'}`}
+                    dangerouslySetInnerHTML={{ __html: sanitizeMessageHtml(msg.content) }}
+                  />
+                  {groupEnd && <span className="chat-time">{formatTime(msg.sentAt)}</span>}
+                </div>
+              </Fragment>
             )
           })
         )}

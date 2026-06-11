@@ -1,4 +1,4 @@
-import { claimNext, completeJob, failJob } from './queue'
+import { claimNext, completeJob, failJob, reapStuckJobs } from './queue'
 import { handleJob } from './handlers'
 
 /**
@@ -23,6 +23,7 @@ export async function processOne(): Promise<boolean> {
 
 /** Drain up to `max` jobs, stopping early when the queue empties. */
 export async function drain(max = 25): Promise<number> {
+  await reapStuckJobs()
   let processed = 0
   while (processed < max) {
     const did = await processOne()
@@ -40,6 +41,7 @@ export async function drain(max = 25): Promise<number> {
  * trigger clears as much of the backlog as it can in one invocation.
  */
 export async function drainFor(budgetMs: number, max = Infinity): Promise<number> {
+  await reapStuckJobs()
   const deadline = Date.now() + budgetMs
   let processed = 0
   while (processed < max && Date.now() < deadline) {

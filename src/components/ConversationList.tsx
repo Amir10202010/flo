@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { avatarGradient, initialsOf } from '@/components/dashboard/avatar'
+import { priorityMeta } from '@/lib/priority'
 
 export type ConversationSummary = {
   id: string
@@ -15,10 +17,6 @@ export type ConversationSummary = {
   unreadCount: number
 }
 
-function initials(name: string): string {
-  return name.split(' ').map(w => w[0]?.toUpperCase() ?? '').slice(0, 2).join('')
-}
-
 function relativeTime(iso: string | null): string {
   if (!iso) return ''
   const diff = Date.now() - new Date(iso).getTime()
@@ -27,14 +25,9 @@ function relativeTime(iso: string | null): string {
   if (mins < 60) return `${mins}m`
   const hrs = Math.floor(mins / 60)
   if (hrs < 24) return `${hrs}h`
-  return `${Math.floor(hrs / 24)}d`
-}
-
-const P: Record<string, { badge: string; avatarBg: string; avatarColor: string }> = {
-  HOT:       { badge: 'priority-badge priority-hot',       avatarBg: 'rgba(220,43,85,0.1)',   avatarColor: 'var(--hot)'       },
-  ATTENTION: { badge: 'priority-badge priority-attention', avatarBg: 'rgba(194,98,10,0.1)',   avatarColor: 'var(--attention)' },
-  COLD:      { badge: 'priority-badge priority-cold',      avatarBg: 'rgba(79,92,244,0.1)',   avatarColor: 'var(--cold)'      },
-  SPAM:      { badge: 'priority-badge priority-spam',      avatarBg: 'rgba(141,147,190,0.1)', avatarColor: 'var(--spam-text)' },
+  const days = Math.floor(hrs / 24)
+  if (days < 7) return `${days}d`
+  return `${Math.floor(days / 7)}w`
 }
 
 export default function ConversationList({ conversations }: { conversations: ConversationSummary[] }) {
@@ -51,7 +44,10 @@ export default function ConversationList({ conversations }: { conversations: Con
   return (
     <div>
       {conversations.map(c => {
-        const p = P[c.priority] ?? P.SPAM
+        const m = priorityMeta(c.priority)
+        // Only elevated priorities earn a badge — keeping Normal/Low rows quiet
+        // makes the urgent ones actually stand out.
+        const showBadge = c.priority === 'HOT' || c.priority === 'ATTENTION'
         // Selected state driven by the URL path — no prop needed
         const isSelected = pathname === `/inbox/${c.id}`
 
@@ -67,9 +63,9 @@ export default function ConversationList({ conversations }: { conversations: Con
           >
             <div
               className="avatar"
-              style={{ background: p.avatarBg, color: p.avatarColor, width: 34, height: 34, fontSize: 11 }}
+              style={{ background: avatarGradient(c.contact.name), color: '#fff', width: 36, height: 36, fontSize: 11.5 }}
             >
-              {initials(c.contact.name)}
+              {initialsOf(c.contact.name)}
             </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -77,23 +73,27 @@ export default function ConversationList({ conversations }: { conversations: Con
                 <span style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                   {c.contact.name}
                 </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{relativeTime(c.lastMessageAt)}</span>
-                  <span className={p.badge}>{c.priority}</span>
-                </div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>{relativeTime(c.lastMessageAt)}</span>
               </div>
 
-              <p style={{ margin: '3px 0 0', color: 'var(--text-secondary)', fontSize: 12.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.4 }}>
-                {c.subject ? <><span style={{ color: 'var(--text-muted)' }}>{c.subject}</span> · </> : null}
-                {c.lastMessage ?? '—'}
-              </p>
+              {c.subject && (
+                <p style={{ margin: '2px 0 0', color: 'var(--text-secondary)', fontWeight: 500, fontSize: 12.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.45 }}>
+                  {c.subject}
+                </p>
+              )}
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 5 }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: 11.5 }}>
-                  {c.channel === 'GMAIL' ? '✉ Gmail' : '✈ Telegram'}
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                <p style={{ flex: 1, margin: 0, color: 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.5 }}>
+                  {c.lastMessage ?? 'No preview'}
+                </p>
+                {showBadge && (
+                  <span className={`priority-badge ${m.className}`} title={m.description} style={{ flexShrink: 0 }}>
+                    <span className="priority-dot" aria-hidden />
+                    {m.label}
+                  </span>
+                )}
                 {c.unreadCount > 0 && (
-                  <span style={{ background: 'var(--accent)', color: '#fff', width: 18, height: 18, borderRadius: 9, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
+                  <span style={{ background: 'var(--accent)', color: '#fff', minWidth: 18, height: 18, borderRadius: 9, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, padding: '0 5px', flexShrink: 0 }}>
                     {c.unreadCount}
                   </span>
                 )}

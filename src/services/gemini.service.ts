@@ -2,7 +2,10 @@ import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai'
 import type { Schema } from '@google/generative-ai'
 import type { AnalysisResult, GeminiAnalysisPayload, RiskLevel, Sentiment } from '@/types'
 
-const MODEL = 'gemini-2.0-flash'
+// Overridable via GEMINI_MODEL so you can switch to a cheaper/faster model
+// (e.g. gemini-2.0-flash-lite, gemini-1.5-flash) without a code change.
+// Trim guards against an empty/whitespace env value falling through.
+const MODEL = process.env.GEMINI_MODEL?.trim() || 'gemini-2.0-flash'
 
 // Annotated as Schema so TypeScript narrows the discriminated union correctly
 const RESPONSE_SCHEMA: Schema = {

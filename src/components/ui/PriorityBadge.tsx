@@ -1,19 +1,16 @@
+import { priorityMeta } from '@/lib/priority'
 import type { PriorityLevel } from '@/types'
 
-const LABEL: Record<PriorityLevel, string> = {
-  HOT: 'HOT',
-  ATTENTION: 'ATTENTION',
-  COLD: 'COLD',
-  SPAM: 'SPAM',
-}
-
-const CLS: Record<PriorityLevel, string> = {
-  HOT: 'priority-hot',
-  ATTENTION: 'priority-attention',
-  COLD: 'priority-cold',
-  SPAM: 'priority-spam',
-}
-
+/**
+ * Priority badge — dot + plain-language label (Urgent / High / Normal / Low).
+ * Hover reveals what the level actually means.
+ */
 export default function PriorityBadge({ level }: { level: PriorityLevel }) {
-  return <span className={`priority-badge ${CLS[level]}`}>{LABEL[level]}</span>
+  const m = priorityMeta(level)
+  return (
+    <span className={`priority-badge ${m.className}`} title={m.description}>
+      <span className="priority-dot" aria-hidden />
+      {m.label}
+    </span>
+  )
 }

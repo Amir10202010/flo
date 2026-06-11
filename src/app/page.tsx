@@ -400,8 +400,8 @@ export default function LandingPage() {
                 <p>Every client thread in your Gmail, in one calm list — already sorted by who needs you first. No more scrolling past the deal that was about to close.</p>
                 <div className="spotlight">
                   {[
-                    { ini: 'AP', grad: 'linear-gradient(135deg,#DC2B55,#F2709C)', name: 'Alex Peterson', msg: 'When can we start?', badge: 'HOT', cls: 'priority-hot' },
-                    { ini: 'KL', grad: 'linear-gradient(135deg,#C2620A,#F6A23B)', name: 'Karina Lee', msg: 'Checking with my team…', badge: 'ATTN', cls: 'priority-attention' },
+                    { ini: 'AP', grad: 'linear-gradient(135deg,#DC2B55,#F2709C)', name: 'Alex Peterson', msg: 'When can we start?', badge: 'Urgent', cls: 'priority-hot' },
+                    { ini: 'KL', grad: 'linear-gradient(135deg,#C2620A,#F6A23B)', name: 'Karina Lee', msg: 'Checking with my team…', badge: 'High', cls: 'priority-attention' },
                   ].map(r => (
                     <div key={r.ini} className="spot-row">
                       <div className="spot-av" style={{ background: r.grad, color: '#fff' }}>{r.ini}</div>

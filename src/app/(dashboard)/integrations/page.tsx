@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { Mail, CheckCircle, AlertCircle, Loader } from 'lucide-react'
 
 type Integration = { type: 'GMAIL' | 'TELEGRAM'; isActive: boolean; syncedAt: string | null }
-type SyncResult  = { synced: number; created: number; updated: number; errors: string[]; queuedAnalyses?: number }
+type SyncResult  = { synced: number; created: number; updated: number; errors: string[]; queuedAnalyses?: number; stillRunning?: boolean }
 
 function formatRelative(iso: string | null): string {
   if (!iso) return 'Never'
@@ -44,11 +44,13 @@ function IntegrationsContent() {
       const result = await pollJob(queued.jobId)
       if (result) {
         setSyncResult(result as SyncResult)
-        const fresh = await fetch('/api/integrations').then(r => r.json())
-        if (Array.isArray(fresh)) setIntegrations(fresh)
       } else {
-        setSyncResult({ synced: 0, created: 0, updated: 0, errors: ['Sync is taking longer than expected — check back shortly.'] })
+        // Poll window elapsed but the job hasn't failed — it's still working in
+        // the background. Not an error: the inbox keeps filling as it runs.
+        setSyncResult({ synced: 0, created: 0, updated: 0, errors: [], stillRunning: true })
       }
+      const fresh = await fetch('/api/integrations').then(r => r.json()).catch(() => null)
+      if (Array.isArray(fresh)) setIntegrations(fresh)
     } catch {
       setSyncResult({ synced: 0, created: 0, updated: 0, errors: ['Network error'] })
     } finally {
@@ -56,9 +58,9 @@ function IntegrationsContent() {
     }
   }
 
-  /** Poll a job until it finishes (or times out after ~90s). */
+  /** Poll a job until it finishes (or times out after ~2 min). */
   async function pollJob(jobId: string): Promise<unknown | null> {
-    const deadline = Date.now() + 90_000
+    const deadline = Date.now() + 120_000
     while (Date.now() < deadline) {
       await new Promise(r => setTimeout(r, 1500))
       const job = await fetch(`/api/jobs/${jobId}`).then(r => r.ok ? r.json() : null).catch(() => null)
@@ -119,12 +121,30 @@ function IntegrationsContent() {
 
       {syncResult && (
         <div style={{ padding: '12px 16px', borderRadius: 10, background: '#FFFFFF', border: '1px solid var(--border)', boxShadow: 'var(--shadow-xs)', marginBottom: 20 }}>
-          <p style={{ margin: '0 0 4px', fontSize: 14, color: 'var(--text-primary)', fontWeight: 600 }}>Sync complete</p>
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>
-            {syncResult.synced} conversations processed · {syncResult.created} created · {syncResult.updated} updated
-            {typeof syncResult.queuedAnalyses === 'number' && syncResult.queuedAnalyses > 0 && ` · ${syncResult.queuedAnalyses} queued for AI analysis`}
-            {syncResult.errors.length > 0 && ` · ${syncResult.errors.length} errors`}
+          <p style={{ margin: '0 0 4px', fontSize: 14, color: !syncResult.stillRunning && syncResult.errors.length > 0 && syncResult.synced === 0 ? 'var(--hot)' : 'var(--text-primary)', fontWeight: 600 }}>
+            {syncResult.stillRunning ? 'Import still running' : syncResult.errors.length === 0 ? 'Sync complete' : syncResult.synced > 0 ? 'Sync completed with errors' : 'Sync failed'}
           </p>
+          {syncResult.stillRunning ? (
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>
+              The first import can take a few minutes — your conversations keep appearing in the inbox while it runs. Check back shortly.
+            </p>
+          ) : (
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>
+              {syncResult.synced} conversations processed · {syncResult.created} created · {syncResult.updated} updated
+              {typeof syncResult.queuedAnalyses === 'number' && syncResult.queuedAnalyses > 0 && ` · ${syncResult.queuedAnalyses} queued for AI analysis`}
+              {syncResult.errors.length > 0 && ` · ${syncResult.errors.length} ${syncResult.errors.length === 1 ? 'error' : 'errors'}`}
+            </p>
+          )}
+          {syncResult.errors.length > 0 && (
+            <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12.5, color: 'var(--hot)', display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {syncResult.errors.slice(0, 3).map((e, i) => (
+                <li key={i} style={{ overflowWrap: 'anywhere' }}>{e}</li>
+              ))}
+              {syncResult.errors.length > 3 && (
+                <li style={{ listStyle: 'none', color: 'var(--text-muted)' }}>…and {syncResult.errors.length - 3} more</li>
+              )}
+            </ul>
+          )}
         </div>
       )}
 

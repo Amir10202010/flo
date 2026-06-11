@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { authorizeCron } from '@/lib/cron'
 import { enqueueGmailSync } from '@/services/jobs/queue'
 import { startGmailWatch } from '@/services/gmail.service'
+import { kickJobQueue } from '@/services/jobs/kick'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -55,6 +56,13 @@ async function handle(req: NextRequest) {
       }
     }
   }
+
+  // Drain what we just enqueued in this same invocation (post-response), so a
+  // single external-cron ping runs the whole pipeline — sync → analyze — without
+  // waiting for the separate /api/jobs/process tick. Bounded by maxDuration;
+  // anything left over is mopped up by /api/jobs/process. Safe to overlap:
+  // claimNext() uses SELECT … FOR UPDATE SKIP LOCKED.
+  if (queued > 0) kickJobQueue()
 
   return NextResponse.json({ integrations: integrations.length, queued, renewed, errors })
 }

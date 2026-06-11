@@ -23,7 +23,7 @@ export default function ConversationLoading() {
           { out: true,  w: 180 },
         ].map((m, i) => (
           <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: m.out ? 'flex-end' : 'flex-start', gap: 4 }}>
-            <div className="skeleton" style={{ width: m.w, height: 40, borderRadius: m.out ? '14px 14px 4px 14px' : '14px 14px 14px 4px' }} />
+            <div className="skeleton" style={{ width: m.w, height: 40, borderRadius: m.out ? '16px 16px 5px 16px' : '16px 16px 16px 5px' }} />
             <div className="skeleton" style={{ width: 48, height: 10, borderRadius: 4 }} />
           </div>
         ))}

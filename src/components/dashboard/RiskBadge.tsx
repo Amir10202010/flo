@@ -14,6 +14,7 @@ export default function RiskBadge({ level }: { level: RiskLevel }) {
       className="priority-badge"
       style={{ color: s.color, background: s.bg, border: `1px solid ${s.border}` }}
     >
+      <span className="priority-dot" aria-hidden />
       {s.label} risk
     </span>
   )

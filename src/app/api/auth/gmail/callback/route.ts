@@ -57,6 +57,17 @@ export async function GET(req: NextRequest) {
       update: {},
     })
 
+    // Merge metadata on reconnect: blindly replacing it wiped lastHistoryId /
+    // watchExpiration, breaking incremental sync state. If a DIFFERENT mailbox
+    // is being connected, the old history cursor is meaningless — start fresh.
+    const prev = await prisma.integration.findUnique({
+      where: { userId_type: { userId: user.id, type: 'GMAIL' } },
+      select: { metadata: true },
+    })
+    const prevMeta = (prev?.metadata as Record<string, unknown> | null) ?? {}
+    const sameMailbox = typeof prevMeta.email === 'string' && prevMeta.email === connectedEmail
+    const metadata = sameMailbox ? { ...prevMeta, email: connectedEmail } : { email: connectedEmail }
+
     const integration = await prisma.integration.upsert({
       where: { userId_type: { userId: user.id, type: 'GMAIL' } },
       create: {
@@ -65,13 +76,13 @@ export async function GET(req: NextRequest) {
         accessToken: encryptSecret(tokens.access_token!),
         refreshToken: tokens.refresh_token ? encryptSecret(tokens.refresh_token) : null,
         isActive: true,
-        metadata: { email: connectedEmail },
+        metadata,
       },
       update: {
         accessToken: encryptSecret(tokens.access_token!),
         ...(tokens.refresh_token ? { refreshToken: encryptSecret(tokens.refresh_token) } : {}),
         isActive: true,
-        metadata: { email: connectedEmail },
+        metadata,
       },
     })
 

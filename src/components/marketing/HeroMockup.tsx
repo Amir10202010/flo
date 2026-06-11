@@ -1,7 +1,7 @@
 const ITEMS = [
-  { ini: 'AP', bg: 'rgba(220,43,85,0.1)',  col: '#DC2B55', name: 'Alex Peterson', badge: 'HOT',  bCls: 'priority-hot',      msg: "Sounds good, price works — when can we start?",        ch: 'Gmail', t: '2m',  delayClass: 'delay-100' },
-  { ini: 'KL', bg: 'rgba(194,98,10,0.1)',  col: '#C2620A', name: 'Karina Lee',    badge: 'ATTN', bCls: 'priority-attention', msg: 'Still thinking it over, need to check with my team...', ch: 'Gmail', t: '3h',  delayClass: 'delay-300' },
-  { ini: 'MJ', bg: 'rgba(79,92,244,0.1)',  col: '#4F5CF4', name: 'Mark Johnson',  badge: 'COLD', bCls: 'priority-cold',     msg: "Thanks, I'll follow up later. Busy right now.",          ch: 'Gmail', t: '1d',  delayClass: 'delay-500' },
+  { ini: 'AP', bg: 'rgba(220,43,85,0.1)',  col: '#DC2B55', name: 'Alex Peterson', badge: 'Urgent',  bCls: 'priority-hot',      msg: "Sounds good, price works — when can we start?",        ch: 'Gmail', t: '2m',  delayClass: 'delay-100' },
+  { ini: 'KL', bg: 'rgba(194,98,10,0.1)',  col: '#C2620A', name: 'Karina Lee',    badge: 'High', bCls: 'priority-attention', msg: 'Still thinking it over, need to check with my team...', ch: 'Gmail', t: '3h',  delayClass: 'delay-300' },
+  { ini: 'MJ', bg: 'rgba(79,92,244,0.1)',  col: '#4F5CF4', name: 'Mark Johnson',  badge: 'Normal', bCls: 'priority-cold',     msg: "Thanks, I'll follow up later. Busy right now.",          ch: 'Gmail', t: '1d',  delayClass: 'delay-500' },
 ]
 
 export default function HeroMockup() {

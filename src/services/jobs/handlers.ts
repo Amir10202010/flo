@@ -1,7 +1,7 @@
 import type { Job } from '@prisma/client'
 import { syncGmailForUser } from '@/services/gmail.service'
 import { analyzeConversation } from '@/services/conversation.analyzer'
-import { enqueue } from './queue'
+import { enqueueMany } from './queue'
 
 /**
  * Executes a single job by type. Returns a JSON-serialisable result that is
@@ -19,11 +19,10 @@ export async function handleJob(job: Job): Promise<unknown> {
       const result = await syncGmailForUser(userId)
 
       // Auto-analyze: queue an analysis job per conversation with new inbound
-      // messages. De-duplicated so one busy thread doesn't enqueue twice.
+      // messages. De-duplicated, and inserted in ONE round trip — a per-job
+      // create loop added ~100 sequential queries to the initial import.
       const changed = Array.from(new Set(result.changedConversationIds ?? []))
-      for (const conversationId of changed) {
-        await enqueue('ANALYZE_CONVERSATION', { conversationId }, { userId })
-      }
+      await enqueueMany('ANALYZE_CONVERSATION', changed.map((conversationId) => ({ conversationId })), { userId })
 
       return {
         synced: result.synced,

@@ -56,6 +56,44 @@ export async function claimNext(): Promise<Job | null> {
   return rows[0] ?? null
 }
 
+/**
+ * Recover jobs orphaned in RUNNING — claimed by an invocation that was killed
+ * (serverless timeout / crash) before it could complete or fail them. Since
+ * claimNext only picks PENDING, such rows would otherwise sit RUNNING forever.
+ *
+ * A job stuck longer than `staleAfterMs` is requeued as PENDING for another
+ * attempt, or parked as FAILED once it has exhausted maxAttempts. Cheap and
+ * idempotent — called at the top of every drain.
+ */
+export async function reapStuckJobs(staleAfterMs = 5 * 60_000): Promise<number> {
+  const cutoff = new Date(Date.now() - staleAfterMs)
+
+  // Exhausted → terminal FAILED.
+  await prisma.$executeRaw(Prisma.sql`
+    UPDATE "Job"
+    SET status = 'FAILED'::"JobStatus",
+        error = 'stuck in RUNNING (invocation killed before completion)',
+        "finishedAt" = now(),
+        "updatedAt" = now()
+    WHERE status = 'RUNNING'::"JobStatus"
+      AND "startedAt" < ${cutoff}
+      AND attempts >= "maxAttempts";
+  `)
+
+  // Still has attempts left → requeue.
+  const requeued = await prisma.$executeRaw(Prisma.sql`
+    UPDATE "Job"
+    SET status = 'PENDING'::"JobStatus",
+        "runAfter" = now(),
+        "updatedAt" = now()
+    WHERE status = 'RUNNING'::"JobStatus"
+      AND "startedAt" < ${cutoff}
+      AND attempts < "maxAttempts";
+  `)
+
+  return requeued
+}
+
 export async function completeJob(id: string, result: unknown): Promise<void> {
   await prisma.job.update({
     where: { id },
@@ -87,16 +125,45 @@ export async function getJob(id: string): Promise<Job | null> {
   return prisma.job.findUnique({ where: { id } })
 }
 
+/** Bulk-enqueue jobs of one type in a single round trip. */
+export async function enqueueMany(
+  type: JobType,
+  payloads: Record<string, unknown>[],
+  opts: EnqueueOptions = {},
+): Promise<number> {
+  if (!payloads.length) return 0
+  const res = await prisma.job.createMany({
+    data: payloads.map((payload) => ({
+      type,
+      payload: payload as Prisma.InputJsonValue,
+      userId: opts.userId ?? null,
+      runAfter: opts.runAfter ?? new Date(),
+      maxAttempts: opts.maxAttempts ?? 3,
+    })),
+  })
+  return res.count
+}
+
 /**
  * Enqueue a Gmail sync for a user, collapsing onto an existing PENDING job to
  * avoid piling up duplicates (rapid push notifications + manual Sync). A RUNNING
  * job is NOT reused — mail that arrives mid-sync must trigger a fresh follow-up,
  * so the steady state is at most one RUNNING + one PENDING per user.
+ *
+ * If the existing PENDING job is a backoff retry scheduled in the future, pull
+ * it forward: an explicit trigger (connect, manual sync, push) should run now,
+ * not after the remaining backoff — otherwise the UI polls a job that is not
+ * even eligible to run and times out.
  */
 export async function enqueueGmailSync(userId: string): Promise<Job> {
   const pending = await prisma.job.findFirst({
     where: { type: 'GMAIL_SYNC', userId, status: 'PENDING' },
   })
-  if (pending) return pending
+  if (pending) {
+    if (pending.runAfter > new Date()) {
+      return prisma.job.update({ where: { id: pending.id }, data: { runAfter: new Date() } })
+    }
+    return pending
+  }
   return enqueue('GMAIL_SYNC', { userId }, { userId })
 }

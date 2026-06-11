@@ -5,11 +5,13 @@ import { htmlToText } from '@/lib/html'
 import type { SyncResult } from '@/types'
 import type { Integration } from '@prisma/client'
 
-// How many threads to fetch from Google in parallel. Bounded to stay within
-// Gmail per-user rate limits and Supabase's pooled connection budget.
+// How many threads to fetch from Google in parallel. Network-only: DB writes
+// happen sequentially afterwards so we never demand more than one pooled
+// connection per sync (see persistThread).
 const THREAD_CONCURRENCY = 6
 // Cap on threads pulled in a single full sync (first connect / history expiry).
-const FULL_SYNC_LIMIT = 50
+// Matches the inbox display cap (take: 100 in InboxListContent).
+const FULL_SYNC_LIMIT = 100
 
 type GmailClient = gmail_v1.Gmail
 type OAuth2Client = InstanceType<typeof google.auth.OAuth2>
@@ -24,15 +26,19 @@ function buildOAuth2Client(integration: Integration): OAuth2Client {
     access_token: decryptSecret(integration.accessToken),
     refresh_token: integration.refreshToken ? decryptSecret(integration.refreshToken) : undefined,
   })
-  // Persist refreshed access tokens (re-encrypted) automatically.
+  // Persist refreshed tokens (re-encrypted) automatically. Google occasionally
+  // rotates the refresh token too — losing it would force a manual reconnect.
   client.on('tokens', (newTokens) => {
-    if (newTokens.access_token) {
+    if (newTokens.access_token || newTokens.refresh_token) {
       prisma.integration
         .update({
           where: { id: integration.id },
-          data: { accessToken: encryptSecret(newTokens.access_token) },
+          data: {
+            ...(newTokens.access_token ? { accessToken: encryptSecret(newTokens.access_token) } : {}),
+            ...(newTokens.refresh_token ? { refreshToken: encryptSecret(newTokens.refresh_token) } : {}),
+          },
         })
-        .catch(() => {})
+        .catch((e) => console.error('[gmail] failed to persist refreshed tokens:', e))
     }
   })
   return client
@@ -92,100 +98,229 @@ function integrationEmail(integration: Integration): string {
   return (meta?.email ?? process.env.GMAIL_USER_EMAIL ?? '').toLowerCase()
 }
 
-/**
- * Fetch one thread and upsert its contact / conversation / messages.
- * Used by both full sync and incremental (history-driven) sync.
- */
-async function processThread(
-  gmail: GmailClient,
-  userId: string,
+function errMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
+}
+
+/** Best-effort HTTP status extraction across gaxios versions (status, code, response.status). */
+function httpStatus(err: unknown): number | undefined {
+  const e = err as { status?: unknown; code?: unknown; response?: { status?: unknown } }
+  for (const v of [e?.status, e?.response?.status, e?.code]) {
+    const n = typeof v === 'string' ? parseInt(v, 10) : v
+    if (typeof n === 'number' && Number.isFinite(n)) return n
+  }
+  return undefined
+}
+
+type FetchedThread = { threadId: string; thread: gmail_v1.Schema$Thread | null; error?: string }
+
+/** Fetch thread payloads from Gmail with bounded concurrency (network only — no DB). */
+async function fetchThreads(gmail: GmailClient, threadIds: string[]): Promise<FetchedThread[]> {
+  return mapPool(threadIds, THREAD_CONCURRENCY, async (threadId) => {
+    try {
+      const res = await gmail.users.threads.get({ userId: 'me', id: threadId, format: 'full' })
+      return { threadId, thread: res.data }
+    } catch (err) {
+      return { threadId, thread: null, error: `Thread ${threadId}: ${errMessage(err)}` }
+    }
+  })
+}
+
+type ParsedMessage = {
+  externalId: string
+  direction: 'INBOUND' | 'OUTBOUND'
+  content: string
+  sentAt: Date
+}
+
+type ParsedThread = {
+  threadId: string
+  subject: string
+  contactEmail: string
+  contactName: string
+  lastMessageAt: Date
+  messages: ParsedMessage[]
+}
+
+/** Extract everything we persist from a raw Gmail thread. Pure — no I/O. */
+function parseThread(
   integration: Integration,
   threadId: string,
+  thread: gmail_v1.Schema$Thread,
+): ParsedThread | null {
+  const messages = (thread.messages ?? []).slice(-20)
+  if (!messages.length) return null
+
+  const accountEmail = integrationEmail(integration)
+  const subject = headerValue(messages[0].payload?.headers, 'Subject') || '(no subject)'
+
+  // Contact identity: prefer the first INBOUND sender so threads the user
+  // started don't create a contact for the user's own address.
+  const identityMsg =
+    messages.find((m) => {
+      const f = headerValue(m.payload?.headers, 'From').toLowerCase()
+      return accountEmail ? !f.includes(accountEmail) : true
+    }) ?? messages[0]
+  const from = headerValue(identityMsg.payload?.headers, 'From')
+
+  const emailMatch = from.match(/<(.+?)>/)
+  const email = (emailMatch?.[1]?.trim() ?? from.trim()).toLowerCase()
+  const name = from.replace(/<[^>]+>/g, '').replace(/"/g, '').trim() || email
+
+  const parsedMessages: ParsedMessage[] = []
+  for (const msg of messages) {
+    if (!msg.id) continue
+    const msgFrom = headerValue(msg.payload?.headers, 'from').toLowerCase()
+    const isOutbound = accountEmail ? msgFrom.includes(accountEmail) : false
+    parsedMessages.push({
+      externalId: msg.id,
+      direction: isOutbound ? 'OUTBOUND' : 'INBOUND',
+      content: extractBody(msg.payload).slice(0, 5000) || '(no text content)',
+      sentAt: new Date(parseInt(msg.internalDate ?? '0')),
+    })
+  }
+  if (!parsedMessages.length) return null
+
+  return {
+    threadId,
+    subject,
+    contactEmail: email,
+    contactName: name,
+    lastMessageAt: new Date(parseInt(messages[messages.length - 1].internalDate ?? '0')),
+    messages: parsedMessages,
+  }
+}
+
+/**
+ * Persist all parsed threads with a fixed, small number of set-based queries
+ * (createMany / findMany ... IN) instead of ~5 round trips per thread. The
+ * initial 100-thread import previously issued ~500 sequential queries through
+ * the Supabase pooler (2+ minutes — longer than serverless budgets and the UI
+ * poll window, so the invocation got killed mid-job); this does it in <10
+ * queries. All writes stay idempotent (skipDuplicates + unique constraints),
+ * so overlapping syncs and retries remain safe.
+ */
+async function persistThreads(
+  userId: string,
+  integration: Integration,
+  threads: ParsedThread[],
   result: SyncResult,
 ): Promise<void> {
+  if (!threads.length) return
   try {
-    const threadRes = await gmail.users.threads.get({ userId: 'me', id: threadId, format: 'full' })
-    const messages = (threadRes.data.messages ?? []).slice(-20)
-    if (!messages.length) return
-
-    const firstMsg = messages[0]
-    const from = headerValue(firstMsg.payload?.headers, 'From')
-    const subject = headerValue(firstMsg.payload?.headers, 'Subject') || '(no subject)'
-
-    const emailMatch = from.match(/<(.+?)>/)
-    const email = (emailMatch?.[1]?.trim() ?? from.trim()).toLowerCase()
-    const name = from.replace(/<[^>]+>/g, '').replace(/"/g, '').trim() || email
-
-    const contact = await prisma.contact.upsert({
-      where: { userId_email: { userId, email } },
-      create: { userId, name, email, source: 'GMAIL' },
-      update: { name },
+    // 1. Contacts: one bulk insert + one lookup. Existing contacts keep their
+    //    stored name (skipDuplicates leaves them untouched).
+    const nameByEmail = new Map<string, string>()
+    for (const t of threads) {
+      if (!nameByEmail.has(t.contactEmail)) nameByEmail.set(t.contactEmail, t.contactName)
+    }
+    await prisma.contact.createMany({
+      data: Array.from(nameByEmail, ([email, name]) => ({ userId, email, name, source: 'GMAIL' as const })),
+      skipDuplicates: true,
     })
-
-    const lastMsgDate = new Date(parseInt(messages[messages.length - 1].internalDate ?? '0'))
-
-    const existing = await prisma.conversation.findUnique({
-      where: { integrationId_externalId: { integrationId: integration.id, externalId: threadId } },
-      select: { id: true },
+    const contacts = await prisma.contact.findMany({
+      where: { userId, email: { in: Array.from(nameByEmail.keys()) } },
+      select: { id: true, email: true },
     })
+    const contactIdByEmail = new Map(contacts.map((c) => [c.email, c.id]))
 
-    const conversation = existing
-      ? await prisma.conversation.update({
-          where: { id: existing.id },
-          data: { lastMessageAt: lastMsgDate },
-        })
-      : await prisma.conversation.create({
-          data: {
-            userId,
-            contactId: contact.id,
-            integrationId: integration.id,
-            channel: 'GMAIL',
-            externalId: threadId,
-            subject,
-            lastMessageAt: lastMsgDate,
-          },
-        })
+    const persistable = threads.filter((t) => contactIdByEmail.has(t.contactEmail))
+    for (const t of threads) {
+      if (!contactIdByEmail.has(t.contactEmail)) {
+        result.errors.push(`Thread ${t.threadId}: could not resolve contact ${t.contactEmail || '(empty sender)'}`)
+      }
+    }
+    if (!persistable.length) return
 
-    const accountEmail = integrationEmail(integration)
-
-    // Batch: fetch which messages already exist, then createMany only the new
-    // ones (one round-trip each instead of an upsert per message).
-    const candidateIds = messages.map((m) => m.id).filter((id): id is string => Boolean(id))
-    const existingMsgs = await prisma.message.findMany({
-      where: { conversationId: conversation.id, externalId: { in: candidateIds } },
-      select: { externalId: true },
+    // 2. Conversations: diff against existing rows, bulk-create the new ones,
+    //    then bump lastMessageAt only where the thread actually has newer mail
+    //    (a handful of rows on incremental syncs).
+    const threadIds = persistable.map((t) => t.threadId)
+    const existing = await prisma.conversation.findMany({
+      where: { integrationId: integration.id, externalId: { in: threadIds } },
+      select: { externalId: true, lastMessageAt: true },
     })
-    const existingIds = new Set(existingMsgs.map((m) => m.externalId))
+    const existingByThread = new Map(existing.map((c) => [c.externalId, c]))
 
-    let newInbound = 0
-    const toCreate = messages
-      .filter((msg) => msg.id && !existingIds.has(msg.id))
-      .map((msg) => {
-        const msgFrom = headerValue(msg.payload?.headers, 'from').toLowerCase()
-        const isOutbound = accountEmail ? msgFrom.includes(accountEmail) : false
-        if (!isOutbound) newInbound++
-        return {
-          conversationId: conversation.id,
-          externalId: msg.id!,
-          direction: (isOutbound ? 'OUTBOUND' : 'INBOUND') as 'OUTBOUND' | 'INBOUND',
-          content: extractBody(msg.payload).slice(0, 5000) || '(no text content)',
-          contentType: 'TEXT' as const,
-          sentAt: new Date(parseInt(msg.internalDate ?? '0')),
-        }
+    const newThreads = persistable.filter((t) => !existingByThread.has(t.threadId))
+    if (newThreads.length) {
+      await prisma.conversation.createMany({
+        data: newThreads.map((t) => ({
+          userId,
+          contactId: contactIdByEmail.get(t.contactEmail)!,
+          integrationId: integration.id,
+          channel: 'GMAIL' as const,
+          externalId: t.threadId,
+          subject: t.subject,
+          lastMessageAt: t.lastMessageAt,
+        })),
+        skipDuplicates: true, // a concurrent sync may have created some meanwhile
       })
-
-    if (toCreate.length) {
-      await prisma.message.createMany({ data: toCreate, skipDuplicates: true })
     }
 
-    // A new inbound message means the AI summary/priority is stale → re-analyze.
-    if (newInbound > 0) result.changedConversationIds!.push(conversation.id)
+    // Resolve ids for ALL conversations (including the just-created ones).
+    const allConvs = await prisma.conversation.findMany({
+      where: { integrationId: integration.id, externalId: { in: threadIds } },
+      select: { id: true, externalId: true },
+    })
+    const convIdByThread = new Map(allConvs.map((c) => [c.externalId, c.id]))
 
-    result.synced++
-    if (existing) result.updated++
-    else result.created++
+    const toBump = persistable.filter((t) => {
+      const ex = existingByThread.get(t.threadId)
+      return ex && (!ex.lastMessageAt || t.lastMessageAt > ex.lastMessageAt) && convIdByThread.has(t.threadId)
+    })
+    for (const t of toBump) {
+      await prisma.conversation.update({
+        where: { id: convIdByThread.get(t.threadId)! },
+        data: { lastMessageAt: t.lastMessageAt },
+      })
+    }
+
+    // 3. Messages: one lookup over (conversationId, externalId) pairs, then one
+    //    bulk insert for the genuinely new rows.
+    const candidates: (ParsedMessage & { conversationId: string })[] = []
+    for (const t of persistable) {
+      const convId = convIdByThread.get(t.threadId)
+      if (!convId) {
+        result.errors.push(`Thread ${t.threadId}: conversation row missing after insert`)
+        continue
+      }
+      for (const m of t.messages) candidates.push({ ...m, conversationId: convId })
+    }
+    const existingMsgs = candidates.length
+      ? await prisma.message.findMany({
+          where: {
+            conversationId: { in: Array.from(new Set(candidates.map((c) => c.conversationId))) },
+            externalId: { in: candidates.map((c) => c.externalId) },
+          },
+          select: { conversationId: true, externalId: true },
+        })
+      : []
+    const seen = new Set(existingMsgs.map((m) => `${m.conversationId}:${m.externalId}`))
+    const toCreate = candidates.filter((c) => !seen.has(`${c.conversationId}:${c.externalId}`))
+    if (toCreate.length) {
+      await prisma.message.createMany({
+        data: toCreate.map((c) => ({
+          conversationId: c.conversationId,
+          externalId: c.externalId,
+          direction: c.direction,
+          content: c.content,
+          contentType: 'TEXT' as const,
+          sentAt: c.sentAt,
+        })),
+        skipDuplicates: true,
+      })
+    }
+
+    // New inbound mail ⇒ AI summary/priority is stale ⇒ re-analyze.
+    const changed = new Set(toCreate.filter((c) => c.direction === 'INBOUND').map((c) => c.conversationId))
+    result.changedConversationIds!.push(...changed)
+
+    result.synced += persistable.length
+    result.created += newThreads.length
+    result.updated += persistable.length - newThreads.length
   } catch (err) {
-    result.errors.push(`Thread ${threadId}: ${String(err)}`)
+    result.errors.push(`Failed to persist threads: ${errMessage(err)}`)
   }
 }
 
@@ -212,11 +347,32 @@ async function changedThreadIds(gmail: GmailClient, startHistoryId: string): Pro
     } while (pageToken)
     return Array.from(ids)
   } catch (err) {
-    // 404 => startHistoryId too old/expired; signal caller to do a full resync.
-    const status = (err as { code?: number }).code
-    if (status === 404) return null
-    throw err
+    // 404 => startHistoryId too old/expired, 400 => invalid cursor. Either way
+    // the incremental path is unusable — signal the caller to do a bounded full
+    // resync rather than failing the whole sync. (NB: gaxios exposes the HTTP
+    // status as `err.status`, not `err.code` — see httpStatus().)
+    console.warn(`[gmail] history.list failed (status ${httpStatus(err) ?? '?'}) — falling back to full sync:`, errMessage(err))
+    return null
   }
+}
+
+/** List up to FULL_SYNC_LIMIT INBOX thread IDs (paginated). */
+async function listInboxThreadIds(gmail: GmailClient): Promise<string[]> {
+  const ids: string[] = []
+  let pageToken: string | undefined
+  do {
+    const res = await gmail.users.threads.list({
+      userId: 'me',
+      labelIds: ['INBOX'],
+      maxResults: Math.min(100, FULL_SYNC_LIMIT - ids.length),
+      pageToken,
+    })
+    for (const t of res.data.threads ?? []) {
+      if (t.id) ids.push(t.id)
+    }
+    pageToken = res.data.nextPageToken ?? undefined
+  } while (pageToken && ids.length < FULL_SYNC_LIMIT)
+  return ids
 }
 
 export async function syncGmailForUser(userId: string): Promise<SyncResult> {
@@ -235,42 +391,81 @@ export async function syncGmailForUser(userId: string): Promise<SyncResult> {
   const lastHistoryId = typeof meta.lastHistoryId === 'string' ? meta.lastHistoryId : null
 
   // Capture the current history watermark up-front so we don't miss messages
-  // that arrive mid-sync.
+  // that arrive mid-sync. If even this fails, auth/connectivity is broken and
+  // nothing below can work — surface the error instead of failing opaquely.
   let newHistoryId: string | null = null
   try {
     const profile = await gmail.users.getProfile({ userId: 'me' })
     newHistoryId = profile.data.historyId ?? null
   } catch (err) {
-    result.errors.push(`getProfile: ${String(err)}`)
+    const status = httpStatus(err)
+    result.errors.push(
+      status === 401 || status === 403 || errMessage(err).includes('invalid_grant')
+        ? `Gmail authorization failed (${errMessage(err)}) — disconnect and reconnect Gmail`
+        : `Gmail API unreachable: ${errMessage(err)}`,
+    )
+    return result
   }
 
   let threadIds: string[] = []
-
-  if (lastHistoryId) {
-    const changed = await changedThreadIds(gmail, lastHistoryId)
-    if (changed === null) {
-      // History expired — fall back to a bounded full sync.
-      const listRes = await gmail.users.threads.list({ userId: 'me', maxResults: FULL_SYNC_LIMIT, labelIds: ['INBOX'] })
-      threadIds = (listRes.data.threads ?? []).map((t) => t.id!).filter(Boolean)
+  try {
+    if (lastHistoryId) {
+      // changedThreadIds returns null when the cursor is unusable → full resync.
+      const changed = await changedThreadIds(gmail, lastHistoryId)
+      threadIds = changed ?? (await listInboxThreadIds(gmail))
     } else {
-      threadIds = changed
+      threadIds = await listInboxThreadIds(gmail)
     }
-  } else {
-    const listRes = await gmail.users.threads.list({ userId: 'me', maxResults: FULL_SYNC_LIMIT, labelIds: ['INBOX'] })
-    threadIds = (listRes.data.threads ?? []).map((t) => t.id!).filter(Boolean)
+  } catch (err) {
+    result.errors.push(`Failed to list Gmail threads: ${errMessage(err)}`)
+    return result
   }
 
-  await mapPool(threadIds, THREAD_CONCURRENCY, (tid) => processThread(gmail, userId, integration, tid, result))
+  // Fetch from Gmail concurrently (network only), parse in memory, then write
+  // to the DB with a handful of set-based queries — the runtime pool is tiny
+  // (see CLAUDE.md), so per-thread query fan-out causes P2024 timeouts, and
+  // per-thread sequential queries made the initial import slower than the
+  // serverless invocation budget.
+  const fetched = await fetchThreads(gmail, threadIds)
+  const parsed: ParsedThread[] = []
+  for (const f of fetched) {
+    if (!f.thread) {
+      if (f.error) result.errors.push(f.error)
+      continue
+    }
+    try {
+      const p = parseThread(integration, f.threadId, f.thread)
+      if (p) parsed.push(p)
+    } catch (err) {
+      result.errors.push(`Thread ${f.threadId}: ${errMessage(err)}`)
+    }
+  }
+  await persistThreads(userId, integration, parsed, result)
 
-  await prisma.integration
-    .update({
+  // Advance the history cursor only after a clean pass. On partial failure we
+  // keep the old cursor so the next sync retries the missed threads (all
+  // writes are idempotent); advancing past failures would silently drop them.
+  const advanceCursor = result.errors.length === 0 && newHistoryId
+
+  // Re-read metadata before writing: a concurrent watch renewal/sync may have
+  // updated it since this sync started — don't clobber those keys.
+  try {
+    const fresh = await prisma.integration.findUnique({
+      where: { id: integration.id },
+      select: { metadata: true },
+    })
+    const freshMeta = (fresh?.metadata as Record<string, unknown> | null) ?? meta
+    await prisma.integration.update({
       where: { id: integration.id },
       data: {
         syncedAt: new Date(),
-        metadata: { ...meta, ...(newHistoryId ? { lastHistoryId: newHistoryId } : {}) },
+        metadata: { ...freshMeta, ...(advanceCursor ? { lastHistoryId: newHistoryId } : {}) },
       },
     })
-    .catch(() => {})
+  } catch (err) {
+    console.error('[gmail] failed to persist sync state (syncedAt/lastHistoryId):', err)
+    result.errors.push(`Failed to persist sync state: ${errMessage(err)}`)
+  }
 
   return result
 }
@@ -282,8 +477,12 @@ export type WatchResult = { historyId?: string; expiration?: string }
 /**
  * Register a Gmail push watch on the INBOX so mailbox changes are delivered to
  * our Pub/Sub topic (and on to /api/webhooks/gmail). Watches expire within 7
- * days and must be renewed — see /api/cron/gmail. Seeds `lastHistoryId` when
- * absent so the first incremental sync has a baseline.
+ * days and must be renewed — see /api/cron/gmail.
+ *
+ * Deliberately does NOT touch `lastHistoryId`: seeding it here (at connect
+ * time, before the first sync) made the first sync take the incremental path
+ * and import nothing. The sync itself owns the cursor — no cursor ⇒ full
+ * initial import, after which syncGmailForUser stores the watermark.
  */
 export async function startGmailWatch(integration: Integration): Promise<WatchResult> {
   const topicName = process.env.GMAIL_PUBSUB_TOPIC
@@ -298,16 +497,16 @@ export async function startGmailWatch(integration: Integration): Promise<WatchRe
   const historyId = res.data.historyId ?? undefined
   const expiration = res.data.expiration ?? undefined
 
-  const meta = (integration.metadata as Record<string, unknown> | null) ?? {}
+  // Re-read metadata so we merge with the latest state (a sync may have
+  // written lastHistoryId since `integration` was loaded).
+  const fresh = await prisma.integration.findUnique({
+    where: { id: integration.id },
+    select: { metadata: true },
+  })
+  const meta = (fresh?.metadata as Record<string, unknown> | null) ?? {}
   await prisma.integration.update({
     where: { id: integration.id },
-    data: {
-      metadata: {
-        ...meta,
-        watchExpiration: expiration ?? null,
-        ...(meta.lastHistoryId || !historyId ? {} : { lastHistoryId: historyId }),
-      },
-    },
+    data: { metadata: { ...meta, watchExpiration: expiration ?? null } },
   })
 
   return { historyId, expiration }

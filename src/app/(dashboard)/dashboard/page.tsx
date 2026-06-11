@@ -114,7 +114,7 @@ async function DashboardBody({ userId }: { userId: string }) {
           label="High Priority"
           icon={<Flame size={12} />}
           value={String(s.highPriority.value)}
-          sub={`${s.highPriority.hot} hot · ${s.highPriority.attention} attention`}
+          sub={`${s.highPriority.hot} urgent · ${s.highPriority.attention} high`}
           tone={s.highPriority.hot > 0 ? 'critical' : s.highPriority.value > 0 ? 'warning' : 'default'}
           delay={0.08}
         />

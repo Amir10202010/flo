@@ -27,6 +27,7 @@ NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
 GEMINI_API_KEY
+GEMINI_MODEL          # optional: override the Gemini model (default gemini-2.0-flash); e.g. gemini-2.0-flash-lite, gemini-1.5-flash
 TELEGRAM_API_ID
 TELEGRAM_API_HASH
 GOOGLE_CLIENT_ID
@@ -61,7 +62,7 @@ NEXT_PUBLIC_CHECKOUT_URL          # optional: Stripe Payment Link / LemonSqueezy
 - Prisma schema: `User → Integration → Conversation → Message` and `ConversationAnalysis` (1:1 with Conversation). Key unique constraints: `Integration(userId, type)`, `Conversation(integrationId, externalId)`, `Message(conversationId, externalId)`
 
 **Core services** (`src/services/`):
-- `gemini.service.ts` — calls Gemini API to produce `AnalysisResult` (currently a placeholder returning mock data; must be implemented before AI features work)
+- `gemini.service.ts` — calls the Gemini API (model overridable via `GEMINI_MODEL`, default `gemini-2.0-flash`) with a structured `responseSchema` to produce a validated `AnalysisResult` (summary, risk, reasons, next action, sentiment). Throws if `GEMINI_API_KEY` is unset
 - `conversation.analyzer.ts` — orchestrates analysis: fetches conversation + messages from DB → `gemini.service` → upserts `ConversationAnalysis` → `priority.engine` → updates `Conversation.priority`
 - `priority.engine.ts` — pure function; scores 0–100 and maps to `HOT | ATTENTION | COLD | SPAM` based on recency, inbound-awaiting-reply status, and AI risk level
 - `gmail.service.ts` — `syncGmailForUser()` fetches up to 50 inbox threads via Google API, upserts `Contact` / `Conversation` / `Message` rows, and auto-refreshes OAuth tokens via the `tokens` event
@@ -70,7 +71,7 @@ NEXT_PUBLIC_CHECKOUT_URL          # optional: Stripe Payment Link / LemonSqueezy
 - `analytics.service.ts` — `getAnalyticsData` for `/analytics`: response-time trend, volume series, priority/risk/sentiment distributions, inbound heatmap, top contacts
 - `clients.service.ts` — `getClientDirectory` for `/clients`: one row per contact with engagement, max risk, latest sentiment, awaiting-reply flag
 
-**Not yet wired up:** Gmail is the only functional ingestion channel. `TELEGRAM_API_ID/HASH` env vars and Telegram references in the UI/marketing/`types` are placeholders with no backing service. `gemini.service.ts` returns mock data — implement it before AI analysis produces real results.
+**Not yet wired up:** Gmail is the only functional ingestion channel. `TELEGRAM_API_ID/HASH` env vars and Telegram references in the UI/marketing/`types` are placeholders with no backing service. (Gemini analysis is fully implemented and live — see `gemini.service.ts` + `conversation.analyzer.ts`; it runs automatically as an `ANALYZE_CONVERSATION` job after each Gmail sync, and on demand via `POST /api/conversations/[id]/analyze`.)
 
 **Client state:** `src/stores/inbox.store.ts` — selected conversation in the inbox split-view; `src/stores/ui.store.ts` — command-palette open state (shared by the sidebar button and the global Ctrl/⌘+K shortcut).
 

@@ -1,4 +1,5 @@
 import { formatHours, shortDate, weekdayName } from '@/lib/time'
+import { PRIORITY_META } from '@/lib/priority'
 import {
   average,
   dailyVolume,
@@ -101,7 +102,7 @@ export async function getAnalyticsData(userId: string): Promise<AnalyticsData> {
   const active = conversations.filter((c) => c.status === 'ACTIVE')
   const priorityDist = (['HOT', 'ATTENTION', 'COLD', 'SPAM'] as const)
     .map((p) => ({
-      label: p.charAt(0) + p.slice(1).toLowerCase(),
+      label: PRIORITY_META[p].label,
       value: active.filter((c) => c.priority === p).length,
       color: PRIORITY_COLORS[p],
     }))

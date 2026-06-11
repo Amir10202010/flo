@@ -7,9 +7,9 @@ import Cursor from './Cursor'
 
 /* ── Static data ──────────────────────────────────────────────────────────── */
 const CONVS = [
-  { ini: 'AP', bg: 'rgba(220,43,85,0.1)', col: '#DC2B55', name: 'Alex Peterson', priority: 'HOT',  cls: 'priority-hot',       preview: 'Sounds good, the price works. When could we start?', meta: 'Gmail · 2m', unread: 3 },
-  { ini: 'KL', bg: 'rgba(194,98,10,0.1)', col: '#C2620A', name: 'Karina Lee',    priority: 'ATTN', cls: 'priority-attention', preview: 'Still thinking it over, need to check with my team…', meta: 'Gmail · 3h',    unread: 1 },
-  { ini: 'MJ', bg: 'rgba(79,92,244,0.1)', col: '#4F5CF4', name: 'Mark Johnson',  priority: 'COLD', cls: 'priority-cold',      preview: "Thanks, I'll follow up later. Busy right now.",        meta: 'Gmail · 1d', unread: 0 },
+  { ini: 'AP', bg: 'rgba(220,43,85,0.1)', col: '#DC2B55', name: 'Alex Peterson', priority: 'Urgent',  cls: 'priority-hot',       preview: 'Sounds good, the price works. When could we start?', meta: 'Gmail · 2m', unread: 3 },
+  { ini: 'KL', bg: 'rgba(194,98,10,0.1)', col: '#C2620A', name: 'Karina Lee',    priority: 'High', cls: 'priority-attention', preview: 'Still thinking it over, need to check with my team…', meta: 'Gmail · 3h',    unread: 1 },
+  { ini: 'MJ', bg: 'rgba(79,92,244,0.1)', col: '#4F5CF4', name: 'Mark Johnson',  priority: 'Normal', cls: 'priority-cold',      preview: "Thanks, I'll follow up later. Busy right now.",        meta: 'Gmail · 1d', unread: 0 },
 ]
 
 const BASE_MESSAGES = [
@@ -140,7 +140,7 @@ export default function ProductDemo() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 2 }}>
                       <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</span>
-                      <span className={`priority-badge ${isHot && won ? 'priority-cold' : c.cls}`} style={{ fontSize: 9 }}>{isHot && won ? 'WON' : c.priority}</span>
+                      <span className={`priority-badge ${isHot && won ? 'priority-cold' : c.cls}`} style={{ fontSize: 9 }}>{isHot && won ? 'Won' : c.priority}</span>
                     </div>
                     <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.4 }}>{c.preview}</p>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
@@ -162,7 +162,7 @@ export default function ProductDemo() {
                   <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>Alex Peterson</div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Gmail · last message 2 minutes ago</div>
                 </div>
-                <span className={`priority-badge ${won ? 'priority-cold' : 'priority-hot'}`}>{won ? 'WON' : 'HOT'}</span>
+                <span className={`priority-badge ${won ? 'priority-cold' : 'priority-hot'}`}>{won ? 'Won' : 'Urgent'}</span>
               </div>
 
               {/* Zoom + crossfade to accentuate the AI as it works. */}

@@ -1,6 +1,6 @@
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { ensurePlainText } from '@/lib/html'
+import { messagePreview } from '@/lib/html'
 import InboxList, { type InboxGroup } from '@/components/InboxList'
 import type { ConversationSummary } from '@/components/ConversationList'
 
@@ -63,7 +63,7 @@ export default async function InboxListContent() {
         priorityScore: c.priorityScore,
         lastMessageAt: c.lastMessageAt?.toISOString() ?? null,
         contact: { name: c.contact.name, email: c.contact.email },
-        lastMessage: c.messages[0] ? ensurePlainText(c.messages[0].content).slice(0, 120) : null,
+        lastMessage: c.messages[0] ? messagePreview(c.messages[0].content) : null,
         unreadCount: 0,
       }
       byIntegration.get(integ.id)!.conversations.push(summary)
