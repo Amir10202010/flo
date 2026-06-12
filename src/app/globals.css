@@ -226,7 +226,7 @@
   align-items: center;
   gap: 8px;
   padding: 11px 22px;
-  background: var(--accent);
+  background: linear-gradient(180deg, #5B68F6 0%, #4F5CF4 58%, #4550EE 100%);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
@@ -234,18 +234,19 @@
   font-weight: 600;
   font-family: var(--font-sans);
   cursor: pointer;
-  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+  transition: filter 0.15s, transform 0.15s, box-shadow 0.15s, opacity 0.15s;
   text-decoration: none;
   line-height: 1;
   white-space: nowrap;
-  box-shadow: 0 1px 3px rgba(79,92,244,0.3);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 1px 3px rgba(79,92,244,0.35);
 }
 .btn-primary:hover {
-  background: var(--accent-hover);
-  box-shadow: 0 4px 20px rgba(79,92,244,0.35);
+  filter: brightness(1.05) saturate(1.04);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 5px 20px rgba(79,92,244,0.38);
   transform: translateY(-1px);
 }
-.btn-primary:active { transform: translateY(0); box-shadow: none; }
+.btn-primary:active { transform: translateY(0); filter: brightness(0.97); box-shadow: inset 0 1px 2px rgba(12,18,60,0.18); }
+.btn-primary:disabled { opacity: 0.6; cursor: default; filter: none; transform: none; }
 
 .btn-ghost {
   display: inline-flex;
@@ -270,6 +271,99 @@
   color: var(--text-primary);
   border-color: rgba(79,92,244,0.25);
 }
+
+/* OAuth / provider button (auth pages) */
+.btn-oauth {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: #FFFFFF;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  box-shadow: var(--shadow-xs);
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s, transform 0.15s;
+}
+.btn-oauth:hover { border-color: rgba(79,92,244,0.35); box-shadow: var(--shadow-sm); background: var(--bg-subtle); }
+.btn-oauth:active { transform: translateY(1px); box-shadow: none; }
+
+/* Destructive actions — quiet until hovered (disconnect, delete) */
+.btn-danger-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  line-height: 1.3;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.btn-danger-ghost:hover:not(:disabled) { background: var(--hot-dim); color: var(--hot); border-color: var(--hot-border); }
+.btn-danger-ghost:disabled { opacity: 0.55; cursor: default; }
+
+/* Full-width destructive row inside a settings card */
+.row-danger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: var(--hot);
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.13s;
+}
+.row-danger:hover:not(:disabled) { background: var(--hot-dim); }
+.row-danger:disabled { opacity: 0.6; cursor: default; }
+
+/* Inline form error (auth, composers) */
+.form-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 9px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--hot);
+  background: var(--hot-dim);
+  border: 1px solid var(--hot-border);
+  border-radius: 9px;
+}
+
+/* Quiet alternative-action link (e.g. "use a magic link instead") */
+.auth-alt-link {
+  font-size: 13px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  font-family: var(--font-sans);
+  transition: color 0.13s;
+}
+.auth-alt-link:hover { color: var(--accent); }
 
 /* ── Input ──────────────────────────────────────────────────────────────── */
 .input-base {
@@ -1409,6 +1503,13 @@
   border: 1px solid rgba(79,92,244,0.15);
   flex-shrink: 0;
 }
+/* AI-powered modules get the branded gradient tile — quiet but unmistakable */
+.widget-icon-ai {
+  background: linear-gradient(135deg, #4F5CF4, #7C4DF5);
+  color: #fff;
+  border: none;
+  box-shadow: 0 3px 10px rgba(79,92,244,0.3);
+}
 .widget-title { font-size: 13.5px; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
 .widget-sub   { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
 
@@ -1617,6 +1718,25 @@
 /* ── Insight cards ─────────────────────────────────────────────────────────── */
 .insight-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 @media (max-width: 860px) { .insight-grid { grid-template-columns: 1fr; } }
+
+.insight-card {
+  display: flex;
+  gap: 11px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-subtle);
+  transition: border-color 0.16s, background 0.16s, box-shadow 0.16s, transform 0.16s;
+  min-width: 0;
+  height: 100%;
+}
+/* Only linked insights respond to hover */
+a > .insight-card:hover {
+  border-color: rgba(79,92,244,0.3);
+  background: #FFFFFF;
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
 
 /* ── Assistant prompt chips ────────────────────────────────────────────────── */
 .prompt-chip {

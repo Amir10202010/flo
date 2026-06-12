@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase'
 import Link from 'next/link'
-import { ArrowRight, Mail } from 'lucide-react'
+import { ArrowRight, Mail, TriangleAlert } from 'lucide-react'
 
 type Method = 'password' | 'magic-link'
 type Status = 'idle' | 'loading' | 'sent' | 'error'
@@ -103,10 +103,7 @@ export default function AuthForm({ mode = 'login' }: { mode?: 'login' | 'signup'
             <>We sent a confirmation link to{' '}<strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{email}</strong>. Confirm your email to finish creating your account.</>
           )}
         </p>
-        <button
-          onClick={() => setStatus('idle')}
-          style={{ fontSize: 13, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-        >
+        <button onClick={() => setStatus('idle')} className="auth-alt-link" style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}>
           Back
         </button>
       </div>
@@ -115,11 +112,7 @@ export default function AuthForm({ mode = 'login' }: { mode?: 'login' | 'signup'
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={handleGoogle}
-        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '11px 16px', borderRadius: 8, border: '1px solid var(--border)', background: '#FFFFFF', color: 'var(--text-primary)', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}
-      >
+      <button type="button" onClick={handleGoogle} className="btn-oauth">
         <GoogleIcon />
         Continue with Google
       </button>
@@ -172,7 +165,10 @@ export default function AuthForm({ mode = 'login' }: { mode?: 'login' | 'signup'
           </div>
 
           {status === 'error' && (
-            <p style={{ fontSize: 13, color: 'var(--hot)', margin: 0, lineHeight: 1.5 }}>{errorMsg}</p>
+            <p className="form-error" role="alert">
+              <TriangleAlert size={14} style={{ flexShrink: 0, marginTop: 2 }} />
+              {errorMsg}
+            </p>
           )}
 
           <button
@@ -191,8 +187,8 @@ export default function AuthForm({ mode = 'login' }: { mode?: 'login' | 'signup'
 
           <button
             type="button"
+            className="auth-alt-link"
             onClick={() => { setMethod('magic-link'); setStatus('idle'); setErrorMsg('') }}
-            style={{ fontSize: 13, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'center' }}
           >
             {mode === 'login' ? 'Sign in with a magic link instead' : 'Use a magic link instead'}
           </button>
@@ -213,7 +209,10 @@ export default function AuthForm({ mode = 'login' }: { mode?: 'login' | 'signup'
           </div>
 
           {status === 'error' && (
-            <p style={{ fontSize: 13, color: 'var(--hot)', margin: 0, lineHeight: 1.5 }}>{errorMsg}</p>
+            <p className="form-error" role="alert">
+              <TriangleAlert size={14} style={{ flexShrink: 0, marginTop: 2 }} />
+              {errorMsg}
+            </p>
           )}
 
           <button
@@ -232,8 +231,8 @@ export default function AuthForm({ mode = 'login' }: { mode?: 'login' | 'signup'
 
           <button
             type="button"
+            className="auth-alt-link"
             onClick={() => { setMethod('password'); setStatus('idle'); setErrorMsg('') }}
-            style={{ fontSize: 13, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'center' }}
           >
             Use a password instead
           </button>

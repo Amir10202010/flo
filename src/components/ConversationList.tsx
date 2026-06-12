@@ -2,7 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Inbox } from 'lucide-react'
 import { avatarGradient, initialsOf } from '@/components/dashboard/avatar'
+import EmptyNote from '@/components/dashboard/EmptyNote'
 import { priorityMeta } from '@/lib/priority'
 
 export type ConversationSummary = {
@@ -35,9 +37,11 @@ export default function ConversationList({ conversations }: { conversations: Con
 
   if (!conversations.length) {
     return (
-      <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 14 }}>No conversations</p>
-      </div>
+      <EmptyNote
+        icon={<Inbox size={16} />}
+        title="No conversations yet"
+        hint="Threads from this mailbox appear here as they sync."
+      />
     )
   }
 

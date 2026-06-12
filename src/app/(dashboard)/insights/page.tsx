@@ -66,6 +66,7 @@ export default async function InsightsPage() {
           <Reveal delay={0.1}>
             <WidgetShell
               icon={<Lightbulb size={14} />}
+              iconTone="ai"
               title="Needs your attention"
               sub="Generated from live workspace data — every item links to the source"
               status="live"

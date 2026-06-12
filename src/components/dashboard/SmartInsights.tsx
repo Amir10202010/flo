@@ -37,19 +37,7 @@ const ICONS: Record<InsightItem['icon'], React.ReactNode> = {
 export function InsightCard({ insight }: { insight: InsightItem }) {
   const t = TONE[insight.tone]
   const body = (
-    <div
-      style={{
-        display: 'flex',
-        gap: 11,
-        padding: '12px 14px',
-        borderRadius: 12,
-        border: '1px solid var(--border-light)',
-        background: 'var(--bg-subtle)',
-        transition: 'border-color 0.15s, background 0.15s',
-        minWidth: 0,
-        height: '100%',
-      }}
-    >
+    <div className="insight-card">
       <span
         style={{
           width: 26,
@@ -94,6 +82,7 @@ export default function SmartInsights({ insights }: { insights: InsightItem[] })
   return (
     <WidgetShell
       icon={<Lightbulb size={14} />}
+      iconTone="ai"
       title="Smart Insights"
       sub="What changed and what needs you"
       status="live"

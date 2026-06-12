@@ -59,6 +59,7 @@ function NavItem({ entry, active }: { entry: NavEntry; active: boolean }) {
       href={entry.href}
       className={`nav-item${active ? ' active' : ''}`}
       title={entry.label} /* tooltip for icon-only mobile view */
+      aria-current={active ? 'page' : undefined}
     >
       <Icon size={15} />
       {/* span allows hiding label text on mobile while keeping icon */}

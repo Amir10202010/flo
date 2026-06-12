@@ -7,6 +7,7 @@ import ModulePill, { type ModuleStatus } from './ModulePill'
  */
 export default function WidgetShell({
   icon,
+  iconTone = 'default',
   title,
   sub,
   status,
@@ -16,6 +17,8 @@ export default function WidgetShell({
   style,
 }: {
   icon?: ReactNode
+  /** 'ai' marks AI-powered modules with the branded gradient icon tile. */
+  iconTone?: 'default' | 'ai'
   title: string
   sub?: string
   status?: ModuleStatus
@@ -27,7 +30,7 @@ export default function WidgetShell({
   return (
     <section className="widget" style={style}>
       <header className="widget-head">
-        {icon && <div className="widget-icon">{icon}</div>}
+        {icon && <div className={`widget-icon${iconTone === 'ai' ? ' widget-icon-ai' : ''}`}>{icon}</div>}
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <h2 className="widget-title" style={{ margin: 0 }}>{title}</h2>

@@ -1,28 +1,25 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { LogOut } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase'
 
 export default function SignOutButton() {
   const router = useRouter()
+  const [signingOut, setSigningOut] = useState(false)
 
   async function handleSignOut() {
+    setSigningOut(true)
     const supabase = getSupabaseClient()
     await supabase.auth.signOut()
     router.replace('/login')
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleSignOut}
-      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, border: 'none', background: 'transparent', color: 'var(--hot)', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left', transition: 'background 0.13s' }}
-      onMouseEnter={e => (e.currentTarget.style.background = 'var(--hot-dim)')}
-      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-    >
+    <button type="button" className="row-danger" onClick={handleSignOut} disabled={signingOut}>
       <LogOut size={15} />
-      Sign out
+      {signingOut ? 'Signing out…' : 'Sign out'}
     </button>
   )
 }

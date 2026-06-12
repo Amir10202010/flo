@@ -38,6 +38,7 @@ export default function CommandCenter({ hero, items }: { hero: CommandItem | nul
   return (
     <WidgetShell
       icon={<Sparkles size={14} />}
+      iconTone="ai"
       title="AI Command Center"
       sub="Ranked by priority, churn risk and waiting time"
       status="live"

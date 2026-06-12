@@ -94,7 +94,7 @@ export default function StatCard({
           {trend && <TrendChip deltaPct={trend.deltaPct} upIsGood={trend.upIsGood} />}
         </div>
 
-        <div style={{ marginTop: 10, fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, color: VALUE_COLOR[tone] }}>
+        <div style={{ marginTop: 10, fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, color: VALUE_COLOR[tone], fontVariantNumeric: 'tabular-nums' }}>
           {value}
         </div>
 
