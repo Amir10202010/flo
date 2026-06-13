@@ -66,7 +66,12 @@ export interface SyncResult {
 // ── Background job queue ────────────────────────────────────────────────────
 
 export type JobStatusValue = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
-export type JobTypeValue = 'GMAIL_SYNC' | 'ANALYZE_CONVERSATION'
+export type JobTypeValue =
+  | 'GMAIL_SYNC'
+  | 'ANALYZE_CONVERSATION'
+  | 'EMBED_CONVERSATION'
+  | 'SCAN_RISK_ALERTS'
+  | 'SEND_WEEKLY_DIGEST'
 
 /** Shape returned by GET /api/jobs/[id]. */
 export interface JobStatusResponse {
@@ -120,6 +125,71 @@ export interface ConversationDetail {
 export interface AnalyzeResponse {
   analysis: AnalysisResult
   priority: PriorityScoreResult
+}
+
+// ── AI search (GET /api/search) ─────────────────────────────────────────────
+
+export interface SearchResultItem {
+  id: string
+  channel: Channel
+  subject: string | null
+  status: ConversationStatus
+  priority: PriorityLevel
+  priorityScore: number
+  lastMessageAt: string | null   // ISO-8601
+  contact: {
+    name: string
+    email: string | null
+  }
+  /** Matched-text window, AI summary, or last-message preview. */
+  snippet: string | null
+  /** Blended relevance 0–1 (keyword + semantic + recency/priority boosts). */
+  score: number
+  /** Which fields matched the query terms: contact / email / subject / summary / message. */
+  matchedOn: string[]
+  /** true when only the embedding (meaning, not literal text) matched. */
+  semanticMatch: boolean
+  awaitingReply: boolean
+  risk: RiskLevel | null
+}
+
+export interface SearchResponse {
+  items: SearchResultItem[]
+  meta: {
+    /** hybrid = keyword + semantic; keyword = no embeddings; filter = empty query. */
+    mode: 'hybrid' | 'keyword' | 'filter'
+    total: number
+    tookMs: number
+    /** Structured intent the AI extracted from the query, when available. */
+    parsedFilters: {
+      keywords: string[]
+      priority?: PriorityLevel
+      risk?: RiskLevel
+      sentiment?: Sentiment
+      awaitingReply?: boolean
+      daysBack?: number
+    } | null
+    /** Non-fatal capability notes (e.g. embeddings-unavailable). */
+    degraded: string[] | null
+  }
+}
+
+// ── Risk alerts (GET /api/alerts) ───────────────────────────────────────────
+
+export type AlertStatusValue = 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED'
+
+export interface RiskAlertItem {
+  id: string
+  type: string
+  severity: RiskLevel
+  status: AlertStatusValue
+  title: string
+  reason: string
+  suggestedAction: string | null
+  conversationId: string | null
+  href: string | null
+  firstSeenAgo: string | null
+  lastSeenAgo: string | null
 }
 
 // Legacy alias kept for inbox page compatibility

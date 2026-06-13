@@ -1,9 +1,12 @@
 import { prisma } from '@/lib/prisma'
-import { analyzeConversation as callGemini } from './gemini.service'
+import { analyzeConversationContent } from './ai'
 import { calculatePriority } from './priority.engine'
 import type { AnalyzeResponse } from '@/types'
 
-export async function analyzeConversation(conversationId: string): Promise<AnalyzeResponse> {
+export async function analyzeConversation(
+  conversationId: string,
+  opts: { fallbackOnRetryable?: boolean } = {},
+): Promise<AnalyzeResponse> {
   const conversation = await prisma.conversation.findUnique({
     where: { id: conversationId },
     include: {
@@ -13,36 +16,36 @@ export async function analyzeConversation(conversationId: string): Promise<Analy
   })
   if (!conversation) throw new Error('Conversation not found')
 
-  const analysis = await callGemini({
-    conversationId,
-    channel: conversation.channel,
-    contactName: conversation.contact.name,
-    messages: conversation.messages.map((m) => ({
-      direction: m.direction,
-      content: m.content,
-      sentAt: m.sentAt.toISOString(),
-    })),
-  })
+  const { provider, ...analysis } = await analyzeConversationContent(
+    {
+      conversationId,
+      channel: conversation.channel,
+      contactName: conversation.contact.name,
+      messages: conversation.messages.map((m) => ({
+        direction: m.direction,
+        content: m.content,
+        sentAt: m.sentAt.toISOString(),
+      })),
+    },
+    opts,
+  )
+
+  const fields = {
+    summary: analysis.summary,
+    riskLevel: analysis.riskLevel,
+    riskReasons: analysis.riskReasons,
+    nextAction: analysis.nextAction,
+    lostReason: analysis.lostReason ?? null,
+    sentiment: analysis.sentiment,
+    // Provider tag lets the UI distinguish full AI analysis from the local
+    // heuristic fallback (module honesty policy).
+    analysisData: { provider },
+  }
 
   await prisma.conversationAnalysis.upsert({
     where: { conversationId },
-    create: {
-      conversationId,
-      summary: analysis.summary,
-      riskLevel: analysis.riskLevel,
-      riskReasons: analysis.riskReasons,
-      nextAction: analysis.nextAction,
-      lostReason: analysis.lostReason ?? null,
-      sentiment: analysis.sentiment,
-    },
-    update: {
-      summary: analysis.summary,
-      riskLevel: analysis.riskLevel,
-      riskReasons: analysis.riskReasons,
-      nextAction: analysis.nextAction,
-      lostReason: analysis.lostReason ?? null,
-      sentiment: analysis.sentiment,
-    },
+    create: { conversationId, ...fields },
+    update: fields,
   })
 
   const priority = calculatePriority(

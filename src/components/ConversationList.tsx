@@ -17,6 +17,8 @@ export type ConversationSummary = {
   contact: { name: string; email: string | null }
   lastMessage: string | null
   unreadCount: number
+  /** Latest message is inbound — the client is waiting on you. */
+  awaitingReply?: boolean
 }
 
 function relativeTime(iso: string | null): string {

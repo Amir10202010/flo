@@ -10,16 +10,20 @@ export const metadata: Metadata = { title: 'Settings — Velnox' }
 
 const PRO_PERKS = ['Unlimited synced threads', 'Full AI analysis on every conversation']
 
-const UPCOMING_NOTIFICATIONS = [
+const NOTIFICATIONS = [
   {
     icon: <Mail size={14} />,
     title: 'Weekly digest email',
-    desc: 'A Monday-morning brief: trends, quiet clients, top actions.',
+    desc: 'A Monday-morning brief: trends, quiet clients, top actions — sent via your own Gmail.',
+    state: 'Active · Mondays',
+    live: true,
   },
   {
     icon: <ShieldCheck size={14} />,
     title: 'Risk alerts',
-    desc: 'An email the moment AI flags a client as critical.',
+    desc: 'Rule + AI detections on the Risk Monitor, refreshed after every sync. Email alerts coming soon.',
+    state: 'Live in-app',
+    live: true,
   },
 ]
 
@@ -105,25 +109,25 @@ export default async function SettingsPage() {
           </WidgetShell>
         </Reveal>
 
-        {/* Notifications — honest upcoming module, same policy as the dashboard */}
+        {/* Notifications — digest + risk alerts are live; statuses stay honest */}
         <Reveal delay={0.15}>
           <WidgetShell
             icon={<Bell size={14} />}
             title="Notifications"
-            sub="Email alerts from your workspace"
-            status="soon"
+            sub="Email and in-app alerts from your workspace"
+            status="live"
             bodyStyle={{ padding: '6px 8px 8px' }}
           >
-            {UPCOMING_NOTIFICATIONS.map((n) => (
+            {NOTIFICATIONS.map((n) => (
               <div key={n.title} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', minWidth: 0 }}>
-                <span style={{ width: 30, height: 30, borderRadius: 9, background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ width: 30, height: 30, borderRadius: 9, background: n.live ? 'var(--accent-dim)' : 'var(--bg-subtle)', border: '1px solid var(--border-light)', color: n.live ? 'var(--accent)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {n.icon}
                 </span>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{n.title}</div>
                   <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1 }}>{n.desc}</div>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', flexShrink: 0 }}>Coming to Early Access</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: n.live ? 'var(--success)' : 'var(--text-muted)', flexShrink: 0 }}>{n.state}</span>
               </div>
             ))}
           </WidgetShell>

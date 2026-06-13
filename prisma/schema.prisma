@@ -16,6 +16,8 @@ model User {
   integrations Integration[]
   conversations Conversation[]
   contacts     Contact[]
+  riskAlerts   RiskAlert[]
+  emailDigests EmailDigest[]
 }
 
 model Integration {
@@ -70,6 +72,8 @@ model Conversation {
   integration    Integration   @relation(fields: [integrationId], references: [id])
   messages       Message[]
   analysis       ConversationAnalysis?
+  embedding      ConversationEmbedding?
+  riskAlerts     RiskAlert[]
 
   @@unique([integrationId, externalId])
   @@index([userId, priorityScore(sort: Desc), lastMessageAt(sort: Desc)])
@@ -129,9 +133,76 @@ model Job {
   @@index([userId])
 }
 
+/// Semantic-search vector for one conversation. The embedding is stored as a
+/// packed Float32Array (Bytes) and scored in-process — at the current scale
+/// (hundreds of threads) this beats the operational cost of pgvector, and the
+/// storage shape can be swapped later without touching the search service API.
+model ConversationEmbedding {
+  id             String   @id @default(cuid())
+  conversationId String   @unique
+  model          String
+  dims           Int
+  vector         Bytes
+  /// sha256 of the embedded text — skip re-embedding unchanged conversations.
+  contentHash    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+/// Persistent, deduplicated risk alert produced by the alert engine
+/// (rules over workspace data + AI analysis output). dedupeKey keeps one
+/// row per (user, rule, subject); scans upsert it idempotently.
+model RiskAlert {
+  id              String      @id @default(cuid())
+  userId          String
+  conversationId  String?
+  type            String
+  severity        RiskLevel
+  status          AlertStatus @default(OPEN)
+  title           String
+  reason          String
+  suggestedAction String?
+  dedupeKey       String      @unique
+  firstSeenAt     DateTime    @default(now())
+  lastSeenAt      DateTime    @default(now())
+  acknowledgedAt  DateTime?
+  resolvedAt      DateTime?
+  /// 'user' (manual) or 'auto' (condition cleared) — manual resolves get a
+  /// reopen cooldown so the scanner doesn't immediately undo the user.
+  resolvedBy      String?
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation    Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+/// One row per delivered weekly digest — the idempotency guard that prevents
+/// duplicate sends ((userId, periodKey) is claimed before the email goes out).
+model EmailDigest {
+  id        String   @id @default(cuid())
+  userId    String
+  /// ISO week key, e.g. "2026-W24".
+  periodKey String
+  sentAt    DateTime @default(now())
+  messageId String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, periodKey])
+}
+
 enum JobType {
   GMAIL_SYNC
   ANALYZE_CONVERSATION
+  EMBED_CONVERSATION
+  SCAN_RISK_ALERTS
+  SEND_WEEKLY_DIGEST
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
 }
 enum JobStatus {
   PENDING

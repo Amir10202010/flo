@@ -1,0 +1,104 @@
+import type { AnalysisResult, GeminiAnalysisPayload, RiskLevel, Sentiment } from '@/types'
+
+/**
+ * Local heuristic fallback — keeps AI features functional with NO API key and
+ * $0 cost. Deterministic keyword/recency rules approximate the Gemini analysis
+ * shape; results are tagged provider:'local' so the UI can label them honestly
+ * ("quick scan"). Covers English + Russian vocabularies since threads may be
+ * in either language.
+ */
+
+const NEGATIVE_WORDS = [
+  // en
+  'disappointed', 'frustrated', 'unacceptable', 'terrible', 'awful', 'angry', 'complaint',
+  'refund', 'cancel', 'cancellation', 'not working', 'broken', 'issue', 'problem', 'delay',
+  'still waiting', 'no response', 'lawyer', 'dispute', 'unsubscribe', 'competitor',
+  // ru
+  'разочарован', 'недоволен', 'возмущ', 'ужасн', 'отврат', 'жалоб', 'возврат', 'отмен',
+  'не работает', 'сломан', 'проблем', 'задержк', 'до сих пор жду', 'нет ответа', 'юрист',
+  'расторг', 'конкурент',
+]
+
+const CRITICAL_WORDS = [
+  'refund', 'cancel my', 'cancellation', 'lawyer', 'legal action', 'chargeback', 'last warning',
+  'возврат денег', 'расторгнуть', 'расторжение', 'юрист', 'суд', 'последнее предупреждение',
+  'отменить заказ', 'отказываюсь',
+]
+
+const POSITIVE_WORDS = [
+  'thank', 'thanks', 'great', 'perfect', 'awesome', 'love', 'appreciate', 'excellent',
+  'looking forward', 'deal', 'agreed', 'sounds good', 'happy',
+  'спасибо', 'благодар', 'отлично', 'супер', 'прекрасно', 'договорились', 'устраивает', 'рад',
+]
+
+function countHits(text: string, words: string[]): number {
+  let hits = 0
+  for (const w of words) if (text.includes(w)) hits++
+  return hits
+}
+
+export function localAnalyzeConversation(payload: GeminiAnalysisPayload): AnalysisResult {
+  const { contactName, messages } = payload
+  const now = Date.now()
+
+  const last = messages[messages.length - 1]
+  const lastIsInbound = last?.direction === 'INBOUND'
+  const hoursSinceLast = last ? (now - new Date(last.sentAt).getTime()) / 3_600_000 : Infinity
+
+  // Sentiment from the client's recent messages only — the manager's tone
+  // shouldn't color the client's sentiment.
+  const inboundText = messages
+    .filter((m) => m.direction === 'INBOUND')
+    .slice(-5)
+    .map((m) => m.content.toLowerCase())
+    .join('\n')
+
+  const negative = countHits(inboundText, NEGATIVE_WORDS)
+  const critical = countHits(inboundText, CRITICAL_WORDS)
+  const positive = countHits(inboundText, POSITIVE_WORDS)
+
+  let sentiment: Sentiment = 'NEUTRAL'
+  if (negative + critical * 2 > positive && negative + critical > 0) sentiment = 'NEGATIVE'
+  else if (positive > 0 && positive >= negative) sentiment = 'POSITIVE'
+
+  const riskReasons: string[] = []
+  let riskLevel: RiskLevel = 'LOW'
+
+  if (critical > 0) {
+    riskLevel = 'CRITICAL'
+    riskReasons.push('Client used cancellation/refund language')
+  } else if (negative >= 2) {
+    riskLevel = 'HIGH'
+    riskReasons.push('Repeated negative signals in client messages')
+  } else if (negative === 1) {
+    riskLevel = 'MEDIUM'
+    riskReasons.push('Negative signal detected in client messages')
+  }
+
+  if (lastIsInbound && hoursSinceLast >= 48) {
+    if (riskLevel === 'LOW') riskLevel = 'MEDIUM'
+    else if (riskLevel === 'MEDIUM') riskLevel = 'HIGH'
+    riskReasons.push(`Client has been waiting ${Math.floor(hoursSinceLast / 24)}+ days for a reply`)
+  }
+
+  const waitNote =
+    hoursSinceLast < 1 ? 'just now'
+    : hoursSinceLast < 24 ? `${Math.floor(hoursSinceLast)}h ago`
+    : `${Math.floor(hoursSinceLast / 24)}d ago`
+
+  const lastSnippet = (last?.content ?? '').replace(/\s+/g, ' ').trim().slice(0, 140)
+
+  const summary = lastIsInbound
+    ? `${contactName} wrote ${waitNote} and is awaiting your reply${lastSnippet ? `: "${lastSnippet}"` : '.'}`
+    : `You replied ${waitNote}; no response from ${contactName} yet${lastSnippet ? `. Last message: "${lastSnippet}"` : '.'}`
+
+  const nextAction = lastIsInbound
+    ? hoursSinceLast >= 24
+      ? `Reply to ${contactName} now — they have been waiting ${waitNote.replace(' ago', '')}.`
+      : `Reply to ${contactName}'s latest message.`
+    : hoursSinceLast >= 72
+      ? `Follow up with ${contactName} — your last message has gone ${Math.floor(hoursSinceLast / 24)} days unanswered.`
+      : `Wait for ${contactName}'s response or add a helpful nudge.`
+
+  return { summary, riskLevel, riskReasons, nextAction, sentiment }
+}

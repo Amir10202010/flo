@@ -14,7 +14,9 @@ import {
 } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
 import { getRiskOverview, type RiskThread } from '@/services/dashboard.service'
+import { listRiskAlerts } from '@/services/alert.service'
 import { Reveal } from '@/components/dashboard/Motion'
+import AlertsPanel from '@/components/dashboard/AlertsPanel'
 import StatCard from '@/components/dashboard/StatCard'
 import ModulePill from '@/components/dashboard/ModulePill'
 import ContactAvatar from '@/components/dashboard/ContactAvatar'
@@ -100,6 +102,8 @@ export default async function RiskPage() {
   if (!user) redirect('/login')
 
   const data = await getRiskOverview(user.id)
+  // Sequential on purpose — small connection pool (see CLAUDE.md).
+  const alerts = data.hasData ? await listRiskAlerts(user.id) : []
   const allClear = data.critical.length === 0 && data.watchlist.length === 0
 
   return (
@@ -157,6 +161,12 @@ export default async function RiskPage() {
               delay={0.15}
             />
           </div>
+
+          <Reveal delay={0.06}>
+            <div style={{ marginBottom: 14 }}>
+              <AlertsPanel initial={alerts} />
+            </div>
+          </Reveal>
 
           {allClear ? (
             <Reveal delay={0.1}>

@@ -93,7 +93,7 @@ function headerValue(headers: gmail_v1.Schema$MessagePartHeader[] | undefined, n
   return headers?.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value ?? ''
 }
 
-function integrationEmail(integration: Integration): string {
+export function integrationEmail(integration: Integration): string {
   const meta = integration.metadata as { email?: string } | null
   return (meta?.email ?? process.env.GMAIL_USER_EMAIL ?? '').toLowerCase()
 }
@@ -588,4 +588,62 @@ export async function sendGmailReply(
   })
 
   return { messageId }
+}
+
+// ── Standalone message sending (weekly digest & co) ─────────────────────────
+
+/** RFC 2047 header encoding — keeps non-ASCII subjects intact. */
+function encodeHeader(value: string): string {
+  return /[^\x20-\x7E]/.test(value) ? `=?UTF-8?B?${Buffer.from(value, 'utf-8').toString('base64')}?=` : value
+}
+
+/** Wrap base64 at 76 chars per RFC 2045. */
+function base64Body(input: string): string {
+  return Buffer.from(input, 'utf-8').toString('base64').replace(/(.{76})/g, '$1\r\n')
+}
+
+export type SendMessageOptions = {
+  to: string
+  subject: string
+  html: string
+  text: string
+}
+
+/**
+ * Send a standalone (non-reply) email through the user's connected Gmail —
+ * multipart/alternative so every client gets a readable version. Uses the same
+ * OAuth credentials as sync/replies; no SMTP or extra env vars involved.
+ */
+export async function sendGmailMessage(
+  integration: Integration,
+  opts: SendMessageOptions,
+): Promise<SendReplyResult> {
+  const gmail = gmailFor(integration)
+  const boundary = `velnox-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+
+  const mime = [
+    `To: ${opts.to}`,
+    `Subject: ${encodeHeader(opts.subject)}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    'Content-Transfer-Encoding: base64',
+    '',
+    base64Body(opts.text),
+    `--${boundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    'Content-Transfer-Encoding: base64',
+    '',
+    base64Body(opts.html),
+    `--${boundary}--`,
+  ].join('\r\n')
+
+  const sent = await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: { raw: base64Url(mime) },
+  })
+
+  return { messageId: sent.data.id ?? `local-${Date.now()}` }
 }

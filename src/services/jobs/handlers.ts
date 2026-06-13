@@ -1,7 +1,10 @@
 import type { Job } from '@prisma/client'
 import { syncGmailForUser } from '@/services/gmail.service'
 import { analyzeConversation } from '@/services/conversation.analyzer'
-import { enqueueMany } from './queue'
+import { embedConversation } from '@/services/embedding.service'
+import { scanRiskAlerts } from '@/services/alert.service'
+import { sendWeeklyDigest } from '@/services/digest.service'
+import { enqueueEmbedConversation, enqueueMany, enqueueScanRiskAlerts } from './queue'
 
 /**
  * Executes a single job by type. Returns a JSON-serialisable result that is
@@ -24,6 +27,12 @@ export async function handleJob(job: Job): Promise<unknown> {
       const changed = Array.from(new Set(result.changedConversationIds ?? []))
       await enqueueMany('ANALYZE_CONVERSATION', changed.map((conversationId) => ({ conversationId })), { userId })
 
+      // Embeddings for the same changed threads (claimNext is FIFO on
+      // createdAt, so these run after the analyses queued above), then one
+      // alert scan over the refreshed workspace.
+      await enqueueMany('EMBED_CONVERSATION', changed.map((conversationId) => ({ conversationId })), { userId })
+      await enqueueScanRiskAlerts(userId)
+
       return {
         synced: result.synced,
         created: result.created,
@@ -36,8 +45,32 @@ export async function handleJob(job: Job): Promise<unknown> {
     case 'ANALYZE_CONVERSATION': {
       const conversationId = String(payload.conversationId ?? '')
       if (!conversationId) throw new Error('ANALYZE_CONVERSATION job missing conversationId')
-      const { priority } = await analyzeConversation(conversationId)
+      // On the final attempt, accept the labelled local "quick scan" instead of
+      // parking the job FAILED — covers exhausted daily quotas gracefully.
+      const lastAttempt = job.attempts >= job.maxAttempts
+      const { priority } = await analyzeConversation(conversationId, { fallbackOnRetryable: lastAttempt })
+      // The fresh summary changes the embedding text — refresh it (hash-deduped).
+      if (job.userId) await enqueueEmbedConversation(job.userId, conversationId)
       return { conversationId, priority: priority.level, score: priority.score }
+    }
+
+    case 'EMBED_CONVERSATION': {
+      const conversationId = String(payload.conversationId ?? '')
+      if (!conversationId) throw new Error('EMBED_CONVERSATION job missing conversationId')
+      return await embedConversation(conversationId)
+    }
+
+    case 'SCAN_RISK_ALERTS': {
+      const userId = String(payload.userId ?? job.userId ?? '')
+      if (!userId) throw new Error('SCAN_RISK_ALERTS job missing userId')
+      return await scanRiskAlerts(userId)
+    }
+
+    case 'SEND_WEEKLY_DIGEST': {
+      const userId = String(payload.userId ?? job.userId ?? '')
+      if (!userId) throw new Error('SEND_WEEKLY_DIGEST job missing userId')
+      const periodKey = typeof payload.periodKey === 'string' ? payload.periodKey : undefined
+      return await sendWeeklyDigest(userId, { periodKey })
     }
 
     default: {

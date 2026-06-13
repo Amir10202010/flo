@@ -9,6 +9,7 @@ import ModulePill from '@/components/dashboard/ModulePill'
 import WidgetShell from '@/components/dashboard/WidgetShell'
 import { InsightCard } from '@/components/dashboard/SmartInsights'
 import DashboardEmpty from '@/components/dashboard/DashboardEmpty'
+import SendDigestButton from '@/components/dashboard/SendDigestButton'
 
 export const metadata: Metadata = { title: 'Insights — Velnox' }
 
@@ -79,31 +80,23 @@ export default async function InsightsPage() {
             </WidgetShell>
           </Reveal>
 
-          {/* Weekly digest — honest upcoming module */}
+          {/* Weekly digest — live: Monday morning email via the connected Gmail */}
           <Reveal delay={0.18}>
             <div style={{ marginTop: 14 }}>
               <WidgetShell
                 icon={<CalendarClock size={14} />}
                 title="Weekly digest"
-                sub="This report, delivered to your inbox every Monday morning"
-                status="soon"
+                sub="This report lands in your inbox every Monday morning — sent from your own Gmail"
+                status="live"
                 bodyStyle={{ padding: '16px 18px 18px' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
                   <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.9 }}>
                     <li>Response-time and volume trends vs the previous week</li>
-                    <li>Clients who went quiet and deals that need a push</li>
-                    <li>Your top three recommended actions for the week</li>
+                    <li>Clients who went quiet and threads that need a push</li>
+                    <li>Your top recommended actions for the week</li>
                   </ul>
-                  <button
-                    type="button"
-                    disabled
-                    className="btn-ghost"
-                    style={{ fontSize: 13, opacity: 0.6, cursor: 'default' }}
-                    title="Rolling out to Early Access workspaces"
-                  >
-                    Rolling out to Early Access
-                  </button>
+                  <SendDigestButton />
                 </div>
               </WidgetShell>
             </div>

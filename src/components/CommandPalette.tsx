@@ -20,7 +20,7 @@ import {
   Users,
 } from 'lucide-react'
 import { useUiStore } from '@/stores/ui.store'
-import type { ConversationListItem } from '@/types'
+import type { ConversationListItem, SearchResponse, SearchResultItem } from '@/types'
 import ContactAvatar from '@/components/dashboard/ContactAvatar'
 
 interface PaletteEntry {
@@ -142,6 +142,34 @@ function PaletteDialog({
   const [syncState, setSyncState] = useState<'idle' | 'starting' | 'started' | 'failed'>('idle')
   const listRef = useRef<HTMLDivElement>(null)
 
+  // Server-side AI search for the Conversations group. Falls back to the
+  // locally cached list (substring match) when the request fails.
+  const [aiResults, setAiResults] = useState<SearchResultItem[] | null>(null)
+  const [aiSearching, setAiSearching] = useState(false)
+  useEffect(() => {
+    const q = query.trim()
+    // Below the threshold the entries memo ignores aiResults — no reset needed.
+    if (q.length < 3) return
+    const ctrl = new AbortController()
+    const timer = setTimeout(async () => {
+      setAiSearching(true)
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=6`, { signal: ctrl.signal })
+        if (!res.ok) throw new Error(`search ${res.status}`)
+        const data = (await res.json()) as SearchResponse
+        setAiResults(data.items)
+      } catch {
+        if (!ctrl.signal.aborted) setAiResults(null)
+      } finally {
+        if (!ctrl.signal.aborted) setAiSearching(false)
+      }
+    }, 300)
+    return () => {
+      clearTimeout(timer)
+      ctrl.abort()
+    }
+  }, [query])
+
   const go = useCallback(
     (href: string) => {
       onClose()
@@ -205,31 +233,45 @@ function PaletteDialog({
     ]
     const actions = actionDefs.filter((a) => matches(q, a.label, a.keywords) > 0)
 
-    const conversations: PaletteEntry[] = (convs ?? [])
-      .map((c) => ({
-        c,
-        score: q
-          ? Math.max(
-              matches(q, c.contact.name, c.contact.email ?? ''),
-              matches(q, c.subject ?? '', c.lastMessage ?? ''),
-            )
-          : 1,
-      }))
-      .filter((x) => x.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, q ? 6 : 4)
-      .map<PaletteEntry>(({ c }) => ({
-        id: `conv-${c.id}`,
-        group: 'Conversations',
-        label: c.contact.name,
-        hint: c.subject ?? c.lastMessage ?? undefined,
-        icon: <ContactAvatar name={c.contact.name} size={22} />,
-        keywords: '',
-        run: () => go(`/inbox/${c.id}`),
-      }))
+    // Server AI search results win when available; otherwise substring-match
+    // the locally cached list (also the offline/error fallback). The length
+    // gate keeps stale results from a longer query out of short-query views.
+    const conversations: PaletteEntry[] =
+      q.length >= 3 && aiResults !== null
+        ? aiResults.map<PaletteEntry>((r) => ({
+            id: `conv-${r.id}`,
+            group: 'Conversations',
+            label: r.contact.name,
+            hint: r.subject ?? r.snippet ?? undefined,
+            icon: <ContactAvatar name={r.contact.name} size={22} />,
+            keywords: '',
+            run: () => go(`/inbox/${r.id}`),
+          }))
+        : (convs ?? [])
+            .map((c) => ({
+              c,
+              score: q
+                ? Math.max(
+                    matches(q, c.contact.name, c.contact.email ?? ''),
+                    matches(q, c.subject ?? '', c.lastMessage ?? ''),
+                  )
+                : 1,
+            }))
+            .filter((x) => x.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, q ? 6 : 4)
+            .map<PaletteEntry>(({ c }) => ({
+              id: `conv-${c.id}`,
+              group: 'Conversations',
+              label: c.contact.name,
+              hint: c.subject ?? c.lastMessage ?? undefined,
+              icon: <ContactAvatar name={c.contact.name} size={22} />,
+              keywords: '',
+              run: () => go(`/inbox/${c.id}`),
+            }))
 
     return [...pages, ...actions, ...conversations]
-  }, [query, convs, go, startSync, syncState])
+  }, [query, convs, aiResults, go, startSync, syncState])
 
   // Clamp at render time instead of syncing state in an effect.
   const index = Math.min(rawIndex, Math.max(0, entries.length - 1))
@@ -326,6 +368,12 @@ function PaletteDialog({
           <div style={{ padding: '10px 12px', fontSize: 11.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 7 }}>
             <Mail size={12} />
             Loading conversations…
+          </div>
+        )}
+        {aiSearching && query.trim().length >= 3 && (
+          <div style={{ padding: '10px 12px', fontSize: 11.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 7 }}>
+            <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} />
+            Searching with AI…
           </div>
         )}
       </div>

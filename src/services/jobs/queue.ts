@@ -47,7 +47,7 @@ export async function claimNext(): Promise<Job | null> {
     WHERE id = (
       SELECT id FROM "Job"
       WHERE status = 'PENDING'::"JobStatus" AND "runAfter" <= now()
-      ORDER BY "runAfter" ASC
+      ORDER BY "runAfter" ASC, "createdAt" ASC
       FOR UPDATE SKIP LOCKED
       LIMIT 1
     )
@@ -166,4 +166,34 @@ export async function enqueueGmailSync(userId: string): Promise<Job> {
     return pending
   }
   return enqueue('GMAIL_SYNC', { userId }, { userId })
+}
+
+/**
+ * Enqueue a workspace risk-alert scan, collapsing onto an existing PENDING
+ * scan for the user — a scan is a full recomputation, so one pending job
+ * covers any number of triggers.
+ */
+export async function enqueueScanRiskAlerts(userId: string): Promise<Job> {
+  const pending = await prisma.job.findFirst({
+    where: { type: 'SCAN_RISK_ALERTS', userId, status: 'PENDING' },
+  })
+  if (pending) return pending
+  return enqueue('SCAN_RISK_ALERTS', { userId }, { userId })
+}
+
+/**
+ * Enqueue an embedding refresh for one conversation, deduped on the
+ * conversation id (embedConversation itself is also hash-idempotent, so a
+ * duplicate slipping through costs one no-op job, not a wrong result).
+ */
+export async function enqueueEmbedConversation(userId: string, conversationId: string): Promise<Job> {
+  const pending = await prisma.job.findFirst({
+    where: {
+      type: 'EMBED_CONVERSATION',
+      status: 'PENDING',
+      payload: { path: ['conversationId'], equals: conversationId },
+    },
+  })
+  if (pending) return pending
+  return enqueue('EMBED_CONVERSATION', { conversationId }, { userId })
 }
