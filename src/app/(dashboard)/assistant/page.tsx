@@ -163,7 +163,7 @@ export default async function AssistantPage() {
             ))}
           </div>
           <p style={{ margin: '14px 0 0', fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.55 }}>
-            Workspace Q&amp;A is rolling out to Early Access workspaces. Thread-level AI (summaries, risk, next steps) is already live in your inbox today.
+            Answers are generated live from your workspace each time you ask — nothing is pre-written. Without a Gemini key the assistant still answers from the same data in offline mode.
           </p>
         </div>
       </Reveal>
