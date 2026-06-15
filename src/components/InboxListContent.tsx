@@ -1,6 +1,7 @@
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { messagePreview } from '@/lib/html'
+import { compactAgo } from '@/lib/time'
 import InboxList, { type InboxGroup } from '@/components/InboxList'
 import type { ConversationSummary } from '@/components/ConversationList'
 
@@ -61,7 +62,9 @@ export default async function InboxListContent() {
         subject: c.subject,
         priority: c.priority as ConversationSummary['priority'],
         priorityScore: c.priorityScore,
+        category: c.category as ConversationSummary['category'],
         lastMessageAt: c.lastMessageAt?.toISOString() ?? null,
+        timeLabel: compactAgo(c.lastMessageAt),
         contact: { name: c.contact.name, email: c.contact.email },
         lastMessage: c.messages[0] ? messagePreview(c.messages[0].content) : null,
         unreadCount: 0,

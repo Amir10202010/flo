@@ -2,8 +2,9 @@ import { google, gmail_v1 } from 'googleapis'
 import { prisma } from '@/lib/prisma'
 import { decryptSecret, encryptSecret } from '@/lib/crypto'
 import { htmlToText } from '@/lib/html'
+import { classifyEmail, type ClassifierRule } from '@/services/email.classifier'
 import type { SyncResult } from '@/types'
-import type { Integration } from '@prisma/client'
+import type { EmailCategory, Integration } from '@prisma/client'
 
 // How many threads to fetch from Google in parallel. Network-only: DB writes
 // happen sequentially afterwards so we never demand more than one pooled
@@ -140,6 +141,10 @@ type ParsedThread = {
   contactName: string
   lastMessageAt: Date
   messages: ParsedMessage[]
+  /** Union of Gmail labelIds across the thread (CATEGORY_*, SPAM, …). */
+  labels: string[]
+  /** Any message carried a List-Unsubscribe header (bulk-mail signal). */
+  hasListUnsubscribe: boolean
 }
 
 /** Extract everything we persist from a raw Gmail thread. Pure — no I/O. */
@@ -168,8 +173,12 @@ function parseThread(
   const name = from.replace(/<[^>]+>/g, '').replace(/"/g, '').trim() || email
 
   const parsedMessages: ParsedMessage[] = []
+  const labels = new Set<string>()
+  let hasListUnsubscribe = false
   for (const msg of messages) {
     if (!msg.id) continue
+    for (const l of msg.labelIds ?? []) labels.add(l)
+    if (headerValue(msg.payload?.headers, 'List-Unsubscribe')) hasListUnsubscribe = true
     const msgFrom = headerValue(msg.payload?.headers, 'from').toLowerCase()
     const isOutbound = accountEmail ? msgFrom.includes(accountEmail) : false
     parsedMessages.push({
@@ -188,6 +197,8 @@ function parseThread(
     contactName: name,
     lastMessageAt: new Date(parseInt(messages[messages.length - 1].internalDate ?? '0')),
     messages: parsedMessages,
+    labels: Array.from(labels),
+    hasListUnsubscribe,
   }
 }
 
@@ -244,16 +255,39 @@ async function persistThreads(
 
     const newThreads = persistable.filter((t) => !existingByThread.has(t.threadId))
     if (newThreads.length) {
+      // Rule-based categorisation runs at ingestion so every thread lands in the
+      // right bucket immediately — no AI required. Learned/custom rules win.
+      const rules: ClassifierRule[] = await prisma.categoryRule.findMany({
+        where: { userId },
+        select: { matchType: true, value: true, category: true },
+      })
       await prisma.conversation.createMany({
-        data: newThreads.map((t) => ({
-          userId,
-          contactId: contactIdByEmail.get(t.contactEmail)!,
-          integrationId: integration.id,
-          channel: 'GMAIL' as const,
-          externalId: t.threadId,
-          subject: t.subject,
-          lastMessageAt: t.lastMessageAt,
-        })),
+        data: newThreads.map((t) => {
+          const firstInbound = t.messages.find((m) => m.direction === 'INBOUND') ?? t.messages[0]
+          const verdict = classifyEmail(
+            {
+              senderEmail: t.contactEmail,
+              senderName: t.contactName,
+              subject: t.subject,
+              body: firstInbound?.content ?? '',
+              gmailLabels: t.labels,
+              hasListUnsubscribe: t.hasListUnsubscribe,
+              hasUserReplied: t.messages.some((m) => m.direction === 'OUTBOUND'),
+            },
+            rules,
+          )
+          return {
+            userId,
+            contactId: contactIdByEmail.get(t.contactEmail)!,
+            integrationId: integration.id,
+            channel: 'GMAIL' as const,
+            externalId: t.threadId,
+            subject: t.subject,
+            lastMessageAt: t.lastMessageAt,
+            category: verdict.category as EmailCategory,
+            categorySource: verdict.source,
+          }
+        }),
         skipDuplicates: true, // a concurrent sync may have created some meanwhile
       })
     }

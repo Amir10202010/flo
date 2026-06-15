@@ -7,7 +7,8 @@ import { prisma } from '@/lib/prisma'
 import { sanitizeMessageHtml } from '@/lib/html'
 import PriorityBadge from '@/components/ui/PriorityBadge'
 import Composer from '@/components/Composer'
-import type { PriorityLevel } from '@/types'
+import CategoryMover from '@/components/CategoryMover'
+import type { EmailCategory, PriorityLevel } from '@/types'
 
 const RISK: Record<string, { label: string; color: string; bg: string; border: string }> = {
   LOW:      { label: 'Low risk',    color: 'var(--cold)',      bg: 'var(--cold-dim)',      border: 'var(--cold-border)'      },
@@ -108,7 +109,10 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
             </div>
             {conv.subject && <p className="chat-subject">{conv.subject}</p>}
           </div>
-          <PriorityBadge level={conv.priority as PriorityLevel} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <CategoryMover conversationId={conv.id} current={conv.category as EmailCategory} />
+            <PriorityBadge level={conv.priority as PriorityLevel} />
+          </div>
         </div>
 
         {analysis && r && (

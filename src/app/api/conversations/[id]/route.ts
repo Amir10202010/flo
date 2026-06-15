@@ -1,6 +1,8 @@
 import { getAuthUser, ok, err } from '@/lib/api'
 import { prisma } from '@/lib/prisma'
 import { ensurePlainText } from '@/lib/html'
+import { isEmailCategory } from '@/lib/categories'
+import { CategoryMoveError, setConversationCategory } from '@/services/category.service'
 import type { ConversationDetail } from '@/types'
 
 type AnalysisShape = NonNullable<ConversationDetail['analysis']>
@@ -34,6 +36,7 @@ export async function GET(
     status: conv.status as ConversationDetail['status'],
     priority: conv.priority as ConversationDetail['priority'],
     priorityScore: conv.priorityScore,
+    category: conv.category as ConversationDetail['category'],
     lastMessageAt: conv.lastMessageAt?.toISOString() ?? null,
     lastAnalyzedAt: conv.lastAnalyzedAt?.toISOString() ?? null,
     contact: conv.contact,
@@ -59,4 +62,40 @@ export async function GET(
   }
 
   return ok(detail)
+}
+
+/**
+ * Manually move a thread between email categories (e.g. mark as Spam, Clients).
+ * Pins the category as `manual`, learns a sender rule for future mail, and
+ * re-aligns the sender's other auto-classified threads.
+ *
+ *   PATCH /api/conversations/[id]  { "category": "SPAM" }
+ */
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { user, error } = await getAuthUser()
+  if (!user) return error
+
+  const { id } = await params
+
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return err('Invalid JSON body', 400)
+  }
+
+  const category = (body as { category?: unknown })?.category
+  if (!isEmailCategory(category)) return err('Invalid category', 400)
+
+  try {
+    const result = await setConversationCategory(user.id, id, category)
+    return ok(result)
+  } catch (e) {
+    if (e instanceof CategoryMoveError) return err(e.message, e.status)
+    console.error('[api/conversations PATCH] failed:', e)
+    return err('Could not update the conversation', 500)
+  }
 }

@@ -54,12 +54,24 @@ export async function analyzeConversation(
     conversation.lastMessageAt ?? null,
   )
 
+  // AI category enhancement (never a single point of failure): only refine when
+  // a real AI model ran, the user hasn't manually set the category, AND the rule
+  // classifier was unsure (left it PRIMARY). Confident rule buckets and manual
+  // moves are preserved.
+  const refineCategory =
+    provider === 'gemini' &&
+    analysis.category &&
+    analysis.category !== conversation.category &&
+    conversation.categorySource !== 'manual' &&
+    conversation.category === 'PRIMARY'
+
   await prisma.conversation.update({
     where: { id: conversationId },
     data: {
       priority: priority.level,
       priorityScore: priority.score,
       lastAnalyzedAt: new Date(),
+      ...(refineCategory ? { category: analysis.category, categorySource: 'ai' } : {}),
     },
   })
 

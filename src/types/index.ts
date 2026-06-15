@@ -1,6 +1,7 @@
 // ── Core domain enums ──────────────────────────────────────────────────────
 
 export type PriorityLevel = 'HOT' | 'ATTENTION' | 'COLD' | 'SPAM'
+export type EmailCategory = 'PRIMARY' | 'CLIENTS' | 'SERVICES' | 'PROMOTIONS' | 'NEWSLETTERS' | 'SPAM'
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
 export type Sentiment = 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE'
 export type Channel = 'TELEGRAM' | 'GMAIL'
@@ -41,6 +42,9 @@ export interface AnalysisResult {
   nextAction: string
   lostReason?: string
   sentiment: Sentiment
+  /** AI's email-category suggestion — used only to enrich low-confidence rule
+   * classification (never overrides a confident rule or a manual move). */
+  category?: EmailCategory
 }
 
 export interface GeminiAnalysisPayload {
@@ -93,6 +97,7 @@ export interface ConversationListItem {
   status: ConversationStatus
   priority: PriorityLevel
   priorityScore: number
+  category: EmailCategory
   lastMessageAt: string | null   // ISO-8601
   contact: {
     name: string
@@ -110,6 +115,7 @@ export interface ConversationDetail {
   status: ConversationStatus
   priority: PriorityLevel
   priorityScore: number
+  category: EmailCategory
   lastMessageAt: string | null   // ISO-8601
   lastAnalyzedAt: string | null  // ISO-8601
   contact: {
@@ -136,6 +142,7 @@ export interface SearchResultItem {
   status: ConversationStatus
   priority: PriorityLevel
   priorityScore: number
+  category: EmailCategory
   lastMessageAt: string | null   // ISO-8601
   contact: {
     name: string

@@ -39,6 +39,7 @@ export function getEmbeddingProvider(): AiEmbeddingProvider | null {
 
 const VALID_RISK = new Set<string>(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'])
 const VALID_SENTIMENT = new Set<string>(['POSITIVE', 'NEUTRAL', 'NEGATIVE'])
+const VALID_CATEGORY = new Set<string>(['PRIMARY', 'CLIENTS', 'SERVICES', 'PROMOTIONS', 'NEWSLETTERS', 'SPAM'])
 
 const ANALYSIS_SCHEMA: AiJsonSchema = {
   type: 'object',
@@ -72,6 +73,13 @@ const ANALYSIS_SCHEMA: AiJsonSchema = {
       enum: ['POSITIVE', 'NEUTRAL', 'NEGATIVE'],
       description: 'Overall client sentiment in this conversation.',
     },
+    category: {
+      type: 'string',
+      format: 'enum',
+      enum: ['PRIMARY', 'CLIENTS', 'SERVICES', 'PROMOTIONS', 'NEWSLETTERS', 'SPAM'],
+      description:
+        'Best inbox category for this email: CLIENTS (real customer/prospect conversation), SERVICES (invoice/payment/transactional), PROMOTIONS (marketing/sales), NEWSLETTERS (subscriptions/digests), SPAM (junk), or PRIMARY (important personal mail that fits none of the above).',
+    },
   },
   required: ['summary', 'riskLevel', 'riskReasons', 'nextAction', 'sentiment'],
 }
@@ -95,6 +103,9 @@ function validateAnalysis(raw: unknown): AnalysisResult {
   const lostReason =
     typeof r.lostReason === 'string' && r.lostReason.trim() ? r.lostReason.trim() : undefined
 
+  const category = String(r.category ?? '').toUpperCase()
+  const validCategory = VALID_CATEGORY.has(category) ? (category as AnalysisResult['category']) : undefined
+
   return {
     summary: String(r.summary ?? '').trim() || 'No summary available.',
     riskLevel: riskLevel as RiskLevel,
@@ -102,6 +113,7 @@ function validateAnalysis(raw: unknown): AnalysisResult {
     nextAction: String(r.nextAction ?? '').trim() || 'Review the conversation.',
     lostReason,
     sentiment: sentiment as Sentiment,
+    category: validCategory,
   }
 }
 

@@ -6,6 +6,8 @@ import { Inbox } from 'lucide-react'
 import { avatarGradient, initialsOf } from '@/components/dashboard/avatar'
 import EmptyNote from '@/components/dashboard/EmptyNote'
 import { priorityMeta } from '@/lib/priority'
+import { CATEGORY_META } from '@/lib/categories'
+import type { EmailCategory } from '@/types'
 
 export type ConversationSummary = {
   id: string
@@ -13,25 +15,19 @@ export type ConversationSummary = {
   subject: string | null
   priority: 'HOT' | 'ATTENTION' | 'COLD' | 'SPAM'
   priorityScore: number
+  category: EmailCategory
   lastMessageAt: string | null
+  /**
+   * Pre-formatted "5m" / "3h" / "2d" label. Computed by the producer (server
+   * component or search mapper) — never derived here from Date.now(), or
+   * SSR/CSR clock skew breaks hydration and kills inbox interactivity.
+   */
+  timeLabel: string
   contact: { name: string; email: string | null }
   lastMessage: string | null
   unreadCount: number
   /** Latest message is inbound — the client is waiting on you. */
   awaitingReply?: boolean
-}
-
-function relativeTime(iso: string | null): string {
-  if (!iso) return ''
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'now'
-  if (mins < 60) return `${mins}m`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h`
-  const days = Math.floor(hrs / 24)
-  if (days < 7) return `${days}d`
-  return `${Math.floor(days / 7)}w`
 }
 
 export default function ConversationList({ conversations }: { conversations: ConversationSummary[] }) {
@@ -54,6 +50,9 @@ export default function ConversationList({ conversations }: { conversations: Con
         // Only elevated priorities earn a badge — keeping Normal/Low rows quiet
         // makes the urgent ones actually stand out.
         const showBadge = c.priority === 'HOT' || c.priority === 'ATTENTION'
+        // Category tag — shown for everything except the catch-all Primary bucket
+        // so the row visibly reflects where it was sorted.
+        const cat = c.category && c.category !== 'PRIMARY' ? CATEGORY_META[c.category] : null
         // Selected state driven by the URL path — no prop needed
         const isSelected = pathname === `/inbox/${c.id}`
 
@@ -79,13 +78,20 @@ export default function ConversationList({ conversations }: { conversations: Con
                 <span style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                   {c.contact.name}
                 </span>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>{relativeTime(c.lastMessageAt)}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>{c.timeLabel}</span>
               </div>
 
               {c.subject && (
                 <p style={{ margin: '2px 0 0', color: 'var(--text-secondary)', fontWeight: 500, fontSize: 12.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.45 }}>
                   {c.subject}
                 </p>
+              )}
+
+              {cat && (
+                <span className="cat-tag" style={{ marginTop: 4, color: cat.color, background: `${cat.color}14` }}>
+                  <span className="cat-tag-dot" style={{ background: cat.color }} />
+                  {cat.label}
+                </span>
               )}
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>

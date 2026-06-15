@@ -18,6 +18,7 @@ model User {
   contacts     Contact[]
   riskAlerts   RiskAlert[]
   emailDigests EmailDigest[]
+  categoryRules CategoryRule[]
 }
 
 model Integration {
@@ -64,6 +65,10 @@ model Conversation {
   status         ConversationStatus @default(ACTIVE)
   priority       PriorityLevel @default(COLD)
   priorityScore  Float         @default(0)
+  category       EmailCategory @default(PRIMARY)
+  /// Provenance of `category`: 'rules' | 'ai' | 'manual'. Manual wins and is
+  /// never overwritten by automatic (re)classification.
+  categorySource String?
   lastMessageAt  DateTime?
   lastAnalyzedAt DateTime?
   createdAt      DateTime      @default(now())
@@ -77,6 +82,27 @@ model Conversation {
 
   @@unique([integrationId, externalId])
   @@index([userId, priorityScore(sort: Desc), lastMessageAt(sort: Desc)])
+  @@index([userId, category])
+}
+
+/// Learned / custom email-routing rule. Created when the user manually moves a
+/// thread to a category (matchType 'email', source 'manual') so future mail
+/// from that sender auto-classifies; honored ahead of every heuristic by the
+/// classifier. Domain-level rules ('domain') are supported for completeness.
+model CategoryRule {
+  id        String        @id @default(cuid())
+  userId    String
+  matchType String        // 'email' | 'domain'
+  value     String        // lowercased sender email or domain
+  category  EmailCategory
+  source    String        @default("manual") // 'manual' (learned) | 'custom'
+  hits      Int           @default(0)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, matchType, value])
+  @@index([userId])
 }
 
 model Message {
@@ -228,6 +254,14 @@ enum PriorityLevel {
   HOT
   ATTENTION
   COLD
+  SPAM
+}
+enum EmailCategory {
+  PRIMARY
+  CLIENTS
+  SERVICES
+  PROMOTIONS
+  NEWSLETTERS
   SPAM
 }
 enum MessageDirection {

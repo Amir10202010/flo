@@ -5,7 +5,10 @@ import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { ArrowDownWideNarrow, ChevronDown, Clock, Loader, Plug, Search, Sparkles, TriangleAlert } from 'lucide-react'
 import ConversationList, { type ConversationSummary } from './ConversationList'
-import type { SearchResponse, SearchResultItem } from '@/types'
+import InboxFilters, { type CatFilter, type Filter } from './InboxFilters'
+import { EMAIL_CATEGORIES, isEmailCategory } from '@/lib/categories'
+import { compactAgo } from '@/lib/time'
+import type { EmailCategory, SearchResponse, SearchResultItem } from '@/types'
 
 export type InboxGroup = {
   id: string
@@ -14,15 +17,7 @@ export type InboxGroup = {
   conversations: ConversationSummary[]
 }
 
-type Filter = 'ALL' | 'HOT' | 'ATTENTION' | 'AWAITING'
 type Sort = 'priority' | 'recent'
-
-const FILTERS: { key: Filter; label: string; dot?: string }[] = [
-  { key: 'ALL', label: 'All' },
-  { key: 'HOT', label: 'Urgent', dot: 'var(--hot)' },
-  { key: 'ATTENTION', label: 'High', dot: 'var(--attention)' },
-  { key: 'AWAITING', label: 'Awaiting', dot: 'var(--accent)' },
-]
 
 const SEARCH_MIN_CHARS = 2
 const SEARCH_DEBOUNCE_MS = 350
@@ -31,10 +26,20 @@ function isFilter(v: string | null): v is Filter {
   return v === 'ALL' || v === 'HOT' || v === 'ATTENTION' || v === 'AWAITING'
 }
 
+function isCatFilter(v: string | null): v is CatFilter {
+  return v === 'ALL' || isEmailCategory(v)
+}
+
 function matchesFilter(c: { priority: string; awaitingReply?: boolean }, filter: Filter): boolean {
   if (filter === 'ALL') return true
   if (filter === 'AWAITING') return Boolean(c.awaitingReply)
   return c.priority === filter
+}
+
+// "All mail" excludes Spam; a specific tab shows exactly that category.
+function matchesCategory(c: { category: EmailCategory }, cat: CatFilter): boolean {
+  if (cat === 'ALL') return c.category !== 'SPAM'
+  return c.category === cat
 }
 
 function sortConvs(convs: ConversationSummary[], sort: Sort): ConversationSummary[] {
@@ -53,7 +58,9 @@ function resultToSummary(r: SearchResultItem): ConversationSummary {
     subject: r.subject,
     priority: r.priority,
     priorityScore: r.priorityScore,
+    category: r.category,
     lastMessageAt: r.lastMessageAt,
+    timeLabel: compactAgo(r.lastMessageAt),
     contact: r.contact,
     lastMessage: r.snippet,
     unreadCount: 0,
@@ -82,6 +89,10 @@ export default function InboxList({
     const f = searchParams.get('f')
     return isFilter(f) ? f : 'ALL'
   })
+  const [catFilter, setCatFilter] = useState<CatFilter>(() => {
+    const c = searchParams.get('c')
+    return isCatFilter(c) ? c : 'ALL'
+  })
   const [sort, setSort] = useState<Sort>(() => (searchParams.get('sort') === 'recent' ? 'recent' : 'priority'))
   // Single-open accordion: only one mailbox group is expanded at a time.
   const [openId, setOpenId] = useState<string | null>(groups[0]?.id ?? null)
@@ -93,17 +104,18 @@ export default function InboxList({
 
   const q = query.trim()
   const serverSearch = q.length >= SEARCH_MIN_CHARS
-  const filtering = filter !== 'ALL'
+  const filtering = filter !== 'ALL' || catFilter !== 'ALL'
 
-  // Persist q/f/sort in the URL without triggering a server re-render.
+  // Persist q/f/c/sort in the URL without triggering a server re-render.
   useEffect(() => {
     const params = new URLSearchParams()
     if (q) params.set('q', q)
     if (filter !== 'ALL') params.set('f', filter)
+    if (catFilter !== 'ALL') params.set('c', catFilter)
     if (sort !== 'priority') params.set('sort', sort)
     const qs = params.toString()
     window.history.replaceState(null, '', `${pathname}${qs ? `?${qs}` : ''}`)
-  }, [q, filter, sort, pathname])
+  }, [q, filter, catFilter, sort, pathname])
 
   // Debounced search request. No synchronous setState in the effect body —
   // stale results/meta are simply ignored by the render gates below when the
@@ -134,15 +146,24 @@ export default function InboxList({
     }
   }, [q, serverSearch])
 
-  // Counts for the filter chips (across all mailboxes).
+  // Counts for the priority chips — scoped to the active category tab so the
+  // numbers match what's actually shown.
   const counts = useMemo(() => {
-    const all = groups.flatMap(g => g.conversations)
+    const all = groups.flatMap(g => g.conversations).filter(c => matchesCategory(c, catFilter))
     return {
       ALL: all.length,
       HOT: all.filter(c => c.priority === 'HOT').length,
       ATTENTION: all.filter(c => c.priority === 'ATTENTION').length,
       AWAITING: all.filter(c => c.awaitingReply).length,
     }
+  }, [groups, catFilter])
+
+  // Counts for the category tabs (across all mailboxes).
+  const catCounts = useMemo(() => {
+    const all = groups.flatMap(g => g.conversations)
+    const out = { ALL: all.filter(c => c.category !== 'SPAM').length } as Record<CatFilter, number>
+    for (const cat of EMAIL_CATEGORIES) out[cat] = all.filter(c => c.category === cat).length
+    return out
   }, [groups])
 
   // Browse mode (no query) and the local fallback when /api/search errors.
@@ -160,17 +181,21 @@ export default function InboxList({
             (c.lastMessage ?? '').toLowerCase().includes(lq),
           )
         }
+        // Category tab always applies (so Spam stays out of "All mail").
+        convs = convs.filter(c => matchesCategory(c, catFilter))
         if (filter !== 'ALL') convs = convs.filter(c => matchesFilter(c, filter))
         return { ...g, conversations: sortConvs(convs, sort) }
       })
       .filter(g => (localFallback || filtering ? g.conversations.length > 0 : true))
-  }, [groups, q, filter, sort, filtering, localFallback])
+  }, [groups, q, filter, catFilter, sort, filtering, localFallback])
 
-  // Search results, post-filtered by the active chip (search + filter combine).
+  // Search results, post-filtered by the active chips (search + filters combine).
   const filteredResults = useMemo(() => {
     if (!results) return null
-    return results.filter(r => matchesFilter(r, filter)).map(resultToSummary)
-  }, [results, filter])
+    return results
+      .filter(r => matchesCategory(r, catFilter) && matchesFilter(r, filter))
+      .map(resultToSummary)
+  }, [results, filter, catFilter])
 
   // Server mode keeps stale results on screen while the next query loads —
   // the badge spins instead of the list flashing a skeleton.
@@ -239,23 +264,15 @@ export default function InboxList({
         </div>
 
         {hasConnection && (
-          <div className="inbox-controls">
-            <div className="fchip-row" role="tablist" aria-label="Filter conversations">
-              {FILTERS.map(f => (
-                <button
-                  key={f.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={filter === f.key}
-                  className={`fchip${filter === f.key ? ' active' : ''}`}
-                  onClick={() => setFilter(prev => (prev === f.key ? 'ALL' : f.key))}
-                >
-                  {f.dot && filter !== f.key && <span className="fchip-dot" style={{ background: f.dot }} />}
-                  {f.label}
-                  <span className="fchip-count">{counts[f.key]}</span>
-                </button>
-              ))}
-            </div>
+          <div className="inbox-toolbar">
+            <InboxFilters
+              filter={filter}
+              setFilter={setFilter}
+              catFilter={catFilter}
+              setCatFilter={setCatFilter}
+              counts={counts}
+              catCounts={catCounts}
+            />
             {!showServerResults && (
               <button
                 type="button"

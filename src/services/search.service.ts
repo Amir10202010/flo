@@ -6,6 +6,7 @@ import { enqueueMany } from './jobs/queue'
 import type {
   Channel,
   ConversationStatus,
+  EmailCategory,
   PriorityLevel,
   RiskLevel,
   SearchResponse,
@@ -151,6 +152,7 @@ export async function searchConversations(
       status: true,
       priority: true,
       priorityScore: true,
+      category: true,
       lastMessageAt: true,
       contact: { select: { name: true, email: true } },
       analysis: { select: { summary: true, riskLevel: true, sentiment: true } },
@@ -290,6 +292,7 @@ export async function searchConversations(
     status: s.conv.status as ConversationStatus,
     priority: s.conv.priority as PriorityLevel,
     priorityScore: s.conv.priorityScore,
+    category: s.conv.category as EmailCategory,
     lastMessageAt: s.conv.lastMessageAt?.toISOString() ?? null,
     contact: { name: s.conv.contact.name, email: s.conv.contact.email },
     snippet:

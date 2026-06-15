@@ -25,6 +25,21 @@ export function timeAgo(input: Date | string | null | undefined, now = Date.now(
   return `${Math.floor(diff / (30 * DAY))}mo ago`
 }
 
+/** Inbox row timestamp: "now" · "5m" · "3h" · "4d" · "2w". Compute server-side. */
+export function compactAgo(input: Date | string | null | undefined, now = Date.now()): string {
+  if (!input) return ''
+  const t = typeof input === 'string' ? new Date(input).getTime() : input.getTime()
+  if (!Number.isFinite(t)) return ''
+  const mins = Math.floor(Math.max(0, now - t) / MINUTE)
+  if (mins < 1) return 'now'
+  if (mins < 60) return `${mins}m`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h`
+  const days = Math.floor(hrs / 24)
+  if (days < 7) return `${days}d`
+  return `${Math.floor(days / 7)}w`
+}
+
 /** Compact wait duration: "2h" · "3d" · "2w" — for "waiting 3d" chips. */
 export function waitDuration(input: Date | string | null | undefined, now = Date.now()): string | null {
   if (!input) return null

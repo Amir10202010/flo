@@ -8,7 +8,8 @@
     "build": "prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
-    "worker": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local src/worker.ts"
+    "worker": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local src/worker.ts",
+    "test:classifier": "tsx scripts/classifier.check.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
