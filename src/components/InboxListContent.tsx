@@ -37,6 +37,7 @@ export default async function InboxListContent() {
         contact: { select: { name: true, email: true } },
         integration: { select: { id: true, type: true, metadata: true } },
         messages: { orderBy: { sentAt: 'desc' }, take: 1, select: { content: true, direction: true } },
+        draft: { select: { status: true } },
       },
       orderBy: [{ priorityScore: 'desc' }, { lastMessageAt: 'desc' }],
       take: 100,
@@ -69,6 +70,7 @@ export default async function InboxListContent() {
         lastMessage: c.messages[0] ? messagePreview(c.messages[0].content) : null,
         unreadCount: 0,
         awaitingReply: c.messages[0]?.direction === 'INBOUND',
+        hasDraft: c.draft?.status === 'READY',
       }
       byIntegration.get(integ.id)!.conversations.push(summary)
     }

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { decryptSecret, encryptSecret } from '@/lib/crypto'
 import { htmlToText } from '@/lib/html'
 import { classifyEmail, type ClassifierRule } from '@/services/email.classifier'
+import { markDraftSent } from '@/services/draft.service'
 import type { SyncResult } from '@/types'
 import type { EmailCategory, Integration } from '@prisma/client'
 
@@ -624,6 +625,9 @@ export async function sendGmailReply(
     where: { id: conversation.id },
     data: { lastMessageAt: now, awaitingReply: false },
   })
+
+  // A reply went out — any pending auto-draft for this thread is now spent.
+  await markDraftSent(conversation.id)
 
   return { messageId }
 }

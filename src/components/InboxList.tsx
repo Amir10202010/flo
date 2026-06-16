@@ -99,6 +99,7 @@ function itemToSummary(r: ConversationListItem): ConversationSummary {
     lastMessage: r.lastMessage,
     unreadCount: r.unreadCount,
     awaitingReply: r.awaitingReply,
+    hasDraft: r.hasDraft,
   }
 }
 

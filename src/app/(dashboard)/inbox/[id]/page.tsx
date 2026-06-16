@@ -8,6 +8,7 @@ import { sanitizeMessageHtml } from '@/lib/html'
 import PriorityBadge from '@/components/ui/PriorityBadge'
 import Composer from '@/components/Composer'
 import CategoryMover from '@/components/CategoryMover'
+import { getReadyDraft } from '@/services/draft.service'
 import type { EmailCategory, PriorityLevel } from '@/types'
 
 const RISK: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -44,8 +45,15 @@ function dayLabel(d: Date, now: Date): string {
   return d.toLocaleDateString('en-US', opts)
 }
 
-export default async function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ConversationPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ draft?: string }>
+}) {
   const { id } = await params
+  const { draft: draftParam } = await searchParams
 
   const user = await getCurrentUser()
   if (!user) notFound()
@@ -70,6 +78,10 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
   const analyzedBy = ((analysis?.analysisData as { provider?: string } | null)?.provider) ?? 'gemini'
   const channelName = conv.channel === 'GMAIL' ? 'Gmail' : 'Telegram'
   const now = new Date()
+
+  // Pending auto-draft to pre-fill, and the one-click "?draft=1" intent.
+  const readyDraft = await getReadyDraft(user.id, conv.id)
+  const wantsAutoDraft = draftParam === '1'
 
   // Pre-compute grouping: day separators + "continuation" rows (same sender,
   // <10 min apart) that render tighter and without a repeated timestamp.
@@ -173,7 +185,11 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
 
       {/* Reply composer — Gmail only for now */}
       {conv.channel === 'GMAIL' && conv.contact.email && (
-        <Composer conversationId={conv.id} />
+        <Composer
+          conversationId={conv.id}
+          initialDraft={readyDraft}
+          autoDraft={wantsAutoDraft && !readyDraft}
+        />
       )}
     </div>
   )

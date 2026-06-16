@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Inbox } from 'lucide-react'
+import { Inbox, Sparkles } from 'lucide-react'
 import { avatarGradient, initialsOf } from '@/components/dashboard/avatar'
 import EmptyNote from '@/components/dashboard/EmptyNote'
 import { priorityMeta } from '@/lib/priority'
@@ -28,6 +28,8 @@ export type ConversationSummary = {
   unreadCount: number
   /** Latest message is inbound — the client is waiting on you. */
   awaitingReply?: boolean
+  /** A READY AI auto-draft is waiting for this conversation. */
+  hasDraft?: boolean
 }
 
 export default function ConversationList({ conversations }: { conversations: ConversationSummary[] }) {
@@ -91,6 +93,17 @@ export default function ConversationList({ conversations }: { conversations: Con
                 <span className="cat-tag" style={{ marginTop: 4, color: cat.color, background: `${cat.color}14` }}>
                   <span className="cat-tag-dot" style={{ background: cat.color }} />
                   {cat.label}
+                </span>
+              )}
+
+              {c.hasDraft && (
+                <span
+                  className="cat-tag"
+                  title="An AI reply draft is ready — open to review and send"
+                  style={{ marginTop: 4, marginLeft: cat ? 6 : 0, color: 'var(--accent)', background: 'var(--accent-dim)' }}
+                >
+                  <Sparkles size={10} />
+                  Draft ready
                 </span>
               )}
 

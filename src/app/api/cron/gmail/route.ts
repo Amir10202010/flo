@@ -5,6 +5,7 @@ import { enqueue, enqueueGmailSync, enqueueScanRiskAlerts, enqueueMany } from '@
 import { integrationEmail, startGmailWatch } from '@/services/gmail.service'
 import { findUnembeddedConversationIds } from '@/services/embedding.service'
 import { digestOwnerEmail, isoWeekKey } from '@/services/digest.service'
+import { getTextProvider } from '@/services/ai'
 import { kickJobQueue } from '@/services/jobs/kick'
 
 export const dynamic = 'force-dynamic'
@@ -43,7 +44,9 @@ async function handle(req: NextRequest) {
   let renewed = 0
   let digestsQueued = 0
   let embedsQueued = 0
+  let draftsQueued = 0
   const errors: string[] = []
+  const aiOn = Boolean(getTextProvider())
 
   for (const integration of integrations) {
     try {
@@ -77,6 +80,39 @@ async function handle(req: NextRequest) {
       }
     } catch (e) {
       errors.push(`embed-backfill ${integration.id}: ${String(e)}`)
+    }
+
+    // Auto-draft backfill — urgent awaiting threads that never got a draft.
+    // Bounded; skipped without an AI key or while draft jobs are still pending.
+    if (aiOn) {
+      try {
+        const pendingDrafts = await prisma.job.count({
+          where: { type: 'GENERATE_DRAFT', userId: integration.userId, status: 'PENDING' },
+        })
+        if (pendingDrafts === 0) {
+          const candidates = await prisma.conversation.findMany({
+            where: {
+              userId: integration.userId,
+              integration: { isActive: true },
+              awaitingReply: true,
+              priority: { in: ['HOT', 'ATTENTION'] },
+              draft: { is: null },
+            },
+            select: { id: true },
+            orderBy: { priorityScore: 'desc' },
+            take: 20,
+          })
+          if (candidates.length) {
+            draftsQueued += await enqueueMany(
+              'GENERATE_DRAFT',
+              candidates.map((c) => ({ conversationId: c.id })),
+              { userId: integration.userId },
+            )
+          }
+        }
+      } catch (e) {
+        errors.push(`draft-backfill ${integration.id}: ${String(e)}`)
+      }
     }
 
     // Weekly digest — only for the owner mailbox (GMAIL_USER_EMAIL identity).
@@ -131,6 +167,7 @@ async function handle(req: NextRequest) {
     renewed,
     digestsQueued,
     embedsQueued,
+    draftsQueued,
     errors,
   })
 }

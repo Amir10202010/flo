@@ -81,6 +81,7 @@ export async function GET(req: NextRequest) {
       contact: { select: { name: true, email: true } },
       analysis: { select: { nextAction: true } },
       messages: { orderBy: { sentAt: 'desc' }, take: 1, select: { content: true } },
+      draft: { select: { status: true } },
     },
     orderBy,
     take: limit,
@@ -101,6 +102,7 @@ export async function GET(req: NextRequest) {
     timeLabel: compactAgo(c.lastMessageAt),
     awaitingReply: c.awaitingReply,
     nextAction: c.analysis?.nextAction ?? null,
+    hasDraft: c.draft?.status === 'READY',
   }))
 
   return ok(items)

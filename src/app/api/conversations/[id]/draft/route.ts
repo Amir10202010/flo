@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { getAuthUser, ok, err } from '@/lib/api'
 import { prisma } from '@/lib/prisma'
-import { generateReplyDraftForConversation } from '@/services/draft.service'
+import { dismissDraft, generateReplyDraftForConversation } from '@/services/draft.service'
 
 const BodySchema = z.object({
   tone: z.enum(['WARM', 'CONCISE', 'FORMAL', 'MATCH']).optional(),
@@ -47,4 +47,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     console.error(`[draft] conversation ${id}:`, e)
     return err(message, 500)
   }
+}
+
+/** Dismiss a conversation's pending auto-draft (clears the "draft ready" badge). */
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { user, error } = await getAuthUser()
+  if (!user) return error
+
+  const { id } = await params
+  const conv = await prisma.conversation.findUnique({ where: { id }, select: { userId: true } })
+  if (!conv || conv.userId !== user.id) return err('Not found', 404)
+
+  await dismissDraft(id)
+  return ok({ dismissed: true })
 }
