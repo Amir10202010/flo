@@ -1,12 +1,15 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { motion, type Variants, MotionConfig, AnimatePresence } from 'framer-motion'
-import { ArrowRight, Check, Inbox, Shield, Sparkles, Bot, Search, SlidersHorizontal, Plus, X, Star, Zap, TrendingUp, Play } from 'lucide-react'
+import {
+  motion, type Variants, MotionConfig, AnimatePresence,
+  useReducedMotion, useMotionValue, useMotionTemplate, useSpring, useTransform, useScroll,
+} from 'framer-motion'
+import { ArrowRight, Check, Inbox, Shield, Sparkles, Bot, Search, SlidersHorizontal, Plus, X, Star, Zap, TrendingUp, Play, type LucideIcon } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
-import HeroMockup from '@/components/marketing/HeroMockup'
+import HeroVisual from '@/components/marketing/HeroVisual'
 import ProductDemo from '@/components/marketing/ProductDemo'
 
 /* ── Motion Variants ─────────────────────────────────────────────────────── */
@@ -23,6 +26,72 @@ const stagger: Variants = {
 const fromRight: Variants = {
   hidden:  { opacity: 0, x: 32 },
   visible: { opacity: 1, x: 0, transition: { duration: 0.65, ease: 'easeOut' } },
+}
+
+/* Signature reveal — blur + lift, used for hero lines and section headers. */
+const blurUp: Variants = {
+  hidden:  { opacity: 0, y: 26, filter: 'blur(10px)' },
+  visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.75, ease: [0.16, 1, 0.3, 1] } },
+}
+
+/* ── Magnetic wrapper — element eases toward the cursor on hover ──────────── */
+function Magnetic({ children, strength = 0.35 }: { children: React.ReactNode; strength?: number }) {
+  const reduce = useReducedMotion()
+  const x = useMotionValue(0)
+  const y = useMotionValue(0)
+  const sx = useSpring(x, { stiffness: 220, damping: 16 })
+  const sy = useSpring(y, { stiffness: 220, damping: 16 })
+  return (
+    <motion.span
+      style={{ display: 'inline-flex', x: sx, y: sy }}
+      onMouseMove={(e) => {
+        if (reduce) return
+        const r = e.currentTarget.getBoundingClientRect()
+        x.set((e.clientX - r.left - r.width / 2) * strength)
+        y.set((e.clientY - r.top - r.height / 2) * strength)
+      }}
+      onMouseLeave={() => { x.set(0); y.set(0) }}
+    >
+      {children}
+    </motion.span>
+  )
+}
+
+/* ── Count-up — animates a numeric value when scrolled into view ──────────── */
+function CountUp({ to, suffix = '', prefix = '', duration = 1.4, decimals = 0 }: { to: number; suffix?: string; prefix?: string; duration?: number; decimals?: number }) {
+  const reduce = useReducedMotion()
+  const [val, setVal] = useState(0)
+  const started = useRef(false)
+  const fmt = (n: number) => `${prefix}${n.toFixed(decimals)}${suffix}`
+  // Reduced motion: skip the count, show the final value. Done in an effect
+  // (post-mount) so server and client first render agree → no hydration gap.
+  useEffect(() => { if (reduce) setVal(to) }, [reduce, to])
+  return (
+    <motion.span
+      onViewportEnter={() => {
+        if (started.current || reduce) return
+        started.current = true
+        const start = performance.now()
+        const tick = (now: number) => {
+          const p = Math.min((now - start) / (duration * 1000), 1)
+          const eased = 1 - Math.pow(1 - p, 3)
+          setVal(to * eased)
+          if (p < 1) requestAnimationFrame(tick)
+        }
+        requestAnimationFrame(tick)
+      }}
+      viewport={{ once: true, margin: '-60px' }}
+    >
+      {fmt(val)}
+    </motion.span>
+  )
+}
+
+/* Cursor-follow spotlight handler for cards — sets --mx/--my CSS vars. */
+function spotlightMove(e: React.MouseEvent<HTMLElement>) {
+  const r = e.currentTarget.getBoundingClientRect()
+  e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left}px`)
+  e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`)
 }
 
 /* Branded section kicker — one consistent system in place of repeated eyebrows. */
@@ -49,9 +118,9 @@ function Section({ children, className = '' }: { children: React.ReactNode; clas
   )
 }
 
-function BentoCard({ icon: Icon, title, desc }: { icon: React.ElementType; title: string; desc: string }) {
+function BentoCard({ icon: Icon, title, desc }: { icon: LucideIcon; title: string; desc: string }) {
   return (
-    <motion.div variants={fadeUp} className="bento-item">
+    <motion.div variants={fadeUp} className="bento-item spotlight-card grad-edge" onMouseMove={spotlightMove}>
       <div className="b-icon"><Icon size={20} style={{ color: 'var(--accent)' }} /></div>
       <h3>{title}</h3>
       <p>{desc}</p>
@@ -59,29 +128,56 @@ function BentoCard({ icon: Icon, title, desc }: { icon: React.ElementType; title
   )
 }
 
-function Step({ n, title, desc }: { n: number; title: string; desc: string }) {
+/* ── Scroll-drawn timeline (How it works) ─────────────────────────────────── */
+function TimelineItem({ n, title, desc }: { n: number; title: string; desc: string }) {
+  // `on` starts false on BOTH server and client first render (no reduce branch)
+  // so hydration matches; it flips when the node scrolls into view. Reduced
+  // motion is handled globally by <MotionConfig reducedMotion="user">.
+  const [on, setOn] = useState(false)
   return (
-    <motion.div variants={fadeUp} style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-      <div
-        style={{
-          width: 36, height: 36, borderRadius: 10,
-          background: 'var(--accent-dim)', border: '1px solid rgba(79,92,244,0.2)',
-          color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 14, fontWeight: 700, flexShrink: 0,
-        }}
+    <div className="tl-item">
+      <motion.div
+        className="tl-node"
+        data-on={on}
+        initial={{ scale: 0.6, opacity: 0 }}
+        whileInView={{ scale: 1, opacity: 1 }}
+        onViewportEnter={() => setOn(true)}
+        viewport={{ once: true, margin: '-45% 0px -45% 0px' }}
+        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       >
         {n}
-      </div>
-      <div style={{ paddingTop: 5 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 7px', lineHeight: 1.3 }}>{title}</h3>
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-30% 0px -30% 0px' }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        style={{ paddingTop: 5 }}
+      >
+        <h3 style={{ fontSize: 16.5, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 7px', lineHeight: 1.3 }}>{title}</h3>
         <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.65 }}>{desc}</p>
+      </motion.div>
+    </div>
+  )
+}
+
+function Timeline({ steps }: { steps: { n: number; title: string; desc: string }[] }) {
+  const reduce = useReducedMotion()
+  const ref = useRef<HTMLDivElement>(null)
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start 72%', 'end 65%'] })
+  const scaleY = useSpring(scrollYProgress, { stiffness: 110, damping: 30, restDelta: 0.001 })
+  return (
+    <div className="timeline" ref={ref}>
+      <div className="tl-rail">
+        <motion.div className="tl-progress" style={{ scaleY: reduce ? 1 : scaleY }} />
       </div>
-    </motion.div>
+      {steps.map(s => <TimelineItem key={s.n} {...s} />)}
+    </div>
   )
 }
 
 /* ── Marquee items (real brand logos + lucide glyphs) ──────────────────────── */
-const MARQUEE: { name: string; src?: string; Icon?: React.ElementType; soon?: boolean }[] = [
+const MARQUEE: { name: string; src?: string; Icon?: LucideIcon; soon?: boolean }[] = [
   { name: 'Gmail', src: '/icons/gmail.svg' },
   { name: 'AI priority', Icon: Sparkles },
   { name: 'Risk alerts', Icon: Shield },
@@ -182,7 +278,7 @@ function Stars({ n = 5, color = '#F6A23B' }: { n?: number; color?: string }) {
 
 function TestimonialCard({ t }: { t: typeof TESTIMONIALS[number] }) {
   return (
-    <motion.div variants={fadeUp} className={`tcard${t.feature ? ' t-feature' : ''}`}>
+    <motion.div variants={fadeUp} className={`tcard spotlight-card${t.feature ? ' t-feature' : ''}`} onMouseMove={spotlightMove}>
       <Stars color={t.feature ? '#FFFFFF' : '#F6A23B'} />
       <blockquote>“{t.quote}”</blockquote>
       <div className="t-foot">
@@ -198,6 +294,35 @@ function TestimonialCard({ t }: { t: typeof TESTIMONIALS[number] }) {
 
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+
+  /* Hero pointer + scroll motion: cursor spotlight, card parallax, drift. */
+  const heroRef = useRef<HTMLElement>(null)
+  const mx = useMotionValue(0)
+  const my = useMotionValue(0)
+  const pnx = useMotionValue(0)
+  const pny = useMotionValue(0)
+  const spotlight = useMotionTemplate`radial-gradient(620px circle at ${mx}px ${my}px, rgba(79,92,244,0.10), transparent 62%)`
+
+  const sx = useSpring(pnx, { stiffness: 110, damping: 20 })
+  const sy = useSpring(pny, { stiffness: 110, damping: 20 })
+  const tlX = useTransform(sx, [-0.5, 0.5], [26, -26])
+  const tlY = useTransform(sy, [-0.5, 0.5], [18, -18])
+  const brX = useTransform(sx, [-0.5, 0.5], [-30, 30])
+  const brY = useTransform(sy, [-0.5, 0.5], [-20, 20])
+
+  const { scrollY } = useScroll()
+  const visualDrift = useTransform(scrollY, [0, 700], [0, 70])
+  const textDrift = useTransform(scrollY, [0, 700], [0, -36])
+
+  const onHeroMove = (e: React.MouseEvent<HTMLElement>) => {
+    const r = heroRef.current?.getBoundingClientRect()
+    if (!r) return
+    mx.set(e.clientX - r.left)
+    my.set(e.clientY - r.top)
+    pnx.set((e.clientX - r.left) / r.width - 0.5)
+    pny.set((e.clientY - r.top) / r.height - 0.5)
+  }
+
   return (
     <MotionConfig reducedMotion="user">
     <div style={{ background: 'var(--bg-base)', minHeight: '100vh' }}>
@@ -205,6 +330,8 @@ export default function LandingPage() {
 
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <section
+        ref={heroRef}
+        onMouseMove={onHeroMove}
         style={{
           minHeight: '100vh',
           display: 'flex',
@@ -219,48 +346,58 @@ export default function LandingPage() {
         <div className="mesh mesh-hero" />
         <div className="mesh-veil" />
         <div className="dot-grid" />
+        <motion.div className="hero-spotlight" aria-hidden style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', background: spotlight }} />
+        <div className="grain" />
         <div className="glow" style={{ width: 540, height: 540, top: -140, right: -60, background: 'radial-gradient(circle, rgba(79,92,244,0.16), transparent 70%)' }} />
         <div className="glow" style={{ width: 420, height: 420, bottom: -160, left: -80, background: 'radial-gradient(circle, rgba(124,77,255,0.12), transparent 70%)' }} />
 
         <div
           className="hero-grid mkt-x"
-          style={{ position: 'relative', zIndex: 1, maxWidth: 1140, margin: '0 auto', padding: '0 32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center', width: '100%' }}
+          style={{ position: 'relative', zIndex: 2, maxWidth: 1140, margin: '0 auto', padding: '0 32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center', width: '100%' }}
         >
           {/* Left: text */}
-          <motion.div variants={stagger} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <motion.div variants={stagger} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', gap: 0, y: textDrift }}>
 
+            <motion.div variants={blurUp} className="hero-badge" style={{ marginBottom: 26 }}>
+              <span className="hb-dot" />
+              <span><span className="hb-shine">New</span> · AI that reads every client thread</span>
+            </motion.div>
 
             <motion.h1
-              variants={fadeUp}
-              style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(40px, 9vw, 76px)', fontWeight: 400, lineHeight: 1.05, letterSpacing: '-0.04em', color: 'var(--text-primary)', margin: '0 0 24px', textWrap: 'balance' }}
+              variants={stagger}
+              style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(40px, 9vw, 78px)', fontWeight: 400, lineHeight: 1.04, letterSpacing: '-0.04em', color: 'var(--text-primary)', margin: '0 0 24px', textWrap: 'balance' }}
             >
-              Never lose<br />
-              <em style={{ fontStyle: 'italic' }}>another</em>
-              {' '}
-              <span style={{ position: 'relative', display: 'inline-block', color: 'var(--accent)' }}>
-                client
-                <svg className="flourish" viewBox="0 0 300 24" preserveAspectRatio="none" aria-hidden="true">
-                  <motion.path
-                    d="M5 15 C 70 5, 150 3, 295 13"
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 0.85 }}
-                    transition={{ duration: 0.9, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                  />
-                </svg>
-              </span>
+              <motion.span variants={blurUp} style={{ display: 'block' }}>Never lose</motion.span>
+              <motion.span variants={blurUp} style={{ display: 'block' }}>
+                <em style={{ fontStyle: 'italic' }}>another</em>
+                {' '}
+                <span style={{ position: 'relative', display: 'inline-block' }}>
+                  <span className="ink-grad">client</span>
+                  <svg className="flourish" viewBox="0 0 300 24" preserveAspectRatio="none" aria-hidden="true">
+                    <motion.path
+                      d="M5 15 C 70 5, 150 3, 295 13"
+                      initial={{ pathLength: 0, opacity: 0 }}
+                      animate={{ pathLength: 1, opacity: 0.85 }}
+                      transition={{ duration: 0.9, delay: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                    />
+                  </svg>
+                </span>
+              </motion.span>
             </motion.h1>
 
             <motion.p
-              variants={fadeUp}
+              variants={blurUp}
               style={{ fontSize: 18, color: 'var(--text-secondary)', lineHeight: 1.65, margin: '0 0 36px', maxWidth: 480 }}
             >
               Velnox reads every client thread in your Gmail, flags who&apos;s about to go cold, and drafts the reply that saves the deal. Built for agencies, studios and client-facing teams.
             </motion.p>
 
             <motion.div variants={fadeUp} className="hero-cta" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 28 }}>
-              <Link href="/signup" className="btn-primary" style={{ fontSize: 15, padding: '13px 26px' }}>
-                Get early access <ArrowRight size={16} />
-              </Link>
+              <Magnetic strength={0.4}>
+                <Link href="/signup" className="btn-primary btn-shine" style={{ fontSize: 15, padding: '14px 28px' }}>
+                  Get early access <ArrowRight size={16} />
+                </Link>
+              </Magnetic>
               <a href="#demo" className="btn-ghost" style={{ fontSize: 15, padding: '13px 24px', background: '#FFFFFF', color: 'var(--text-primary)', boxShadow: 'var(--shadow-sm)' }}>
                 <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent-dim)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Play size={11} style={{ color: 'var(--accent)', fill: 'var(--accent)', marginLeft: 1 }} />
@@ -294,29 +431,35 @@ export default function LandingPage() {
             </motion.div>
           </motion.div>
 
-          {/* Right: animated mockup with floating glass metric cards */}
-          <motion.div className="hero-mockup" variants={fromRight} initial="hidden" animate="visible" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          {/* Right: WebGL glass core + parallax floating glass metric cards */}
+          <motion.div className="hero-mockup" variants={fromRight} initial="hidden" animate="visible" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', y: visualDrift }}>
             <div className="hero-stage">
-              <motion.div
-                className="float-card fc-tl"
-                initial={{ opacity: 0, y: 12, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.5, delay: 0.9, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <div className="fc-icon" style={{ background: 'rgba(14,163,113,0.12)' }}><TrendingUp size={17} style={{ color: '#0EA371' }} /></div>
-                <div><div className="fc-val">+38%</div><div className="fc-lbl">reply rate</div></div>
+              <motion.div className="fc-pos fc-pos-tl" style={{ x: tlX, y: tlY }}>
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.9, ease: [0.16, 1, 0.3, 1] }}>
+                  <div className="float-card bob">
+                    <div className="fc-icon" style={{ background: 'rgba(14,163,113,0.12)' }}><TrendingUp size={17} style={{ color: '#0EA371' }} /></div>
+                    <div><div className="fc-val"><CountUp to={38} prefix="+" suffix="%" /></div><div className="fc-lbl">reply rate</div></div>
+                  </div>
+                </motion.div>
               </motion.div>
 
-              <HeroMockup />
+              <motion.div className="fc-pos fc-pos-tr" style={{ x: brX, y: tlY }}>
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 1.2, ease: [0.16, 1, 0.3, 1] }}>
+                  <div className="float-card bob" style={{ padding: '9px 13px' }}>
+                    <span className="priority-badge priority-hot" style={{ fontSize: 10 }}><span className="priority-dot" aria-hidden />Urgent</span>
+                  </div>
+                </motion.div>
+              </motion.div>
 
-              <motion.div
-                className="float-card fc-br"
-                initial={{ opacity: 0, y: 12, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.5, delay: 1.05, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <div className="fc-icon" style={{ background: 'var(--accent-dim)' }}><Zap size={17} style={{ color: 'var(--accent)' }} /></div>
-                <div><div className="fc-val">Replied in 2m</div><div className="fc-lbl">AI suggested</div></div>
+              <HeroVisual />
+
+              <motion.div className="fc-pos fc-pos-br" style={{ x: brX, y: brY }}>
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 1.05, ease: [0.16, 1, 0.3, 1] }}>
+                  <div className="float-card bob rev">
+                    <div className="fc-icon" style={{ background: 'var(--accent-dim)' }}><Zap size={17} style={{ color: 'var(--accent)' }} /></div>
+                    <div><div className="fc-val">Replied in 2m</div><div className="fc-lbl">AI suggested</div></div>
+                  </div>
+                </motion.div>
               </motion.div>
             </div>
           </motion.div>
@@ -348,12 +491,12 @@ export default function LandingPage() {
       {/* ── Stats band ────────────────────────────────────────────────────── */}
       <section className="mkt-x" style={{ padding: '64px 32px', background: 'var(--bg-base)' }}>
         <Section>
-          <motion.div variants={fadeUp} className="stats-band">
+          <motion.div variants={stagger} className="stats-band">
             {STATS.map(s => (
-              <div key={s.lbl} className="stat-cell">
-                <div className="stat-val">{s.val}</div>
+              <motion.div key={s.lbl} variants={fadeUp} className="stat-cell">
+                <div className="stat-val ink-grad">{s.val}</div>
                 <div className="stat-lbl">{s.lbl}</div>
-              </div>
+              </motion.div>
             ))}
           </motion.div>
         </Section>
@@ -372,8 +515,9 @@ export default function LandingPage() {
                 Velnox sorts your Gmail by what needs attention first, so you always know which client to answer next.
               </p>
             </motion.div>
-            <motion.div variants={{ hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: 'easeOut' } } }}>
-              <ProductDemo />
+            <motion.div variants={{ hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: 'easeOut' } } }} style={{ position: 'relative' }}>
+              <div className="glow" style={{ width: 680, height: 380, top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: 'radial-gradient(circle, rgba(79,92,244,0.16), rgba(124,77,255,0.08) 45%, transparent 72%)' }} />
+              <div style={{ position: 'relative' }}><ProductDemo /></div>
             </motion.div>
           </div>
         </Section>
@@ -394,7 +538,7 @@ export default function LandingPage() {
             </motion.div>
             <div className="bento">
               {/* Showcase — wide cell with a live priority preview */}
-              <motion.div variants={fadeUp} className="bento-item bento-wide">
+              <motion.div variants={fadeUp} className="bento-item bento-wide spotlight-card grad-edge" onMouseMove={spotlightMove}>
                 <div className="b-icon"><Inbox size={21} style={{ color: 'var(--accent)' }} /></div>
                 <h3>Your whole client inbox, sorted</h3>
                 <p>Every client thread in your Gmail, in one calm list — already sorted by who needs you first. No more scrolling past the deal that was about to close.</p>
@@ -422,7 +566,7 @@ export default function LandingPage() {
               <BentoCard icon={Bot}    title="Auto-responder bot · Soon" desc="Coming soon: let a bot reply from the context you give it, then hand off to you the moment a human touch is needed." />
 
               {/* CTA tile — wide, fills the row and pushes to the full feature tour */}
-              <motion.a variants={fadeUp} href="/features" className="bento-item bento-cta" style={{ justifyContent: 'center', background: 'linear-gradient(150deg, rgba(79,92,244,0.06), rgba(124,77,255,0.05))', borderColor: 'rgba(79,92,244,0.2)', textDecoration: 'none' }}>
+              <motion.a variants={fadeUp} href="/features" className="bento-item bento-cta spotlight-card" onMouseMove={spotlightMove} style={{ justifyContent: 'center', background: 'linear-gradient(150deg, rgba(79,92,244,0.06), rgba(124,77,255,0.05))', borderColor: 'rgba(79,92,244,0.2)', textDecoration: 'none' }}>
                 <h3 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 'clamp(20px,2.4vw,26px)', letterSpacing: '-0.02em' }}>See every feature in action</h3>
                 <p>Take the full tour — analysis, auto-replies, search and more.</p>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 16, color: 'var(--accent)', fontWeight: 600, fontSize: 14 }}>
@@ -444,19 +588,58 @@ export default function LandingPage() {
                 Three steps to full control
               </h2>
             </motion.div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {[
-                { n: 1, title: 'Connect Gmail',                       desc: 'Takes 2 minutes. Velnox securely syncs your client threads with Google OAuth and never stores your password.' },
-                { n: 2, title: 'Velnox sorts what matters most',       desc: 'Each thread gets a clear priority — Hot, Needs attention, Cold, or Spam — so you know where to look first.' },
-                { n: 3, title: 'Reply to the right clients in time',   desc: 'Velnox shows you who to message right now and drafts what to say. No more deals lost to a buried email.' },
-              ].map((s, i, arr) => (
-                <div key={s.n}>
-                  <Step n={s.n} title={s.title} desc={s.desc} />
-                  {i < arr.length - 1 && <div style={{ height: 1, background: 'var(--border)', margin: '28px 0 28px 56px' }} />}
-                </div>
-              ))}
-            </div>
+            <Timeline
+              steps={[
+                { n: 1, title: 'Connect Gmail',                     desc: 'Takes 2 minutes. Velnox securely syncs your client threads with Google OAuth and never stores your password.' },
+                { n: 2, title: 'Velnox sorts what matters most',     desc: 'Each thread gets a clear priority — Hot, Needs attention, Cold, or Spam — so you know where to look first.' },
+                { n: 3, title: 'Reply to the right clients in time', desc: 'Velnox shows you who to message right now and drafts what to say. No more deals lost to a buried email.' },
+              ]}
+            />
           </div>
+        </Section>
+      </section>
+
+      {/* ── Photography band — who it's for (human warmth) ────────────────── */}
+      <section className="section-padded mkt-x" style={{ padding: '90px 32px', background: '#FFFFFF', borderTop: '1px solid var(--border)' }}>
+        <Section>
+          <motion.div variants={fadeUp} style={{ maxWidth: 1140, margin: '0 auto' }}>
+            <div className="photo-band">
+              <div className="photo-fallback" aria-hidden />
+              <img
+                className="photo-media"
+                src="/photos/team.jpg"
+                alt="A client-facing team working together"
+                loading="lazy"
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
+              />
+              <div className="photo-overlay" aria-hidden />
+              <div className="grain" />
+              <div className="photo-inner">
+                <span className="kicker" style={{ background: 'rgba(255,255,255,0.14)', borderColor: 'rgba(255,255,255,0.28)', color: '#fff', backdropFilter: 'blur(8px)' }}>
+                  <span className="kicker-dot" style={{ background: '#fff', boxShadow: '0 0 0 4px rgba(255,255,255,0.18)' }} />
+                  Who it&apos;s for
+                </span>
+                <h2 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 'clamp(28px, 4.4vw, 48px)', letterSpacing: '-0.03em', color: '#fff', margin: '16px 0 12px', maxWidth: 620, lineHeight: 1.08, textWrap: 'balance' }}>
+                  Built for the people who live in their inbox
+                </h2>
+                <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.86)', maxWidth: 520, lineHeight: 1.65, margin: 0 }}>
+                  Agencies, studios and consultants who win or lose deals over email. Velnox keeps every client warm — so the next reply is always the right one.
+                </p>
+                <div className="photo-stat-row">
+                  {[
+                    { v: '2 min', l: 'to connect Gmail' },
+                    { v: 'Every thread', l: 'scored & prioritised' },
+                    { v: 'AES-256', l: 'encrypted at rest' },
+                  ].map(s => (
+                    <div key={s.l} className="photo-stat">
+                      <div className="ps-val">{s.v}</div>
+                      <div className="ps-lbl">{s.l}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </Section>
       </section>
 
@@ -537,26 +720,30 @@ export default function LandingPage() {
       </section>
 
       {/* ── CTA ───────────────────────────────────────────────────────────── */}
-      <section className="mkt-x mkt-pt mkt-pb" style={{ padding: '80px 32px 120px', background: 'var(--bg-base)' }}>
+      <section className="mkt-x mkt-pt mkt-pb" style={{ padding: '90px 32px 130px', background: 'var(--bg-base)', position: 'relative', overflow: 'hidden' }}>
+        <div className="glow" style={{ width: 580, height: 360, bottom: -130, left: '50%', transform: 'translateX(-50%)', background: 'radial-gradient(circle, rgba(124,77,255,0.18), transparent 70%)' }} />
         <Section>
           <motion.div
             variants={fadeUp}
             className="cta-inner"
-            style={{ maxWidth: 600, margin: '0 auto', borderRadius: 24, background: 'linear-gradient(135deg, #4F5CF4 0%, #7C4DFF 100%)', textAlign: 'center', boxShadow: '0 20px 60px rgba(79,92,244,0.3)', position: 'relative', overflow: 'hidden' }}
+            style={{ maxWidth: 720, margin: '0 auto', borderRadius: 28, background: 'linear-gradient(135deg, #4F5CF4 0%, #6D44F5 52%, #7C4DFF 100%)', textAlign: 'center', boxShadow: '0 36px 90px rgba(79,92,244,0.42)', position: 'relative', overflow: 'hidden' }}
           >
-            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.1) 0%, transparent 60%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.18) 0%, transparent 55%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', width: 320, height: 320, borderRadius: '50%', top: -150, right: -90, background: 'radial-gradient(circle, rgba(255,255,255,0.22), transparent 65%)', filter: 'blur(18px)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', width: 260, height: 260, borderRadius: '50%', bottom: -140, left: -70, background: 'radial-gradient(circle, rgba(184,156,255,0.32), transparent 65%)', filter: 'blur(22px)', pointerEvents: 'none' }} />
+            <div className="grain" style={{ opacity: 0.4 }} />
             <div style={{ position: 'relative' }}>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px, 4vw, 40px)', fontWeight: 400, color: '#FFFFFF', margin: '0 0 14px', letterSpacing: '-0.03em' }}>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px, 4.6vw, 46px)', fontWeight: 400, color: '#FFFFFF', margin: '0 0 14px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
                 Ready to stop losing clients?
               </h2>
-              <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.8)', margin: '0 0 36px', lineHeight: 1.65 }}>
+              <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.85)', margin: '0 auto 36px', lineHeight: 1.65, maxWidth: 460 }}>
                 Connect Gmail in 2 minutes and see which clients are slipping away today.
               </p>
-              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} style={{ display: 'inline-block' }}>
-                <Link href="/signup" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 28px', background: '#FFFFFF', color: 'var(--accent)', borderRadius: 8, fontSize: 15, fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+              <Magnetic strength={0.4}>
+                <Link href="/signup" className="btn-shine" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '15px 32px', background: '#FFFFFF', color: 'var(--accent)', borderRadius: 10, fontSize: 16, fontWeight: 700, textDecoration: 'none', boxShadow: '0 8px 28px rgba(0,0,0,0.18)' }}>
                   Get early access <ArrowRight size={16} />
                 </Link>
-              </motion.div>
+              </Magnetic>
               <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 18, marginBottom: 0 }}>
                 No credit card · Free to start
               </p>

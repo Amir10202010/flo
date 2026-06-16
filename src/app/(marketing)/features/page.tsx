@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { motion, type Variants, MotionConfig } from 'framer-motion'
-import { ArrowRight, Check, Search, Bot, Mail, LayoutDashboard } from 'lucide-react'
+import { ArrowRight, Check, Search, Bot, Mail, LayoutDashboard, type LucideIcon } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { SearchDemo, BotSetupDemo, GmailConnectDemo, DashboardDemo } from '@/components/marketing/FeatureDemos'
@@ -15,7 +15,7 @@ const fadeUp: Variants = {
 const stagger: Variants = { hidden: {}, visible: { transition: { staggerChildren: 0.12 } } }
 
 type Row = {
-  icon: React.ElementType
+  icon: LucideIcon
   eyebrow: string
   title: string
   desc: string

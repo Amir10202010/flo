@@ -8,7 +8,7 @@ import {
 import {
   Sparkles, Check, PartyPopper, Send, Search,
   LayoutDashboard, Inbox as InboxIcon, Users, Lightbulb, ShieldAlert, ChartColumn,
-  Bot, Plug, Settings, ArrowDownWideNarrow, ChevronDown,
+  Bot, Plug, Settings, ArrowDownWideNarrow, ChevronDown, type LucideIcon,
 } from 'lucide-react'
 import Cursor from './Cursor'
 import { SPRING, EASE_OUT, bubbleIn, lineStagger, lineIn } from './demo-motion'
@@ -466,7 +466,7 @@ export default function ProductDemo() {
 }
 
 /* ── Compact sidebar nav row (visual copy of the real .nav-item) ──────────── */
-function DemoNavItem({ label, icon: Icon, active, pill }: { label: string; icon: React.ElementType; active?: boolean; pill?: string }) {
+function DemoNavItem({ label, icon: Icon, active, pill }: { label: string; icon: LucideIcon; active?: boolean; pill?: string }) {
   return (
     <div
       style={{

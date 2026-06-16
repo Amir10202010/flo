@@ -9,14 +9,12 @@ export default function HeroMockup() {
     <div className="animate-float" style={{ position: 'relative' }}>
       <div
         style={{
-          width: 360,
+          width: 'min(340px, 86vw)',
           borderRadius: 14,
           overflow: 'hidden',
           background: '#FFFFFF',
           border: '1px solid rgba(0,0,0,0.07)',
-          boxShadow: '0 24px 60px rgba(12,18,60,0.14), 0 0 0 1px rgba(12,18,60,0.04)',
-          transform: 'perspective(1000px) rotateY(-4deg) rotateX(1deg)',
-          transformStyle: 'preserve-3d',
+          boxShadow: '0 30px 70px rgba(12,18,60,0.18), 0 0 0 1px rgba(12,18,60,0.04)',
         }}
       >
         {/* Browser chrome */}

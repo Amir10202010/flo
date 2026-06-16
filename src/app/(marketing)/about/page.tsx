@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { motion, type Variants, MotionConfig } from 'framer-motion'
-import { ArrowRight, Target, Users, Sparkles } from 'lucide-react'
+import { ArrowRight, Target, Users, Sparkles, type LucideIcon } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 
@@ -17,7 +17,7 @@ const stagger: Variants = {
   visible: { transition: { staggerChildren: 0.1 } },
 }
 
-function ValueCard({ icon: Icon, title, desc }: { icon: React.ElementType; title: string; desc: string }) {
+function ValueCard({ icon: Icon, title, desc }: { icon: LucideIcon; title: string; desc: string }) {
   return (
     <motion.div
       variants={fadeUp}

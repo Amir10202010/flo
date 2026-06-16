@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion'
 import { ArrowRight, Menu, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
@@ -17,6 +17,8 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const pathname = usePathname()
+  const { scrollYProgress } = useScroll()
+  const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 30, restDelta: 0.001 })
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 24)
@@ -70,6 +72,16 @@ export default function Navbar() {
           {menuOpen ? <X size={19} /> : <Menu size={19} />}
         </button>
       </div>
+
+      {/* Scroll progress — thin gradient line tied to page scroll */}
+      <motion.div
+        aria-hidden
+        style={{
+          position: 'absolute', left: 0, bottom: 0, height: 2, width: '100%',
+          transformOrigin: '0% 50%', scaleX: progress,
+          background: 'linear-gradient(90deg, #4F5CF4, #7C4DFF)',
+        }}
+      />
 
       {/* Mobile dropdown menu — smooth height + fade */}
       <AnimatePresence initial={false}>

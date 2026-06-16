@@ -715,8 +715,9 @@
 
 /* Hero actions → full-width, comfortably tappable buttons on small phones. */
 @media (max-width: 480px) {
-  .hero-cta     { flex-direction: column; align-items: stretch; gap: 10px; }
-  .hero-cta > a { width: 100%; justify-content: center; padding-top: 14px !important; padding-bottom: 14px !important; }
+  .hero-cta { flex-direction: column; align-items: stretch; gap: 10px; }
+  .hero-cta > a, .hero-cta > span { width: 100%; }
+  .hero-cta a { width: 100%; justify-content: center; padding-top: 14px !important; padding-bottom: 14px !important; }
 }
 
 /* Footer: tidier, tighter column gaps when stacked. */
@@ -1280,8 +1281,7 @@
 /* ── Hero: floating glass metric cards ───────────────────────────────────── */
 .hero-stage { position: relative; }
 .float-card {
-  position: absolute;
-  z-index: 2;
+  position: relative;
   display: flex;
   align-items: center;
   gap: 11px;
@@ -1299,11 +1299,18 @@
 }
 .float-card .fc-val { font-size: 15px; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
 .float-card .fc-lbl { font-size: 11.5px; color: var(--text-secondary); margin-top: 1px; }
-.fc-tl { top: -22px; left: -34px; animation: floatY 7s ease-in-out infinite; }
-.fc-br { bottom: 6px; right: -30px; animation: floatY 8s ease-in-out infinite reverse; }
+/* Parallax anchors (positioned wrappers); the inner .float-card bobs on its
+   own layer so mouse-parallax (set on the wrapper) and the idle float never
+   fight over `transform`. */
+.fc-pos    { position: absolute; z-index: 2; }
+.fc-pos-tl { top: -26px; left: -40px; }
+.fc-pos-br { bottom: 0; right: -34px; }
+.fc-pos-tr { top: 40px; right: -26px; }
+.bob       { animation: floatY 7s ease-in-out infinite; }
+.bob.rev   { animation-duration: 8.5s; animation-direction: reverse; }
 @keyframes floatY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-@media (prefers-reduced-motion: reduce) { .fc-tl, .fc-br { animation: none !important; } }
-@media (max-width: 1040px) { .fc-tl { left: -14px; } .fc-br { right: -10px; } }
+@media (prefers-reduced-motion: reduce) { .bob { animation: none !important; } }
+@media (max-width: 1040px) { .fc-pos-tl { left: -16px; } .fc-pos-br { right: -12px; } .fc-pos-tr { display: none; } }
 
 /* ── Ambient accent glow (soft radial behind hero/CTA) ───────────────────── */
 .glow {
@@ -1333,6 +1340,8 @@
   text-align: center;
 }
 .stat-cell:last-child { border-right: none; }
+.stat-cell { transition: background 0.22s ease; }
+.stat-cell:hover { background: var(--bg-subtle); }
 .stat-val { font-family: var(--font-serif); font-size: clamp(30px, 4vw, 42px); font-weight: 400; color: var(--text-primary); letter-spacing: -0.02em; line-height: 1; }
 .stat-lbl { font-size: 13px; color: var(--text-secondary); margin-top: 9px; line-height: 1.4; }
 @media (max-width: 760px) {
@@ -2099,4 +2108,278 @@ a > .insight-card:hover {
 /* Reduced motion: command palette + widgets fall back to instant states */
 @media (prefers-reduced-motion: reduce) {
   .cmdk-overlay, .cmdk-panel { transition: none !important; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PREMIUM LANDING v3 — depth, light, glass, signature motion
+   A cohesive "expensive" layer: layered elevation, ambient light, fine grain,
+   real glassmorphism, cursor-follow spotlight, magnetic/shine CTAs, the WebGL
+   hero core + its CSS fallback orb, scroll-drawn timeline, photography band.
+   Everything degrades under prefers-reduced-motion.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Fine film grain (premium texture; scoped to hero / CTA / photo) ──────── */
+.grain {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+/* ── Premium glassmorphism card ──────────────────────────────────────────── */
+.glass-card {
+  background: linear-gradient(160deg, rgba(255,255,255,0.85), rgba(255,255,255,0.6));
+  backdrop-filter: blur(18px) saturate(170%);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  border: 1px solid rgba(255,255,255,0.85);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 24px 60px rgba(12,18,60,0.14),
+    0 2px 6px rgba(12,18,60,0.05),
+    inset 0 1px 0 rgba(255,255,255,0.9);
+}
+
+/* ── Cursor-follow spotlight (set --mx/--my in JS; falls back to centre) ──── */
+.spotlight-card { position: relative; isolation: isolate; }
+.spotlight-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background: radial-gradient(
+    220px circle at var(--mx, 50%) var(--my, 0%),
+    rgba(79,92,244,0.12),
+    transparent 60%
+  );
+  pointer-events: none;
+}
+.spotlight-card:hover::before { opacity: 1; }
+.spotlight-card > * { position: relative; z-index: 1; }
+
+/* ── Gradient hairline border (premium accent edge) ──────────────────────── */
+.grad-edge {
+  position: relative;
+}
+.grad-edge::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(140deg, rgba(79,92,244,0.5), rgba(124,77,255,0.15) 40%, transparent 70%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.grad-edge:hover::after { opacity: 1; }
+
+/* ── Shine-sweep on the primary CTA (light glides across on hover) ────────── */
+.btn-shine { position: relative; overflow: hidden; }
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 65%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,0.5), transparent);
+  transform: skewX(-18deg);
+  transition: left 0.6s cubic-bezier(0.16,1,0.3,1);
+  pointer-events: none;
+}
+.btn-shine:hover::after { left: 140%; }
+@media (prefers-reduced-motion: reduce) {
+  .btn-shine::after { display: none; }
+}
+
+/* ── Hero badge (animated dot + subtle sheen) ────────────────────────────── */
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 15px 6px 11px;
+  border-radius: 100px;
+  background: linear-gradient(120deg, rgba(255,255,255,0.95), rgba(246,248,254,0.85));
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  width: fit-content;
+}
+.hero-badge .hb-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 0 rgba(22,160,107,0.5);
+  animation: hbPulse 2.4s ease-out infinite;
+}
+.hero-badge .hb-shine {
+  font-weight: 700;
+  background: linear-gradient(90deg, var(--accent), #7C4DFF);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+@keyframes hbPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(22,160,107,0.45); }
+  70%  { box-shadow: 0 0 0 7px rgba(22,160,107,0); }
+  100% { box-shadow: 0 0 0 0 rgba(22,160,107,0); }
+}
+@media (prefers-reduced-motion: reduce) { .hero-badge .hb-dot { animation: none; } }
+
+/* ── Hero headline gradient ink on the key word ──────────────────────────── */
+.ink-grad {
+  background: linear-gradient(100deg, #4F5CF4 0%, #7C4DFF 55%, #4F5CF4 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: inkShift 6s ease-in-out infinite;
+}
+@keyframes inkShift { 0%,100% { background-position: 0% center; } 50% { background-position: 100% center; } }
+@media (prefers-reduced-motion: reduce) { .ink-grad { animation: none; } }
+
+/* ══ Hero centerpiece — 3D-tilt product mockup (no WebGL) ════════════════ */
+.hero-canvas-wrap {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+.hero-tilt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  will-change: transform;
+}
+
+/* Soft radial bloom placed behind the mockup for depth. */
+.core-bloom {
+  position: absolute;
+  inset: -12% -8%;
+  z-index: 0;
+  background: radial-gradient(circle at 55% 45%, rgba(79,92,244,0.26), rgba(124,77,255,0.12) 42%, transparent 72%);
+  filter: blur(34px);
+  pointer-events: none;
+}
+
+/* ── Scroll-drawn timeline (How it works) ────────────────────────────────── */
+.timeline { position: relative; padding-left: 2px; }
+.tl-rail {
+  position: absolute;
+  left: 17px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.tl-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #4F5CF4, #7C4DFF);
+  transform-origin: top;
+  border-radius: 2px;
+}
+.tl-item { position: relative; display: flex; gap: 22px; align-items: flex-start; }
+.tl-item:not(:last-child) { padding-bottom: 34px; }
+.tl-node {
+  position: relative;
+  z-index: 1;
+  width: 36px; height: 36px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700;
+  color: var(--accent);
+  background: #FFFFFF;
+  border: 1px solid rgba(79,92,244,0.25);
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+.tl-node[data-on='true'] {
+  color: #fff;
+  background: linear-gradient(140deg, #5B68F6, #4F5CF4);
+  border-color: transparent;
+  box-shadow: 0 8px 22px rgba(79,92,244,0.4);
+}
+
+/* ── Photography band ────────────────────────────────────────────────────── */
+.photo-band {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  min-height: 420px;
+  display: flex;
+  align-items: flex-end;
+  isolation: isolate;
+  box-shadow: var(--shadow-xl);
+}
+.photo-media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+/* Premium gradient stand-in if a photo fails to load / isn't present. */
+.photo-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(60% 80% at 20% 20%, rgba(124,77,255,0.6), transparent 60%),
+    radial-gradient(70% 90% at 85% 80%, rgba(79,92,244,0.7), transparent 60%),
+    linear-gradient(150deg, #2A2F66, #1A1D44);
+}
+.photo-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(8,10,30,0.15) 0%, rgba(8,10,30,0.55) 70%, rgba(8,10,30,0.78) 100%);
+  pointer-events: none;
+}
+.photo-inner {
+  position: relative;
+  z-index: 2;
+  padding: 48px;
+  width: 100%;
+}
+.photo-stat-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 24px; }
+.photo-stat {
+  padding: 14px 20px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.22);
+}
+.photo-stat .ps-val { font-family: var(--font-serif); font-size: 28px; color: #fff; line-height: 1; letter-spacing: -0.02em; }
+.photo-stat .ps-lbl { font-size: 12.5px; color: rgba(255,255,255,0.8); margin-top: 6px; }
+@media (max-width: 640px) {
+  .photo-band  { min-height: 360px; border-radius: var(--radius-lg); }
+  .photo-inner { padding: 28px 22px; }
+}
+
+/* ── Mobile: keep the hero mockup visible (it used to be hidden ≤900px) ───── */
+/* The mockup stays on phones — it's responsive (min(340px,86vw)) and tilt is
+   simply inert without a pointer, so it reads as a clean product shot. */
+@media (max-width: 900px) {
+  .hero-mockup { display: flex !important; margin-top: 8px; }
+}
+@media (max-width: 640px) {
+  .hero-tilt { margin-top: 4px; }
 }
