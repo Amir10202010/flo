@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { ensurePlainText } from '@/lib/html'
-import { generateReplyDraft } from './ai'
+import { generateReplyDraft, getTextProvider } from './ai'
 import type { DraftOutcome, DraftTone } from '@/types'
 
 /**
@@ -93,4 +93,70 @@ export async function generateReplyDraftForConversation(
     },
     { fallbackOnRetryable: opts.fallbackOnRetryable },
   )
+}
+
+// ── Auto-draft persistence (background GENERATE_DRAFT job) ───────────────────
+
+/**
+ * Generate and store an auto-draft for an urgent awaiting thread. Skipped when:
+ * there's no AI text provider (we don't pre-bake offline templates), the thread
+ * is no longer awaiting a reply, or generation falls back to the local template.
+ * Retryable provider errors propagate so the job queue backs off and retries.
+ */
+export async function upsertAutoDraft(
+  userId: string,
+  conversationId: string,
+): Promise<{ generated: boolean; reason?: string }> {
+  if (!getTextProvider()) return { generated: false, reason: 'no-provider' }
+
+  const conv = await prisma.conversation.findFirst({
+    where: { id: conversationId, userId },
+    select: { messages: { orderBy: { sentAt: 'desc' }, take: 1, select: { id: true, direction: true } } },
+  })
+  if (!conv) return { generated: false, reason: 'not-found' }
+
+  const latest = conv.messages[0]
+  if (!latest || latest.direction !== 'INBOUND') return { generated: false, reason: 'not-awaiting' }
+
+  // fallbackOnRetryable:false → 429/transient rethrows (job retries); a
+  // non-retryable failure yields a local draft, which we deliberately drop.
+  const draft = await generateReplyDraftForConversation(userId, conversationId, { tone: 'WARM' })
+  if (draft.provider === 'local') return { generated: false, reason: 'provider-fell-back' }
+
+  const data = {
+    userId,
+    body: draft.body,
+    tone: 'WARM',
+    provider: draft.provider,
+    basedOnMessageId: latest.id,
+    status: 'READY',
+  }
+  await prisma.conversationDraft.upsert({
+    where: { conversationId },
+    create: { conversationId, ...data },
+    update: data,
+  })
+  return { generated: true }
+}
+
+/** The latest READY auto-draft for a conversation (owner-scoped), or null. */
+export async function getReadyDraft(
+  userId: string,
+  conversationId: string,
+): Promise<{ body: string; provider: string } | null> {
+  const d = await prisma.conversationDraft.findFirst({
+    where: { conversationId, userId, status: 'READY' },
+    select: { body: true, provider: true },
+  })
+  return d ? { body: d.body, provider: d.provider } : null
+}
+
+/** Mark a conversation's pending draft as consumed (user opened/edited it). */
+export async function dismissDraft(conversationId: string): Promise<void> {
+  await prisma.conversationDraft.updateMany({ where: { conversationId }, data: { status: 'DISMISSED' } })
+}
+
+/** Mark a conversation's pending draft as sent (a reply went out). */
+export async function markDraftSent(conversationId: string): Promise<void> {
+  await prisma.conversationDraft.updateMany({ where: { conversationId }, data: { status: 'SENT' } })
 }

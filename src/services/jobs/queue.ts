@@ -197,3 +197,20 @@ export async function enqueueEmbedConversation(userId: string, conversationId: s
   if (pending) return pending
   return enqueue('EMBED_CONVERSATION', { conversationId }, { userId })
 }
+
+/**
+ * Enqueue an auto-draft generation for one conversation, deduped on the
+ * conversation id (a pending draft job already covers the latest state; the
+ * handler re-checks awaiting + provider, so a stray duplicate is a cheap no-op).
+ */
+export async function enqueueGenerateDraft(userId: string, conversationId: string): Promise<Job> {
+  const pending = await prisma.job.findFirst({
+    where: {
+      type: 'GENERATE_DRAFT',
+      status: 'PENDING',
+      payload: { path: ['conversationId'], equals: conversationId },
+    },
+  })
+  if (pending) return pending
+  return enqueue('GENERATE_DRAFT', { conversationId }, { userId })
+}

@@ -82,6 +82,7 @@ model Conversation {
   messages       Message[]
   analysis       ConversationAnalysis?
   embedding      ConversationEmbedding?
+  draft          ConversationDraft?
   riskAlerts     RiskAlert[]
 
   @@unique([integrationId, externalId])
@@ -139,6 +140,28 @@ model ConversationAnalysis {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+/// AI-generated reply draft awaiting the user's review (review-before-send — the
+/// draft is NEVER auto-sent). One latest draft per conversation; auto-drafts for
+/// urgent awaiting threads are produced by the GENERATE_DRAFT job, interactive
+/// drafts come straight from the /draft endpoint.
+model ConversationDraft {
+  id               String   @id @default(cuid())
+  conversationId   String   @unique
+  userId           String
+  body             String
+  tone             String   @default("WARM")    // WARM | CONCISE | FORMAL | MATCH
+  provider         String   @default("gemini")  // gemini | local
+  model            String?
+  /// The inbound message this draft answers — used to detect staleness.
+  basedOnMessageId String?
+  status           String   @default("READY")   // READY | DISMISSED | SENT | STALE
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
 }
 
 /// Durable background-job queue. Polled by the sync/ingestion worker
@@ -228,6 +251,7 @@ enum JobType {
   EMBED_CONVERSATION
   SCAN_RISK_ALERTS
   SEND_WEEKLY_DIGEST
+  GENERATE_DRAFT
 }
 
 enum AlertStatus {

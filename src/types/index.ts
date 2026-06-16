@@ -101,6 +101,7 @@ export type JobTypeValue =
   | 'EMBED_CONVERSATION'
   | 'SCAN_RISK_ALERTS'
   | 'SEND_WEEKLY_DIGEST'
+  | 'GENERATE_DRAFT'
 
 /** Shape returned by GET /api/jobs/[id]. */
 export interface JobStatusResponse {

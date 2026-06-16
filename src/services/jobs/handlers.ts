@@ -4,7 +4,9 @@ import { analyzeConversation } from '@/services/conversation.analyzer'
 import { embedConversation } from '@/services/embedding.service'
 import { scanRiskAlerts } from '@/services/alert.service'
 import { sendWeeklyDigest } from '@/services/digest.service'
-import { enqueueEmbedConversation, enqueueMany, enqueueScanRiskAlerts } from './queue'
+import { upsertAutoDraft } from '@/services/draft.service'
+import { getTextProvider } from '@/services/ai'
+import { enqueueEmbedConversation, enqueueGenerateDraft, enqueueMany, enqueueScanRiskAlerts } from './queue'
 
 /**
  * Executes a single job by type. Returns a JSON-serialisable result that is
@@ -51,6 +53,11 @@ export async function handleJob(job: Job): Promise<unknown> {
       const { priority } = await analyzeConversation(conversationId, { fallbackOnRetryable: lastAttempt })
       // The fresh summary changes the embedding text — refresh it (hash-deduped).
       if (job.userId) await enqueueEmbedConversation(job.userId, conversationId)
+      // Pre-draft a reply for urgent threads (gated on priority here; the job
+      // re-checks awaiting + provider). Skipped entirely without an AI key.
+      if (job.userId && (priority.level === 'HOT' || priority.level === 'ATTENTION') && getTextProvider()) {
+        await enqueueGenerateDraft(job.userId, conversationId)
+      }
       return { conversationId, priority: priority.level, score: priority.score }
     }
 
@@ -71,6 +78,14 @@ export async function handleJob(job: Job): Promise<unknown> {
       if (!userId) throw new Error('SEND_WEEKLY_DIGEST job missing userId')
       const periodKey = typeof payload.periodKey === 'string' ? payload.periodKey : undefined
       return await sendWeeklyDigest(userId, { periodKey })
+    }
+
+    case 'GENERATE_DRAFT': {
+      const conversationId = String(payload.conversationId ?? '')
+      if (!conversationId) throw new Error('GENERATE_DRAFT job missing conversationId')
+      const userId = String(payload.userId ?? job.userId ?? '')
+      if (!userId) throw new Error('GENERATE_DRAFT job missing userId')
+      return await upsertAutoDraft(userId, conversationId)
     }
 
     default: {
