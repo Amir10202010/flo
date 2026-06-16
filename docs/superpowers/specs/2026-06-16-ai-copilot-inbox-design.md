@@ -382,3 +382,14 @@ No automated test suite is configured. Per phase:
 - Search depth → full server-side overhaul (chosen).
 - Build cadence → everything, phased to completion (chosen).
 - Provider → Gemini configured and working (confirmed).
+
+## Implementation deviations (recorded during execution)
+
+- **2026-06-17 — Draft types live in `src/types/index.ts`, not `ai/index.ts`** (Phase 1).
+  The plan placed `DraftTone`/`DraftPayload`/`DraftOutcome` in `ai/index.ts`. Moved
+  them to the canonical types module because: (a) it matches the existing convention
+  (`AnalysisResult`, `GeminiAnalysisPayload` already live there); (b) it avoids a
+  value↔type circular import between `ai/index.ts` and `ai/local.provider.ts` (index
+  imports `localReplyDraft` as a value; local.provider needs the `DraftPayload` type);
+  (c) client components can import `DraftTone` without reaching into a service. `ai/index.ts`
+  re-exports the three types for import ergonomics.
