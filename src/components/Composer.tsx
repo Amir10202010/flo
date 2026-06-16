@@ -1,15 +1,39 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertCircle, Loader, Send } from 'lucide-react'
+import { AlertCircle, Loader, PencilLine, RotateCcw, Send, Sparkles } from 'lucide-react'
+import type { DraftTone } from '@/types'
 
-export default function Composer({ conversationId }: { conversationId: string }) {
+const TONES: { value: DraftTone; label: string }[] = [
+  { value: 'WARM', label: 'Warm' },
+  { value: 'CONCISE', label: 'Concise' },
+  { value: 'FORMAL', label: 'Formal' },
+  { value: 'MATCH', label: 'Match my style' },
+]
+
+export default function Composer({
+  conversationId,
+  initialDraft = null,
+  autoDraft = false,
+}: {
+  conversationId: string
+  /** A pre-generated auto-draft to pre-fill (Phase 3). */
+  initialDraft?: { body: string; provider: string } | null
+  /** Generate a draft immediately on open — used by the one-click action (Phase 4). */
+  autoDraft?: boolean
+}) {
   const router = useRouter()
-  const [body, setBody] = useState('')
+  const [body, setBody] = useState(initialDraft?.body ?? '')
   const [sending, setSending] = useState(false)
+  const [drafting, setDrafting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [tone, setTone] = useState<DraftTone>('WARM')
+  const [steer, setSteer] = useState('')
+  const [showSteer, setShowSteer] = useState(false)
+  const [aiProvider, setAiProvider] = useState<string | null>(initialDraft?.provider ?? null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const didInit = useRef(false)
 
   function autoGrow() {
     const el = textareaRef.current
@@ -17,6 +41,47 @@ export default function Composer({ conversationId }: { conversationId: string })
     el.style.height = 'auto'
     el.style.height = `${Math.min(el.scrollHeight, 180)}px`
   }
+
+  async function draft() {
+    if (drafting) return
+    setDrafting(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/conversations/${conversationId}/draft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tone, steer: steer.trim() || undefined }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error ?? 'Failed to draft a reply')
+      setBody(data.body ?? '')
+      setAiProvider(data.provider ?? null)
+      requestAnimationFrame(() => {
+        autoGrow()
+        textareaRef.current?.focus()
+      })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to draft a reply')
+    } finally {
+      setDrafting(false)
+    }
+  }
+
+  // Mount: consume a handed-in auto-draft (clears the list "draft ready" badge),
+  // or kick off a draft once when the one-click action requested it.
+  useEffect(() => {
+    if (didInit.current) return
+    didInit.current = true
+    if (initialDraft) {
+      requestAnimationFrame(autoGrow)
+      // Fire-and-forget: mark the stored draft consumed (Phase 3 endpoint).
+      fetch(`/api/conversations/${conversationId}/draft`, { method: 'DELETE' }).catch(() => {})
+    } else if (autoDraft) {
+      // Defer so we don't call setState synchronously inside the effect body.
+      requestAnimationFrame(() => void draft())
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function send() {
     const trimmed = body.trim()
@@ -34,6 +99,9 @@ export default function Composer({ conversationId }: { conversationId: string })
         throw new Error(data.error ?? 'Failed to send')
       }
       setBody('')
+      setAiProvider(null)
+      setSteer('')
+      setShowSteer(false)
       if (textareaRef.current) textareaRef.current.style.height = 'auto'
       router.refresh() // re-fetch the server component to show the new message
     } catch (e) {
@@ -51,6 +119,9 @@ export default function Composer({ conversationId }: { conversationId: string })
     }
   }
 
+  const busy = sending || drafting
+  const hasContent = body.trim().length > 0
+
   return (
     <div className="composer">
       {error && (
@@ -59,11 +130,33 @@ export default function Composer({ conversationId }: { conversationId: string })
           {error}
         </p>
       )}
+
+      {showSteer && (
+        <input
+          className="composer-steer"
+          value={steer}
+          onChange={(e) => setSteer(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              void draft()
+            }
+          }}
+          placeholder="Tell the AI what to say… (e.g. “confirm we ship Friday”)"
+          maxLength={500}
+          disabled={busy}
+          aria-label="What the AI draft should say"
+        />
+      )}
+
       <div className="composer-row">
         <textarea
           ref={textareaRef}
           value={body}
-          onChange={(e) => { setBody(e.target.value); autoGrow() }}
+          onChange={(e) => {
+            setBody(e.target.value)
+            autoGrow()
+          }}
           onKeyDown={onKeyDown}
           placeholder="Write a reply…"
           rows={1}
@@ -79,7 +172,61 @@ export default function Composer({ conversationId }: { conversationId: string })
           {sending ? <Loader size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={15} />}
         </button>
       </div>
-      <p className="composer-hint">Enter to send · Shift+Enter for a new line</p>
+
+      <div className="composer-tools">
+        <button
+          type="button"
+          className="composer-tool composer-tool-ai"
+          onClick={() => void draft()}
+          disabled={busy}
+          title={hasContent ? 'Generate a different draft' : 'Let AI draft a reply for you'}
+        >
+          {drafting ? (
+            <Loader size={13} style={{ animation: 'spin 1s linear infinite' }} />
+          ) : hasContent ? (
+            <RotateCcw size={13} />
+          ) : (
+            <Sparkles size={13} />
+          )}
+          {drafting ? 'Drafting…' : hasContent ? 'Regenerate' : 'AI draft'}
+        </button>
+
+        <select
+          className="composer-tone"
+          value={tone}
+          onChange={(e) => setTone(e.target.value as DraftTone)}
+          disabled={busy}
+          aria-label="Draft tone"
+          title="Tone of the AI draft"
+        >
+          {TONES.map((t) => (
+            <option key={t.value} value={t.value}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+
+        <button
+          type="button"
+          className={`composer-tool${showSteer ? ' active' : ''}`}
+          onClick={() => setShowSteer((s) => !s)}
+          disabled={busy}
+          title="Add a one-line instruction for the draft"
+        >
+          <PencilLine size={13} /> Steer
+        </button>
+
+        {aiProvider === 'local' && (
+          <span
+            className="composer-ai-label"
+            title="Generated by the offline template — add a Gemini key for full AI drafts"
+          >
+            offline template
+          </span>
+        )}
+
+        <span className="composer-hint composer-hint-inline">Enter to send · Shift+Enter for a new line</span>
+      </div>
     </div>
   )
 }
