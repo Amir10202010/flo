@@ -130,6 +130,15 @@ export interface ConversationListItem {
   }
   lastMessage: string | null
   unreadCount: number
+  /** Pre-formatted relative time ("5m"/"3h"/"2d") — computed server-side to
+   *  avoid SSR/CSR clock-skew hydration mismatches. */
+  timeLabel?: string
+  /** Latest message is inbound — the client is awaiting a reply. */
+  awaitingReply?: boolean
+  /** AI's suggested next step (for the one-click action). */
+  nextAction?: string | null
+  /** A READY auto-draft is waiting for this conversation. */
+  hasDraft?: boolean
 }
 
 /** Full shape returned by GET /api/conversations/[id] (detail). */
