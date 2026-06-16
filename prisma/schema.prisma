@@ -71,6 +71,10 @@ model Conversation {
   categorySource String?
   lastMessageAt  DateTime?
   lastAnalyzedAt DateTime?
+  /// Denormalized: the latest message is INBOUND (client is awaiting our reply).
+  /// Maintained on sync and on reply so server-side filtering/sorting can use a
+  /// real index instead of inspecting the latest message per row.
+  awaitingReply  Boolean       @default(false)
   createdAt      DateTime      @default(now())
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   contact        Contact       @relation(fields: [contactId], references: [id])
@@ -83,6 +87,7 @@ model Conversation {
   @@unique([integrationId, externalId])
   @@index([userId, priorityScore(sort: Desc), lastMessageAt(sort: Desc)])
   @@index([userId, category])
+  @@index([userId, awaitingReply])
 }
 
 /// Learned / custom email-routing rule. Created when the user manually moves a

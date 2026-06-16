@@ -284,6 +284,7 @@ async function persistThreads(
             externalId: t.threadId,
             subject: t.subject,
             lastMessageAt: t.lastMessageAt,
+            awaitingReply: t.messages[t.messages.length - 1]?.direction === 'INBOUND',
             category: verdict.category as EmailCategory,
             categorySource: verdict.source,
           }
@@ -306,7 +307,10 @@ async function persistThreads(
     for (const t of toBump) {
       await prisma.conversation.update({
         where: { id: convIdByThread.get(t.threadId)! },
-        data: { lastMessageAt: t.lastMessageAt },
+        data: {
+          lastMessageAt: t.lastMessageAt,
+          awaitingReply: t.messages[t.messages.length - 1]?.direction === 'INBOUND',
+        },
       })
     }
 
@@ -618,7 +622,7 @@ export async function sendGmailReply(
 
   await prisma.conversation.update({
     where: { id: conversation.id },
-    data: { lastMessageAt: now },
+    data: { lastMessageAt: now, awaitingReply: false },
   })
 
   return { messageId }
