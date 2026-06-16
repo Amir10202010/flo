@@ -1,8 +1,20 @@
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { messagePreview } from '@/lib/html'
 import { embedTexts, getEmbeddingProvider, parseSearchQuery, type ParsedSearchQuery } from './ai'
 import { bufferToVector } from './embedding.service'
 import { enqueueMany } from './jobs/queue'
+import {
+  applyBoosts,
+  blendScore,
+  cosine,
+  keywordScore,
+  matchSnippet,
+  PRIORITY_AT_LEAST,
+  RISK_AT_LEAST,
+  SEARCH_TUNING,
+  tokenize,
+} from './search.ranking'
 import type {
   Channel,
   ConversationStatus,
@@ -19,12 +31,13 @@ import type {
  *
  *   1. Query understanding (free Gemini tier) — natural language → keywords +
  *      structured filters ("angry clients last week" → sentiment, daysBack).
- *   2. Keyword scoring over contact / subject / messages / AI summary.
- *   3. Semantic scoring — cosine (dot, vectors are L2-normalized) between the
- *      query embedding and stored conversation embeddings.
+ *   2. Keyword candidates — matched in SQL across contact / subject / messages /
+ *      AI summary (whole table, not a priority-capped slice), scored in-process.
+ *   3. Semantic recall — cosine over a RECENCY-bounded universe of embeddings
+ *      (not the old top-400-by-priority cap), unioned with the keyword hits.
  *
  * Every stage degrades gracefully: no AI key → plain keyword search; missing
- *embeddings → keyword-only for those rows + a bounded backfill enqueue.
+ * embeddings → keyword-only for those rows + a bounded backfill enqueue.
  */
 
 export interface SearchFilters {
@@ -36,77 +49,108 @@ export interface SearchFilters {
   awaiting?: boolean
 }
 
-const CANDIDATE_LIMIT = 400
-const BACKFILL_LIMIT = 30
-const SEMANTIC_ONLY_CUTOFF = 0.45
+const META_SELECT = {
+  id: true,
+  channel: true,
+  subject: true,
+  status: true,
+  priority: true,
+  priorityScore: true,
+  category: true,
+  lastMessageAt: true,
+  awaitingReply: true,
+  contact: { select: { name: true, email: true } },
+  analysis: { select: { summary: true, riskLevel: true, sentiment: true } },
+  messages: { orderBy: { sentAt: 'desc' }, take: 3, select: { direction: true, content: true } },
+} satisfies Prisma.ConversationSelect
 
-/** "at least this severe" expansions — "high risk" should include CRITICAL. */
-const RISK_AT_LEAST: Record<RiskLevel, RiskLevel[]> = {
-  LOW: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'],
-  MEDIUM: ['MEDIUM', 'HIGH', 'CRITICAL'],
-  HIGH: ['HIGH', 'CRITICAL'],
-  CRITICAL: ['CRITICAL'],
-}
-const PRIORITY_AT_LEAST: Record<PriorityLevel, PriorityLevel[]> = {
-  HOT: ['HOT'],
-  ATTENTION: ['HOT', 'ATTENTION'],
-  COLD: ['HOT', 'ATTENTION', 'COLD'],
-  SPAM: ['HOT', 'ATTENTION', 'COLD', 'SPAM'],
-}
+type MetaRow = Prisma.ConversationGetPayload<{ select: typeof META_SELECT }>
 
-// Function words carry no relevance signal and flood keyword matches on long
-// natural-language queries ("who is waiting for my reply") — strip them and
-// let the AI query parser / semantic layer carry the meaning instead.
-const STOPWORDS = new Set([
-  // en
-  'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'do', 'does', 'did', 'has', 'have',
-  'had', 'who', 'what', 'which', 'when', 'where', 'how', 'why', 'me', 'my', 'mine', 'our', 'your',
-  'for', 'to', 'of', 'in', 'on', 'at', 'by', 'with', 'from', 'and', 'or', 'not', 'no', 'all', 'any',
-  'that', 'this', 'these', 'those', 'show', 'find', 'get', 'list', 'last', 'still', 'about',
-  // ru
-  'кто', 'что', 'какой', 'какие', 'когда', 'где', 'как', 'почему', 'мой', 'моя', 'мои', 'мне',
-  'для', 'на', 'в', 'по', 'от', 'из', 'за', 'и', 'или', 'не', 'нет', 'все', 'это', 'тот', 'эти',
-  'покажи', 'найди', 'список', 'ещё', 'еще', 'про',
-])
+/**
+ * Base WHERE shared by keyword, semantic-universe, filter-mode queries, AND the
+ * server-side `/api/conversations` filter endpoint (exported for reuse).
+ */
+export function buildWhere(
+  userId: string,
+  f: {
+    status?: ConversationStatus
+    channel?: Channel
+    category?: EmailCategory
+    priority?: PriorityLevel
+    risk?: RiskLevel
+    sentiment?: Sentiment
+    awaiting?: boolean
+    sinceDate?: Date | null
+  },
+): Prisma.ConversationWhereInput {
+  // risk + sentiment both live on the analysis relation — merge into ONE filter
+  // (the previous spread overwrote risk when sentiment was also set).
+  const analysis: Prisma.ConversationAnalysisWhereInput = {}
+  if (f.risk) analysis.riskLevel = { in: RISK_AT_LEAST[f.risk] }
+  if (f.sentiment) analysis.sentiment = f.sentiment
 
-function tokenize(q: string): string[] {
-  return Array.from(
-    new Set(
-      q
-        .toLowerCase()
-        .split(/[^\p{L}\p{N}@.\-]+/u)
-        .map((t) => t.trim())
-        .filter((t) => t.length >= 2 && !STOPWORDS.has(t)),
-    ),
-  ).slice(0, 8)
-}
-
-interface FieldHit {
-  field: string
-  weight: number
-}
-
-const FIELD_WEIGHTS: FieldHit[] = [
-  { field: 'contact', weight: 3 },
-  { field: 'email', weight: 2.5 },
-  { field: 'subject', weight: 3 },
-  { field: 'summary', weight: 2 },
-  { field: 'message', weight: 1.8 },
-]
-const MAX_TERM_SCORE = FIELD_WEIGHTS.reduce((a, f) => a + f.weight, 0)
-
-/** Extract a ±70-char window around the first matched term, ellipsized. */
-function matchSnippet(content: string, terms: string[]): string | null {
-  const flat = content.replace(/\s+/g, ' ').trim()
-  const lower = flat.toLowerCase()
-  for (const term of terms) {
-    const at = lower.indexOf(term)
-    if (at === -1) continue
-    const start = Math.max(0, at - 70)
-    const end = Math.min(flat.length, at + term.length + 70)
-    return `${start > 0 ? '…' : ''}${flat.slice(start, end)}${end < flat.length ? '…' : ''}`
+  return {
+    userId,
+    integration: { isActive: true },
+    ...(f.status ? { status: f.status } : {}),
+    ...(f.channel ? { channel: f.channel } : {}),
+    ...(f.category ? { category: f.category } : {}),
+    ...(f.priority ? { priority: { in: PRIORITY_AT_LEAST[f.priority] } } : {}),
+    ...(Object.keys(analysis).length ? { analysis } : {}),
+    ...(f.sinceDate ? { lastMessageAt: { gte: f.sinceDate } } : {}),
+    ...(f.awaiting !== undefined ? { awaitingReply: f.awaiting } : {}),
   }
-  return null
+}
+
+/** SQL OR clauses matching any term in any searchable field (whole-table recall). */
+function keywordOrClauses(terms: string[]): Prisma.ConversationWhereInput[] {
+  const or: Prisma.ConversationWhereInput[] = []
+  for (const term of terms) {
+    or.push(
+      { contact: { name: { contains: term, mode: 'insensitive' } } },
+      { contact: { email: { contains: term, mode: 'insensitive' } } },
+      { subject: { contains: term, mode: 'insensitive' } },
+      { analysis: { summary: { contains: term, mode: 'insensitive' } } },
+      { messages: { some: { content: { contains: term, mode: 'insensitive' } } } },
+    )
+  }
+  return or
+}
+
+function toItem(
+  conv: MetaRow,
+  ctx: { score: number; matchedOn: string[]; semantic: number | null; keyword: number; snippet: string | null },
+): SearchResultItem {
+  return {
+    id: conv.id,
+    channel: conv.channel as Channel,
+    subject: conv.subject,
+    status: conv.status as ConversationStatus,
+    priority: conv.priority as PriorityLevel,
+    priorityScore: conv.priorityScore,
+    category: conv.category as EmailCategory,
+    lastMessageAt: conv.lastMessageAt?.toISOString() ?? null,
+    contact: { name: conv.contact.name, email: conv.contact.email },
+    snippet:
+      ctx.snippet ??
+      conv.analysis?.summary ??
+      (conv.messages[0] ? messagePreview(conv.messages[0].content, 160) : null),
+    score: Math.round(ctx.score * 100) / 100,
+    matchedOn: ctx.matchedOn,
+    semanticMatch: ctx.semantic !== null && ctx.semantic >= SEARCH_TUNING.SEMANTIC_ONLY_CUTOFF && ctx.keyword === 0,
+    awaitingReply: conv.awaitingReply,
+    risk: (conv.analysis?.riskLevel as RiskLevel | undefined) ?? null,
+  }
+}
+
+function lowerFields(conv: MetaRow): Record<string, string> {
+  return {
+    contact: conv.contact.name.toLowerCase(),
+    email: (conv.contact.email ?? '').toLowerCase(),
+    subject: (conv.subject ?? '').toLowerCase(),
+    summary: (conv.analysis?.summary ?? '').toLowerCase(),
+    message: conv.messages.map((m) => m.content).join('\n').toLowerCase(),
+  }
 }
 
 export async function searchConversations(
@@ -127,201 +171,130 @@ export async function searchConversations(
   }
 
   // Explicit filters always win over parsed ones.
-  const priority = filters.priority ?? parsed?.priority
-  const risk = filters.risk ?? parsed?.risk
-  const sentiment = filters.sentiment ?? parsed?.sentiment
-  const awaiting = filters.awaiting ?? parsed?.awaitingReply
-  const sinceDate = parsed?.daysBack ? new Date(Date.now() - parsed.daysBack * 86_400_000) : null
-
-  // 2. One bounded candidate query (sequential-friendly: small pool — see CLAUDE.md).
-  const candidates = await prisma.conversation.findMany({
-    where: {
-      userId,
-      integration: { isActive: true },
-      ...(filters.status ? { status: filters.status } : {}),
-      ...(filters.channel ? { channel: filters.channel } : {}),
-      ...(priority ? { priority: { in: PRIORITY_AT_LEAST[priority] } } : {}),
-      ...(risk ? { analysis: { riskLevel: { in: RISK_AT_LEAST[risk] } } } : {}),
-      ...(sentiment ? { analysis: { sentiment } } : {}),
-      ...(sinceDate ? { lastMessageAt: { gte: sinceDate } } : {}),
-    },
-    select: {
-      id: true,
-      channel: true,
-      subject: true,
-      status: true,
-      priority: true,
-      priorityScore: true,
-      category: true,
-      lastMessageAt: true,
-      contact: { select: { name: true, email: true } },
-      analysis: { select: { summary: true, riskLevel: true, sentiment: true } },
-      messages: {
-        orderBy: { sentAt: 'desc' },
-        take: 3,
-        select: { direction: true, content: true },
-      },
-    },
-    orderBy: [{ priorityScore: 'desc' }, { lastMessageAt: 'desc' }],
-    take: CANDIDATE_LIMIT,
+  const where = buildWhere(userId, {
+    status: filters.status,
+    channel: filters.channel,
+    priority: filters.priority ?? parsed?.priority,
+    risk: filters.risk ?? parsed?.risk,
+    sentiment: filters.sentiment ?? parsed?.sentiment,
+    awaiting: filters.awaiting ?? parsed?.awaitingReply,
+    sinceDate: parsed?.daysBack ? new Date(Date.now() - parsed.daysBack * 86_400_000) : null,
   })
 
-  const pool = awaiting === undefined
-    ? candidates
-    : candidates.filter((c) => (c.messages[0]?.direction === 'INBOUND') === awaiting)
+  const parsedFilters = parsed
+    ? {
+        keywords: parsed.keywords,
+        ...(parsed.priority ? { priority: parsed.priority } : {}),
+        ...(parsed.risk ? { risk: parsed.risk } : {}),
+        ...(parsed.sentiment ? { sentiment: parsed.sentiment } : {}),
+        ...(parsed.awaitingReply !== undefined ? { awaitingReply: parsed.awaitingReply } : {}),
+        ...(parsed.daysBack ? { daysBack: parsed.daysBack } : {}),
+      }
+    : null
 
-  // 3. Keyword scoring.
-  const rawTerms = tokenize(query)
-  const terms = Array.from(new Set([...rawTerms, ...(parsed?.keywords ?? [])])).slice(0, 10)
-
-  interface Scored {
-    conv: (typeof pool)[number]
-    keyword: number
-    semantic: number | null
-    matchedOn: string[]
-    snippet: string | null
+  // ── Empty query → pure filter/browse mode ranked by priority ──────────────
+  if (!query) {
+    const rows = await prisma.conversation.findMany({
+      where,
+      select: META_SELECT,
+      orderBy: [{ priorityScore: 'desc' }, { lastMessageAt: 'desc' }],
+      take: limit,
+    })
+    return {
+      items: rows.map((conv) => toItem(conv, { score: 0, matchedOn: [], semantic: null, keyword: 0, snippet: null })),
+      meta: { mode: 'filter', total: rows.length, tookMs: Date.now() - startedAt, parsedFilters, degraded: degraded.length ? degraded : null },
+    }
   }
 
-  const now = Date.now()
-  const scored: Scored[] = pool.map((conv) => {
-    const fields: Record<string, string> = {
-      contact: conv.contact.name.toLowerCase(),
-      email: (conv.contact.email ?? '').toLowerCase(),
-      subject: (conv.subject ?? '').toLowerCase(),
-      summary: (conv.analysis?.summary ?? '').toLowerCase(),
-      message: conv.messages.map((m) => m.content).join('\n').toLowerCase(),
-    }
+  const terms = Array.from(new Set([...tokenize(query), ...(parsed?.keywords ?? [])])).slice(0, 10)
 
-    let total = 0
-    let termsFound = 0
-    const matchedOn = new Set<string>()
-    for (const term of terms) {
-      let found = false
-      for (const { field, weight } of FIELD_WEIGHTS) {
-        if (fields[field].includes(term)) {
-          total += weight
-          matchedOn.add(field)
-          found = true
-        }
-      }
-      if (found) termsFound++
-    }
+  // 2. Keyword candidates — full-table SQL match, full metadata (sequential).
+  const keywordRows: MetaRow[] = terms.length
+    ? await prisma.conversation.findMany({
+        where: { ...where, OR: keywordOrClauses(terms) },
+        select: META_SELECT,
+        orderBy: [{ lastMessageAt: 'desc' }],
+        take: SEARCH_TUNING.KEYWORD_CANDIDATE_LIMIT,
+      })
+    : []
 
-    let keyword = terms.length ? total / (terms.length * MAX_TERM_SCORE) : 0
-    if (terms.length) keyword *= termsFound / terms.length // penalize partial coverage
-
-    const snippet = terms.length
-      ? matchSnippet(conv.messages.map((m) => m.content).join('\n'), terms)
-      : null
-
-    return { conv, keyword, semantic: null, matchedOn: Array.from(matchedOn), snippet }
-  })
-
-  // 4. Semantic scoring — only when there's an actual query to embed.
-  let mode: SearchResponse['meta']['mode'] = query ? 'keyword' : 'filter'
+  // 3. Semantic recall over a recency-bounded universe.
+  const semById = new Map<string, number>()
+  let semanticActive = false
   const provider = getEmbeddingProvider()
-  if (query && provider) {
+  if (provider) {
     try {
       const embedded = await embedTexts([query], 'query')
       if (embedded) {
         const queryVec = embedded.vectors[0]
-        const rows = await prisma.conversationEmbedding.findMany({
-          where: { conversationId: { in: pool.map((c) => c.id) }, model: provider.embeddingModel },
-          select: { conversationId: true, vector: true, dims: true },
+        const universe = await prisma.conversation.findMany({
+          where,
+          select: { id: true },
+          orderBy: { lastMessageAt: 'desc' },
+          take: SEARCH_TUNING.SEMANTIC_SCAN_LIMIT,
         })
-        const byConv = new Map(rows.map((r) => [r.conversationId, r]))
-
-        for (const s of scored) {
-          const row = byConv.get(s.conv.id)
-          if (!row || row.dims !== queryVec.length) continue
-          const vec = bufferToVector(row.vector)
-          let dot = 0
-          for (let i = 0; i < queryVec.length; i++) dot += queryVec[i] * vec[i]
-          s.semantic = Math.max(0, Math.min(1, dot))
-        }
-        mode = 'hybrid'
-
-        const covered = rows.length
-        if (covered < pool.length) {
-          degraded.push(`embeddings-partial(${covered}/${pool.length})`)
-          await enqueueEmbeddingBackfill(userId, pool.map((c) => c.id).filter((id) => !byConv.has(id)))
+        const universeIds = universe.map((u) => u.id)
+        if (universeIds.length) {
+          const rows = await prisma.conversationEmbedding.findMany({
+            where: { conversationId: { in: universeIds }, model: provider.embeddingModel },
+            select: { conversationId: true, vector: true, dims: true },
+          })
+          for (const r of rows) {
+            if (r.dims !== queryVec.length) continue
+            semById.set(r.conversationId, cosine(queryVec, bufferToVector(r.vector)))
+          }
+          semanticActive = true
+          if (rows.length < universeIds.length) {
+            degraded.push(`embeddings-partial(${rows.length}/${universeIds.length})`)
+            await enqueueEmbeddingBackfill(userId, universeIds.filter((id) => !semById.has(id)))
+          }
         }
       } else {
         degraded.push('embeddings-unavailable')
       }
     } catch (err) {
-      // Semantic layer is an enhancement — never let it break search.
       console.warn('[search] semantic scoring failed, keyword-only:', String(err))
       degraded.push('embeddings-unavailable')
     }
-  } else if (query && !provider) {
+  } else {
     degraded.push('embeddings-unavailable')
   }
 
+  // 4. Hydrate top semantic ids that the keyword pass didn't already load.
+  const haveIds = new Set(keywordRows.map((r) => r.id))
+  const semOnlyIds = [...semById.entries()]
+    .filter(([id, s]) => !haveIds.has(id) && s >= SEARCH_TUNING.SEMANTIC_ONLY_CUTOFF)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, SEARCH_TUNING.SEMANTIC_TOP)
+    .map(([id]) => id)
+
+  const semRows: MetaRow[] = semOnlyIds.length
+    ? await prisma.conversation.findMany({ where: { id: { in: semOnlyIds } }, select: META_SELECT })
+    : []
+
   // 5. Blend, boost, rank.
-  const ranked = scored
-    .map((s) => {
-      let score: number
-      if (s.semantic !== null && s.keyword > 0) score = 0.6 * s.semantic + 0.4 * s.keyword
-      else if (s.semantic !== null) score = s.semantic >= SEMANTIC_ONLY_CUTOFF ? s.semantic * 0.85 : 0
-      else score = s.keyword
-
-      if (query && score <= 0) return null
-
-      const ageMs = s.conv.lastMessageAt ? now - s.conv.lastMessageAt.getTime() : Infinity
-      if (ageMs < 86_400_000) score += 0.08
-      else if (ageMs < 7 * 86_400_000) score += 0.05
-      else if (ageMs < 30 * 86_400_000) score += 0.02
-      if (s.conv.priority === 'HOT') score += 0.06
-      else if (s.conv.priority === 'ATTENTION') score += 0.03
-
-      return { ...s, score: Math.min(1, score) }
+  const now = Date.now()
+  const ranked = [...keywordRows, ...semRows]
+    .map((conv) => {
+      const { score: keyword, matchedOn } = keywordScore(lowerFields(conv), terms)
+      const semantic = semById.has(conv.id) ? semById.get(conv.id)! : null
+      let score = blendScore(keyword, semantic)
+      if (score <= 0) return null
+      const ageMs = conv.lastMessageAt ? now - conv.lastMessageAt.getTime() : Infinity
+      score = applyBoosts(score, { ageMs, priority: conv.priority })
+      const snippet = matchSnippet(conv.messages.map((m) => m.content).join('\n'), terms)
+      return { conv, score, matchedOn, semantic, keyword, snippet }
     })
-    .filter((s): s is Scored & { score: number } => s !== null)
-    .sort((a, b) =>
-      query
-        ? b.score - a.score
-        : b.conv.priorityScore - a.conv.priorityScore ||
-          (b.conv.lastMessageAt?.getTime() ?? 0) - (a.conv.lastMessageAt?.getTime() ?? 0),
-    )
-
-  const items: SearchResultItem[] = ranked.slice(0, limit).map((s) => ({
-    id: s.conv.id,
-    channel: s.conv.channel as Channel,
-    subject: s.conv.subject,
-    status: s.conv.status as ConversationStatus,
-    priority: s.conv.priority as PriorityLevel,
-    priorityScore: s.conv.priorityScore,
-    category: s.conv.category as EmailCategory,
-    lastMessageAt: s.conv.lastMessageAt?.toISOString() ?? null,
-    contact: { name: s.conv.contact.name, email: s.conv.contact.email },
-    snippet:
-      s.snippet ??
-      s.conv.analysis?.summary ??
-      (s.conv.messages[0] ? messagePreview(s.conv.messages[0].content, 160) : null),
-    score: Math.round(s.score * 100) / 100,
-    matchedOn: s.matchedOn,
-    semanticMatch: s.semantic !== null && s.semantic >= SEMANTIC_ONLY_CUTOFF && s.keyword === 0,
-    awaitingReply: s.conv.messages[0]?.direction === 'INBOUND',
-    risk: (s.conv.analysis?.riskLevel as RiskLevel | undefined) ?? null,
-  }))
+    .filter((s): s is NonNullable<typeof s> => s !== null)
+    .sort((a, b) => b.score - a.score)
 
   return {
-    items,
+    items: ranked.slice(0, limit).map((s) => toItem(s.conv, s)),
     meta: {
-      mode,
+      mode: semanticActive ? 'hybrid' : 'keyword',
       total: ranked.length,
       tookMs: Date.now() - startedAt,
-      parsedFilters: parsed
-        ? {
-            keywords: parsed.keywords,
-            ...(parsed.priority ? { priority: parsed.priority } : {}),
-            ...(parsed.risk ? { risk: parsed.risk } : {}),
-            ...(parsed.sentiment ? { sentiment: parsed.sentiment } : {}),
-            ...(parsed.awaitingReply !== undefined ? { awaitingReply: parsed.awaitingReply } : {}),
-            ...(parsed.daysBack ? { daysBack: parsed.daysBack } : {}),
-          }
-        : null,
+      parsedFilters,
       degraded: degraded.length ? degraded : null,
     },
   }
@@ -340,7 +313,7 @@ async function enqueueEmbeddingBackfill(userId: string, conversationIds: string[
     if (pending > 0) return
     await enqueueMany(
       'EMBED_CONVERSATION',
-      conversationIds.slice(0, BACKFILL_LIMIT).map((conversationId) => ({ conversationId })),
+      conversationIds.slice(0, SEARCH_TUNING.BACKFILL_LIMIT).map((conversationId) => ({ conversationId })),
       { userId },
     )
   } catch (err) {
