@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { ArrowDownWideNarrow, ChevronDown, Clock, Loader, Plug, Search, Sparkles, TriangleAlert } from 'lucide-react'
+import { ChevronDown, Loader, Plug, Search, Sparkles, TriangleAlert } from 'lucide-react'
 import ConversationList, { type ConversationSummary } from './ConversationList'
-import InboxFilters, { type CatFilter, type Filter } from './InboxFilters'
+import InboxFilters, { type CatFilter, type Filter, type RiskFilter, type SentFilter, type Sort } from './InboxFilters'
 import { EMAIL_CATEGORIES, isEmailCategory } from '@/lib/categories'
 import { compactAgo } from '@/lib/time'
-import type { EmailCategory, SearchResponse, SearchResultItem } from '@/types'
+import type { ConversationListItem, EmailCategory, SearchResponse, SearchResultItem } from '@/types'
 
 export type InboxGroup = {
   id: string
@@ -17,17 +17,23 @@ export type InboxGroup = {
   conversations: ConversationSummary[]
 }
 
-type Sort = 'priority' | 'recent'
-
 const SEARCH_MIN_CHARS = 2
 const SEARCH_DEBOUNCE_MS = 350
 
 function isFilter(v: string | null): v is Filter {
   return v === 'ALL' || v === 'HOT' || v === 'ATTENTION' || v === 'AWAITING'
 }
-
 function isCatFilter(v: string | null): v is CatFilter {
   return v === 'ALL' || isEmailCategory(v)
+}
+function isRiskFilter(v: string | null): v is RiskFilter {
+  return v === 'ALL' || v === 'MEDIUM' || v === 'HIGH' || v === 'CRITICAL'
+}
+function isSentFilter(v: string | null): v is SentFilter {
+  return v === 'ALL' || v === 'POSITIVE' || v === 'NEUTRAL' || v === 'NEGATIVE'
+}
+function isSort(v: string | null): v is Sort {
+  return v === 'priority' || v === 'recent' || v === 'oldest'
 }
 
 function matchesFilter(c: { priority: string; awaitingReply?: boolean }, filter: Filter): boolean {
@@ -47,7 +53,9 @@ function sortConvs(convs: ConversationSummary[], sort: Sort): ConversationSummar
   return [...convs].sort((a, b) =>
     sort === 'recent'
       ? ts(b) - ts(a)
-      : b.priorityScore - a.priorityScore || ts(b) - ts(a),
+      : sort === 'oldest'
+        ? ts(a) - ts(b)
+        : b.priorityScore - a.priorityScore || ts(b) - ts(a),
   )
 }
 
@@ -68,7 +76,33 @@ function resultToSummary(r: SearchResultItem): ConversationSummary {
   }
 }
 
-type SearchState = 'idle' | 'loading' | 'done' | 'error'
+/** Append the priority/awaiting/risk/sentiment params both endpoints understand. */
+function appendFilterParams(params: URLSearchParams, filter: Filter, risk: RiskFilter, sentiment: SentFilter) {
+  if (filter === 'HOT') params.set('priority', 'HOT')
+  else if (filter === 'ATTENTION') params.set('priority', 'ATTENTION')
+  else if (filter === 'AWAITING') params.set('awaiting', 'true')
+  if (risk !== 'ALL') params.set('risk', risk)
+  if (sentiment !== 'ALL') params.set('sentiment', sentiment)
+}
+
+function itemToSummary(r: ConversationListItem): ConversationSummary {
+  return {
+    id: r.id,
+    channel: r.channel === 'TELEGRAM' ? 'TELEGRAM' : 'GMAIL',
+    subject: r.subject,
+    priority: r.priority,
+    priorityScore: r.priorityScore,
+    category: r.category,
+    lastMessageAt: r.lastMessageAt,
+    timeLabel: r.timeLabel ?? compactAgo(r.lastMessageAt),
+    contact: r.contact,
+    lastMessage: r.lastMessage,
+    unreadCount: r.unreadCount,
+    awaitingReply: r.awaitingReply,
+  }
+}
+
+type ServerState = 'idle' | 'loading' | 'done' | 'error'
 
 export default function InboxList({
   groups,
@@ -82,8 +116,7 @@ export default function InboxList({
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  // Filters/search initialise from the URL so the state survives reloads and
-  // navigation into a thread and back.
+  // Filters/search initialise from the URL so state survives reloads + nav.
   const [query, setQuery] = useState(() => searchParams.get('q') ?? '')
   const [filter, setFilter] = useState<Filter>(() => {
     const f = searchParams.get('f')
@@ -93,50 +126,78 @@ export default function InboxList({
     const c = searchParams.get('c')
     return isCatFilter(c) ? c : 'ALL'
   })
-  const [sort, setSort] = useState<Sort>(() => (searchParams.get('sort') === 'recent' ? 'recent' : 'priority'))
-  // Single-open accordion: only one mailbox group is expanded at a time.
+  const [risk, setRisk] = useState<RiskFilter>(() => {
+    const r = searchParams.get('risk')
+    return isRiskFilter(r) ? r : 'ALL'
+  })
+  const [sentiment, setSentiment] = useState<SentFilter>(() => {
+    const s = searchParams.get('sent')
+    return isSentFilter(s) ? s : 'ALL'
+  })
+  const [sort, setSort] = useState<Sort>(() => {
+    const s = searchParams.get('sort')
+    return isSort(s) ? s : 'priority'
+  })
   const [openId, setOpenId] = useState<string | null>(groups[0]?.id ?? null)
 
-  // Server-side AI search (hybrid keyword + semantic via /api/search).
-  const [results, setResults] = useState<SearchResultItem[] | null>(null)
+  // Unified server fetch (hybrid AI search OR server-side filter/sort).
+  const [serverItems, setServerItems] = useState<ConversationSummary[] | null>(null)
+  const [serverKind, setServerKind] = useState<'search' | 'filter'>('filter')
   const [searchMeta, setSearchMeta] = useState<SearchResponse['meta'] | null>(null)
-  const [searchState, setSearchState] = useState<SearchState>('idle')
+  const [serverState, setServerState] = useState<ServerState>('idle')
 
   const q = query.trim()
-  const serverSearch = q.length >= SEARCH_MIN_CHARS
-  const filtering = filter !== 'ALL' || catFilter !== 'ALL'
+  const isSearch = q.length >= SEARCH_MIN_CHARS
+  const filtersActive = filter !== 'ALL' || catFilter !== 'ALL' || risk !== 'ALL' || sentiment !== 'ALL'
+  const serverMode = isSearch || filtersActive || sort !== 'priority'
 
-  // Persist q/f/c/sort in the URL without triggering a server re-render.
+  // Persist q/f/c/risk/sent/sort in the URL without a server re-render.
   useEffect(() => {
     const params = new URLSearchParams()
     if (q) params.set('q', q)
     if (filter !== 'ALL') params.set('f', filter)
     if (catFilter !== 'ALL') params.set('c', catFilter)
+    if (risk !== 'ALL') params.set('risk', risk)
+    if (sentiment !== 'ALL') params.set('sent', sentiment)
     if (sort !== 'priority') params.set('sort', sort)
     const qs = params.toString()
     window.history.replaceState(null, '', `${pathname}${qs ? `?${qs}` : ''}`)
-  }, [q, filter, catFilter, sort, pathname])
+  }, [q, filter, catFilter, risk, sentiment, sort, pathname])
 
-  // Debounced search request. No synchronous setState in the effect body —
-  // stale results/meta are simply ignored by the render gates below when the
-  // query is cleared, so no reset pass is needed.
+  // Debounced server request. No synchronous setState in the effect body — when
+  // serverMode is false the render gates ignore any stale results.
   useEffect(() => {
-    if (!serverSearch) return
+    if (!serverMode) return
     const ctrl = new AbortController()
     const timer = setTimeout(async () => {
-      setSearchState('loading')
+      setServerState('loading')
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=30`, { signal: ctrl.signal })
-        if (!res.ok) throw new Error(`search ${res.status}`)
-        const data = (await res.json()) as SearchResponse
-        setResults(data.items)
-        setSearchMeta(data.meta)
-        setSearchState('done')
+        if (isSearch) {
+          const params = new URLSearchParams({ q, limit: '40' })
+          appendFilterParams(params, filter, risk, sentiment)
+          const res = await fetch(`/api/search?${params.toString()}`, { signal: ctrl.signal })
+          if (!res.ok) throw new Error(`search ${res.status}`)
+          const data = (await res.json()) as SearchResponse
+          setServerItems(data.items.map(resultToSummary))
+          setSearchMeta(data.meta)
+          setServerKind('search')
+        } else {
+          const params = new URLSearchParams({ limit: '100', sort })
+          if (catFilter !== 'ALL') params.set('category', catFilter)
+          appendFilterParams(params, filter, risk, sentiment)
+          const res = await fetch(`/api/conversations?${params.toString()}`, { signal: ctrl.signal })
+          if (!res.ok) throw new Error(`filter ${res.status}`)
+          const data = (await res.json()) as ConversationListItem[]
+          setServerItems(data.map(itemToSummary))
+          setSearchMeta(null)
+          setServerKind('filter')
+        }
+        setServerState('done')
       } catch {
         if (!ctrl.signal.aborted) {
-          setResults(null)
+          setServerItems(null)
           setSearchMeta(null)
-          setSearchState('error')
+          setServerState('error')
         }
       }
     }, SEARCH_DEBOUNCE_MS)
@@ -144,88 +205,78 @@ export default function InboxList({
       clearTimeout(timer)
       ctrl.abort()
     }
-  }, [q, serverSearch])
+  }, [serverMode, isSearch, q, filter, catFilter, risk, sentiment, sort])
 
-  // Counts for the priority chips — scoped to the active category tab so the
-  // numbers match what's actually shown.
+  // Priority-chip counts — scoped to the active category tab (from loaded data).
   const counts = useMemo(() => {
-    const all = groups.flatMap(g => g.conversations).filter(c => matchesCategory(c, catFilter))
+    const all = groups.flatMap((g) => g.conversations).filter((c) => matchesCategory(c, catFilter))
     return {
       ALL: all.length,
-      HOT: all.filter(c => c.priority === 'HOT').length,
-      ATTENTION: all.filter(c => c.priority === 'ATTENTION').length,
-      AWAITING: all.filter(c => c.awaitingReply).length,
+      HOT: all.filter((c) => c.priority === 'HOT').length,
+      ATTENTION: all.filter((c) => c.priority === 'ATTENTION').length,
+      AWAITING: all.filter((c) => c.awaitingReply).length,
     }
   }, [groups, catFilter])
 
-  // Counts for the category tabs (across all mailboxes).
   const catCounts = useMemo(() => {
-    const all = groups.flatMap(g => g.conversations)
-    const out = { ALL: all.filter(c => c.category !== 'SPAM').length } as Record<CatFilter, number>
-    for (const cat of EMAIL_CATEGORIES) out[cat] = all.filter(c => c.category === cat).length
+    const all = groups.flatMap((g) => g.conversations)
+    const out = { ALL: all.filter((c) => c.category !== 'SPAM').length } as Record<CatFilter, number>
+    for (const cat of EMAIL_CATEGORIES) out[cat] = all.filter((c) => c.category === cat).length
     return out
   }, [groups])
 
-  // Browse mode (no query) and the local fallback when /api/search errors.
-  const localFallback = serverSearch && searchState === 'error'
+  // Browse mode (no server fetch) + client fallback when the server errors.
+  const serverErrored = serverMode && serverState === 'error'
   const visible = useMemo(() => {
     return groups
-      .map(g => {
+      .map((g) => {
         let convs = g.conversations
-        if (localFallback && q) {
+        if (serverErrored && isSearch && q) {
           const lq = q.toLowerCase()
-          convs = convs.filter(c =>
-            c.contact.name.toLowerCase().includes(lq) ||
-            (c.contact.email ?? '').toLowerCase().includes(lq) ||
-            (c.subject ?? '').toLowerCase().includes(lq) ||
-            (c.lastMessage ?? '').toLowerCase().includes(lq),
+          convs = convs.filter(
+            (c) =>
+              c.contact.name.toLowerCase().includes(lq) ||
+              (c.contact.email ?? '').toLowerCase().includes(lq) ||
+              (c.subject ?? '').toLowerCase().includes(lq) ||
+              (c.lastMessage ?? '').toLowerCase().includes(lq),
           )
         }
-        // Category tab always applies (so Spam stays out of "All mail").
-        convs = convs.filter(c => matchesCategory(c, catFilter))
-        if (filter !== 'ALL') convs = convs.filter(c => matchesFilter(c, filter))
+        convs = convs.filter((c) => matchesCategory(c, catFilter))
+        if (filter !== 'ALL') convs = convs.filter((c) => matchesFilter(c, filter))
         return { ...g, conversations: sortConvs(convs, sort) }
       })
-      .filter(g => (localFallback || filtering ? g.conversations.length > 0 : true))
-  }, [groups, q, filter, catFilter, sort, filtering, localFallback])
+      .filter((g) => (serverErrored || filtersActive ? g.conversations.length > 0 : true))
+  }, [groups, q, filter, catFilter, sort, filtersActive, serverErrored, isSearch])
 
-  // Search results, post-filtered by the active chips (search + filters combine).
-  const filteredResults = useMemo(() => {
-    if (!results) return null
-    return results
-      .filter(r => matchesCategory(r, catFilter) && matchesFilter(r, filter))
-      .map(resultToSummary)
-  }, [results, filter, catFilter])
+  // Server results post-filtered by category (search lacks a category filter;
+  // for the filter endpoint, "ALL" drops Spam and a specific tab is a no-op).
+  const serverVisible = useMemo(() => {
+    if (!serverItems) return null
+    return serverItems.filter((c) => matchesCategory(c, catFilter))
+  }, [serverItems, catFilter])
 
-  // Server mode keeps stale results on screen while the next query loads —
-  // the badge spins instead of the list flashing a skeleton.
-  const serverMode = serverSearch && searchState !== 'error'
-  const showServerResults = serverMode && filteredResults !== null && filteredResults.length > 0
-  const serverLoading =
-    serverMode && (filteredResults === null || (filteredResults.length === 0 && searchState === 'loading'))
-  const serverEmpty = serverMode && searchState === 'done' && filteredResults !== null && filteredResults.length === 0
-  const searching = serverSearch || (localFallback && q.length > 0)
-  const nothingMatches =
-    serverEmpty ||
-    (!serverMode && filtering && visible.length === 0) ||
-    (localFallback && q.length > 0 && visible.length === 0)
+  const showServer = serverMode && !serverErrored
+  const serverLoading = showServer && (serverVisible === null || (serverState === 'loading' && serverVisible.length === 0))
+  const serverReady = showServer && serverState === 'done' && serverVisible !== null
+  const serverEmpty = serverReady && serverVisible!.length === 0
+  const nothingMatches = serverEmpty || (serverErrored && filtersActive && visible.length === 0) || (serverErrored && isSearch && visible.length === 0)
 
   const aiBadge = (() => {
-    if (!serverSearch) {
+    if (!isSearch) {
       return (
         <span className="inbox-search-badge" title="AI search: type to search across contacts, subjects, messages and meaning">
           <Sparkles size={10} /> AI
         </span>
       )
     }
-    if (searchState === 'loading') {
+    if (serverState === 'loading') {
       return (
         <span className="inbox-search-badge" title="Searching…">
           <Loader size={10} style={{ animation: 'spin 1s linear infinite' }} /> Searching
         </span>
       )
     }
-    if (searchState === 'error') {
+    if (serverState === 'error') {
       return (
         <span className="inbox-search-badge" title="AI search is unreachable — falling back to basic text filtering" style={{ color: 'var(--attention)' }}>
           <TriangleAlert size={10} /> Basic
@@ -234,10 +285,7 @@ export default function InboxList({
     }
     const semantic = searchMeta?.mode === 'hybrid'
     return (
-      <span
-        className="inbox-search-badge"
-        title={semantic ? 'Ranked by meaning + keywords (semantic search active)' : 'Ranked by keywords — semantic index is still building'}
-      >
+      <span className="inbox-search-badge" title={semantic ? 'Ranked by meaning + keywords (semantic search active)' : 'Ranked by keywords — semantic index is still building'}>
         <Sparkles size={10} /> {semantic ? 'AI' : 'Match'}
       </span>
     )
@@ -251,12 +299,11 @@ export default function InboxList({
           {hasConnection && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{total}</span>}
         </div>
 
-        {/* AI search — server-side hybrid (keyword + semantic) via /api/search */}
         <div className="inbox-search">
           <Search size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
           <input
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={(e) => setQuery(e.target.value)}
             placeholder="Search… try “angry clients last week”"
             aria-label="Search conversations"
           />
@@ -270,20 +317,15 @@ export default function InboxList({
               setFilter={setFilter}
               catFilter={catFilter}
               setCatFilter={setCatFilter}
+              risk={risk}
+              setRisk={setRisk}
+              sentiment={sentiment}
+              setSentiment={setSentiment}
+              sort={sort}
+              setSort={setSort}
               counts={counts}
               catCounts={catCounts}
             />
-            {!showServerResults && (
-              <button
-                type="button"
-                className="inbox-sort-btn"
-                onClick={() => setSort(s => (s === 'priority' ? 'recent' : 'priority'))}
-                title={sort === 'priority' ? 'Sorted by priority — click for newest first' : 'Sorted by newest — click for priority first'}
-              >
-                {sort === 'priority' ? <ArrowDownWideNarrow size={13} /> : <Clock size={13} />}
-                {sort === 'priority' ? 'Priority' : 'Newest'}
-              </button>
-            )}
           </div>
         )}
       </div>
@@ -296,37 +338,37 @@ export default function InboxList({
         ) : nothingMatches ? (
           <div style={{ padding: '40px 24px', textAlign: 'center' }}>
             <p style={{ margin: '0 0 4px', color: 'var(--text-primary)', fontSize: 13.5, fontWeight: 600 }}>
-              {searching ? `No matches for “${q}”` : 'Nothing here'}
+              {isSearch ? `No matches for “${q}”` : 'Nothing matches these filters'}
             </p>
             <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 12.5 }}>
-              {searching
+              {isSearch
                 ? searchMeta?.parsedFilters?.keywords?.length
-                  ? `AI looked for: ${searchMeta.parsedFilters.keywords.join(', ')}. Try different wording or clear the filter.`
+                  ? `AI looked for: ${searchMeta.parsedFilters.keywords.join(', ')}. Try different wording or clear filters.`
                   : 'Try a different name, subject or phrase.'
-                : 'No conversations at this priority right now.'}
+                : 'Try clearing a filter to widen the results.'}
             </p>
           </div>
-        ) : showServerResults && filteredResults ? (
+        ) : serverReady && serverVisible ? (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px 4px', fontSize: 11.5, color: 'var(--text-muted)' }}>
               <span style={{ fontWeight: 600 }}>
-                {filteredResults.length} result{filteredResults.length === 1 ? '' : 's'}
+                {serverVisible.length} {serverKind === 'search' ? `result${serverVisible.length === 1 ? '' : 's'}` : `conversation${serverVisible.length === 1 ? '' : 's'}`}
               </span>
-              <span>· ranked by relevance</span>
+              <span>· {serverKind === 'search' ? 'ranked by relevance' : sort === 'oldest' ? 'oldest first' : sort === 'recent' ? 'newest first' : 'by priority'}</span>
               {searchMeta && <span style={{ marginLeft: 'auto' }}>{searchMeta.tookMs}ms</span>}
             </div>
-            <ConversationList conversations={filteredResults} />
+            <ConversationList conversations={serverVisible} />
           </>
         ) : (
-          visible.map(g => {
-            const open = searching || filtering || openId === g.id
+          visible.map((g) => {
+            const open = serverErrored || filtersActive || openId === g.id
             return (
               <div key={g.id}>
                 <button
                   type="button"
                   className="inbox-group-head"
                   aria-expanded={open}
-                  onClick={() => setOpenId(prev => (prev === g.id ? null : g.id))}
+                  onClick={() => setOpenId((prev) => (prev === g.id ? null : g.id))}
                 >
                   <span className="inbox-group-dot" style={{ background: g.channel === 'GMAIL' ? '#EA4335' : 'var(--accent)' }} />
                   <span className="inbox-group-label">{g.label}</span>

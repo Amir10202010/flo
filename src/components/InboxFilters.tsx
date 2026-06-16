@@ -7,16 +7,13 @@ import type { EmailCategory } from '@/types'
 
 export type Filter = 'ALL' | 'HOT' | 'ATTENTION' | 'AWAITING'
 export type CatFilter = 'ALL' | EmailCategory
+export type RiskFilter = 'ALL' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+export type SentFilter = 'ALL' | 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE'
+export type Sort = 'priority' | 'recent' | 'oldest'
 
-// Category rows (single-select). "All mail" shows everything except Spam — junk
-// never mixes with real mail, Spam has its own row.
 const CAT_FILTERS: { key: CatFilter; label: string; dot?: string }[] = [
   { key: 'ALL', label: 'All mail' },
-  ...EMAIL_CATEGORIES.map((c) => ({
-    key: c as CatFilter,
-    label: CATEGORY_META[c].label,
-    dot: CATEGORY_META[c].color,
-  })),
+  ...EMAIL_CATEGORIES.map((c) => ({ key: c as CatFilter, label: CATEGORY_META[c].label, dot: CATEGORY_META[c].color })),
 ]
 
 const PRIORITY_FILTERS: { key: Filter; label: string; dot?: string }[] = [
@@ -26,18 +23,42 @@ const PRIORITY_FILTERS: { key: Filter; label: string; dot?: string }[] = [
   { key: 'AWAITING', label: 'Awaiting', dot: 'var(--accent)' },
 ]
 
+const RISK_FILTERS: { key: RiskFilter; label: string; dot?: string }[] = [
+  { key: 'ALL', label: 'Any' },
+  { key: 'MEDIUM', label: 'Medium+', dot: 'var(--attention)' },
+  { key: 'HIGH', label: 'High+', dot: 'var(--hot)' },
+  { key: 'CRITICAL', label: 'Critical', dot: 'var(--hot)' },
+]
+
+const SENT_FILTERS: { key: SentFilter; label: string; dot?: string }[] = [
+  { key: 'ALL', label: 'Any' },
+  { key: 'POSITIVE', label: 'Positive', dot: 'var(--cold)' },
+  { key: 'NEUTRAL', label: 'Neutral', dot: 'var(--text-muted)' },
+  { key: 'NEGATIVE', label: 'Negative', dot: 'var(--hot)' },
+]
+
+const SORT_OPTIONS: { key: Sort; label: string }[] = [
+  { key: 'priority', label: 'Priority' },
+  { key: 'recent', label: 'Newest' },
+  { key: 'oldest', label: 'Oldest' },
+]
+
 /**
- * Inbox filter control: a single "Filters" button that opens a popover with the
- * category + priority pickers. Presentational — all filter state lives in the
- * parent (InboxList); this just renders the current values and reports changes.
- * Selections apply live (no Apply step); the popover closes on Done / outside
- * click / Escape.
+ * Inbox filter control: a single "Filters" button opening a popover with
+ * category, priority, risk, sentiment and sort pickers. Presentational — all
+ * state lives in the parent (InboxList); selections apply live (no Apply step).
  */
 export default function InboxFilters({
   filter,
   setFilter,
   catFilter,
   setCatFilter,
+  risk,
+  setRisk,
+  sentiment,
+  setSentiment,
+  sort,
+  setSort,
   counts,
   catCounts,
 }: {
@@ -45,13 +66,18 @@ export default function InboxFilters({
   setFilter: (f: Filter) => void
   catFilter: CatFilter
   setCatFilter: (c: CatFilter) => void
+  risk: RiskFilter
+  setRisk: (r: RiskFilter) => void
+  sentiment: SentFilter
+  setSentiment: (s: SentFilter) => void
+  sort: Sort
+  setSort: (s: Sort) => void
   counts: Record<Filter, number>
   catCounts: Record<CatFilter, number>
 }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
 
-  // Close on outside click / Escape (same pattern as CategoryMover).
   useEffect(() => {
     if (!open) return
     function onDown(e: MouseEvent) {
@@ -68,12 +94,19 @@ export default function InboxFilters({
     }
   }, [open])
 
-  const activeCount = (catFilter !== 'ALL' ? 1 : 0) + (filter !== 'ALL' ? 1 : 0)
-  const hasActive = activeCount > 0
+  const activeCount =
+    (catFilter !== 'ALL' ? 1 : 0) +
+    (filter !== 'ALL' ? 1 : 0) +
+    (risk !== 'ALL' ? 1 : 0) +
+    (sentiment !== 'ALL' ? 1 : 0)
+  const hasActive = activeCount > 0 || sort !== 'priority'
 
   function clearAll() {
     setCatFilter('ALL')
     setFilter('ALL')
+    setRisk('ALL')
+    setSentiment('ALL')
+    setSort('priority')
   }
 
   return (
@@ -84,11 +117,11 @@ export default function InboxFilters({
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        title="Filter by category and priority"
+        title="Filter and sort"
       >
         <SlidersHorizontal size={15} />
         Filters
-        {hasActive && <span className="inbox-filters-badge">{activeCount}</span>}
+        {activeCount > 0 && <span className="inbox-filters-badge">{activeCount}</span>}
       </button>
 
       {open && (
@@ -120,23 +153,76 @@ export default function InboxFilters({
 
           <div className="iff-section-label">Priority</div>
           <div className="iff-seg">
-            {PRIORITY_FILTERS.map((f) => {
-              const active = filter === f.key
-              return (
-                <button
-                  key={f.key}
-                  type="button"
-                  aria-pressed={active}
-                  data-active={active}
-                  className="iff-seg-btn"
-                  onClick={() => setFilter(f.key)}
-                >
-                  {f.dot && <span className="iff-seg-dot" style={{ background: f.dot }} />}
-                  {f.label}
-                  <span className="iff-seg-count">{counts[f.key] ?? 0}</span>
-                </button>
-              )
-            })}
+            {PRIORITY_FILTERS.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                aria-pressed={filter === f.key}
+                data-active={filter === f.key}
+                className="iff-seg-btn"
+                onClick={() => setFilter(f.key)}
+              >
+                {f.dot && <span className="iff-seg-dot" style={{ background: f.dot }} />}
+                {f.label}
+                <span className="iff-seg-count">{counts[f.key] ?? 0}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="iff-divider" />
+
+          <div className="iff-section-label">Risk</div>
+          <div className="iff-seg">
+            {RISK_FILTERS.map((r) => (
+              <button
+                key={r.key}
+                type="button"
+                aria-pressed={risk === r.key}
+                data-active={risk === r.key}
+                className="iff-seg-btn"
+                onClick={() => setRisk(r.key)}
+              >
+                {r.dot && <span className="iff-seg-dot" style={{ background: r.dot }} />}
+                {r.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="iff-divider" />
+
+          <div className="iff-section-label">Sentiment</div>
+          <div className="iff-seg">
+            {SENT_FILTERS.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                aria-pressed={sentiment === s.key}
+                data-active={sentiment === s.key}
+                className="iff-seg-btn"
+                onClick={() => setSentiment(s.key)}
+              >
+                {s.dot && <span className="iff-seg-dot" style={{ background: s.dot }} />}
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="iff-divider" />
+
+          <div className="iff-section-label">Sort</div>
+          <div className="iff-seg">
+            {SORT_OPTIONS.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                aria-pressed={sort === s.key}
+                data-active={sort === s.key}
+                className="iff-seg-btn"
+                onClick={() => setSort(s.key)}
+              >
+                {s.label}
+              </button>
+            ))}
           </div>
 
           <div className="iff-divider" />
