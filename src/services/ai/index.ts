@@ -1,7 +1,15 @@
-import type { AnalysisResult, GeminiAnalysisPayload, RiskLevel, Sentiment } from '@/types'
+import type {
+  AnalysisResult,
+  DraftOutcome,
+  DraftPayload,
+  DraftTone,
+  GeminiAnalysisPayload,
+  RiskLevel,
+  Sentiment,
+} from '@/types'
 import { AiProviderError, type AiEmbeddingProvider, type AiJsonSchema, type AiTextProvider, type EmbedTaskType } from './types'
 import { geminiProvider } from './gemini.provider'
-import { localAnalyzeConversation } from './local.provider'
+import { localAnalyzeConversation, localReplyDraft } from './local.provider'
 
 /**
  * High-level AI entry points. Everything here is provider-agnostic:
@@ -185,6 +193,95 @@ export async function analyzeConversationContent(
   return { ...localAnalyzeConversation(payload), provider: 'local' }
 }
 
+// ── Reply / compose drafting ────────────────────────────────────────────────
+
+const DRAFT_SCHEMA: AiJsonSchema = {
+  type: 'object',
+  properties: {
+    subject: {
+      type: 'string',
+      description: 'Email subject line. ONLY for a brand-new email (compose mode); omit it for replies.',
+    },
+    body: {
+      type: 'string',
+      description:
+        'The complete, ready-to-send message body, in the same language as the conversation. Plain text, no placeholders.',
+    },
+  },
+  required: ['body'],
+}
+
+const TONE_GUIDE: Record<DraftTone, string> = {
+  WARM: 'Warm, friendly and personable, while staying professional.',
+  CONCISE: 'Short and to the point — a few sentences at most, no filler.',
+  FORMAL: 'Formal, polished business tone.',
+  MATCH:
+    "Imitate the user's own writing voice from the provided style samples (greeting, length, formality, sign-off).",
+}
+
+function buildDraftPrompt(p: DraftPayload): string {
+  const thread = p.messages
+    .map((m) => {
+      const role = m.direction === 'INBOUND' ? `THEM (${p.contactName})` : 'ME'
+      const body = m.content.length > 800 ? m.content.slice(0, 800) + '…' : m.content
+      return `${role}: ${body}`
+    })
+    .join('\n\n')
+
+  const styleBlock =
+    p.tone === 'MATCH' && p.styleSamples?.length
+      ? `\n\nMY PAST REPLIES (imitate this voice):\n${p.styleSamples.map((s) => `- ${s.slice(0, 400)}`).join('\n')}`
+      : ''
+
+  const intro =
+    p.mode === 'compose'
+      ? `Write a brand-new ${p.channel} email to "${p.contactName || 'the recipient'}".`
+      : `Write the next reply from ME in this ${p.channel} conversation with "${p.contactName}".`
+
+  return `You are drafting on behalf of a service-business manager. ${intro}
+Tone: ${TONE_GUIDE[p.tone]}
+Write in the SAME LANGUAGE as the conversation/instruction. Output a complete, ready-to-send message — no placeholders like [Your name], no markdown, plain text only. End with a natural sign-off.${
+    p.analysisSummary ? `\nContext: ${p.analysisSummary}` : ''
+  }${p.nextAction ? `\nIntended next step: ${p.nextAction}` : ''}${
+    p.steer ? `\nThe user specifically wants to convey: "${p.steer}"` : ''
+  }
+${p.mode === 'compose' ? '' : `\nCONVERSATION:\n${thread}`}${styleBlock}
+
+Return a JSON object matching the provided schema.`
+}
+
+/**
+ * Generate a ready-to-send reply (or new-email) draft. Mirrors
+ * analyzeConversationContent's fallback contract: retryable provider errors are
+ * rethrown so a background job can back off, UNLESS `fallbackOnRetryable` is set
+ * (interactive path / final job attempt), in which case the local template is used.
+ */
+export async function generateReplyDraft(
+  payload: DraftPayload,
+  opts: { fallbackOnRetryable?: boolean } = {},
+): Promise<DraftOutcome> {
+  const provider = getTextProvider()
+  if (provider) {
+    try {
+      const raw = await provider.generateJson<{ body?: unknown; subject?: unknown }>({
+        prompt: buildDraftPrompt(payload),
+        schema: DRAFT_SCHEMA,
+        maxOutputTokens: 1024,
+      })
+      const body = String(raw.body ?? '').trim()
+      if (!body) throw new AiProviderError('Draft response had an empty body', 'bad_response')
+      const subject =
+        typeof raw.subject === 'string' && raw.subject.trim() ? raw.subject.trim() : undefined
+      return { body, subject, provider: 'gemini' }
+    } catch (err) {
+      if (err instanceof AiProviderError && err.retryable && !opts.fallbackOnRetryable) throw err
+      console.warn(`[ai] ${provider.name} draft generation failed (${String(err)}); using local template`)
+    }
+  }
+
+  return { ...localReplyDraft(payload), provider: 'local' }
+}
+
 // ── Search-query understanding ──────────────────────────────────────────────
 
 export interface ParsedSearchQuery {
@@ -286,3 +383,4 @@ export async function embedTexts(texts: string[], taskType: EmbedTaskType): Prom
 }
 
 export { AiProviderError } from './types'
+export type { DraftTone, DraftPayload, DraftOutcome } from '@/types'

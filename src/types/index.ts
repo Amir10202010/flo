@@ -58,6 +58,31 @@ export interface GeminiAnalysisPayload {
   }>
 }
 
+// ── AI drafting (reply / compose) ───────────────────────────────────────────
+
+export type DraftTone = 'WARM' | 'CONCISE' | 'FORMAL' | 'MATCH'
+
+export interface DraftPayload {
+  channel: string
+  contactName: string
+  messages: Array<{ direction: MessageDirection; content: string }>
+  analysisSummary?: string
+  nextAction?: string
+  tone: DraftTone
+  /** One-line user instruction to steer the draft (e.g. "say we ship Friday"). */
+  steer?: string
+  /** The user's own recent sent messages — used only for MATCH tone. */
+  styleSamples?: string[]
+  mode?: 'reply' | 'compose'
+}
+
+export interface DraftOutcome {
+  body: string
+  /** Only populated in compose mode (a brand-new email). */
+  subject?: string
+  provider: 'gemini' | 'local'
+}
+
 export interface SyncResult {
   synced: number
   created: number

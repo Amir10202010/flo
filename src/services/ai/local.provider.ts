@@ -1,4 +1,4 @@
-import type { AnalysisResult, GeminiAnalysisPayload, RiskLevel, Sentiment } from '@/types'
+import type { AnalysisResult, DraftPayload, GeminiAnalysisPayload, RiskLevel, Sentiment } from '@/types'
 
 /**
  * Local heuristic fallback — keeps AI features functional with NO API key and
@@ -101,4 +101,19 @@ export function localAnalyzeConversation(payload: GeminiAnalysisPayload): Analys
       : `Wait for ${contactName}'s response or add a helpful nudge.`
 
   return { summary, riskLevel, riskReasons, nextAction, sentiment }
+}
+
+/**
+ * Zero-API reply draft — a polite, language-matched acknowledgement template.
+ * Tagged provider:'local' by the caller so the UI labels it as an offline
+ * template. Not as good as the AI draft, but keeps the feature usable with no key.
+ */
+export function localReplyDraft(p: Pick<DraftPayload, 'contactName' | 'messages'>): { body: string } {
+  const text = p.messages.map((m) => m.content).join(' ')
+  const ru = /[Ѐ-ӿ]/.test(text)
+  const first = p.contactName?.trim().split(/\s+/)[0] ?? ''
+  const body = ru
+    ? `Здравствуйте${first ? `, ${first}` : ''}!\n\nСпасибо за сообщение. Я ознакомился и вернусь к вам с подробным ответом в ближайшее время.\n\nС уважением`
+    : `Hi${first ? ` ${first}` : ''},\n\nThanks for your message. I've reviewed it and will get back to you shortly with a detailed reply.\n\nBest regards`
+  return { body }
 }
