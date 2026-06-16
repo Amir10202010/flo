@@ -44,6 +44,13 @@
   /* Typography */
   --font-sans:  var(--font-dm-sans,   system-ui, sans-serif);
   --font-serif: var(--font-instrument, Georgia, serif);
+  /* Display = the heading face. Instrument Serif on desktop for editorial
+     character; swapped to the (sturdier, far more legible) sans on phones,
+     where the thin display serif renders spindly. Drives every marketing
+     heading via inline `fontFamily: var(--font-display)`. The brand wordmark
+     keeps var(--font-serif) directly, so it stays serif everywhere. */
+  --font-display:   var(--font-serif);
+  --display-weight: 400;
 
   /* Radius */
   --radius-xs: 4px;
@@ -71,12 +78,17 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
+    /* Belt-and-braces against horizontal scroll: decorative glows/mockups on
+       the marketing page legitimately bleed past the viewport edge. body alone
+       wasn't enough — the document element still grew on phones. */
+    overflow-x: hidden;
   }
 
   body {
     background: var(--bg-base);
     min-height: 100vh;
     overflow-x: hidden;
+    max-width: 100vw;
   }
 
   ::-webkit-scrollbar        { width: 5px; }
@@ -1276,7 +1288,9 @@
   width: 32px; height: 32px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+  overflow: hidden;   /* clip avatar <img> to the circle (initials still center) */
 }
+.av-chip img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* ── Hero: floating glass metric cards ───────────────────────────────────── */
 .hero-stage { position: relative; }
@@ -1342,7 +1356,7 @@
 .stat-cell:last-child { border-right: none; }
 .stat-cell { transition: background 0.22s ease; }
 .stat-cell:hover { background: var(--bg-subtle); }
-.stat-val { font-family: var(--font-serif); font-size: clamp(30px, 4vw, 42px); font-weight: 400; color: var(--text-primary); letter-spacing: -0.02em; line-height: 1; }
+.stat-val { font-family: var(--font-display); font-size: clamp(30px, 4vw, 42px); font-weight: var(--display-weight); color: var(--text-primary); letter-spacing: -0.02em; line-height: 1; }
 .stat-lbl { font-size: 13px; color: var(--text-secondary); margin-top: 9px; line-height: 1.4; }
 @media (max-width: 760px) {
   .stats-band { grid-template-columns: repeat(2, 1fr); }
@@ -2367,7 +2381,7 @@ a > .insight-card:hover {
   -webkit-backdrop-filter: blur(14px) saturate(160%);
   border: 1px solid rgba(255,255,255,0.22);
 }
-.photo-stat .ps-val { font-family: var(--font-serif); font-size: 28px; color: #fff; line-height: 1; letter-spacing: -0.02em; }
+.photo-stat .ps-val { font-family: var(--font-display); font-weight: var(--display-weight); font-size: 28px; color: #fff; line-height: 1; letter-spacing: -0.02em; }
 .photo-stat .ps-lbl { font-size: 12.5px; color: rgba(255,255,255,0.8); margin-top: 6px; }
 @media (max-width: 640px) {
   .photo-band  { min-height: 360px; border-radius: var(--radius-lg); }
@@ -2382,4 +2396,37 @@ a > .insight-card:hover {
 }
 @media (max-width: 640px) {
   .hero-tilt { margin-top: 4px; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Marketing — phone typography + hero containment
+   • Headings flip from the thin display serif to the sturdier sans on phones
+     (via --font-display); the editorial serif stays on tablet/desktop.
+   • Gradient "ink" text washes out on small / low-DPI screens → render solid.
+   • Hero mockup + floating glass cards stay fully inside the viewport.
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  :root { --font-display: var(--font-sans); --display-weight: 600; }
+
+  /* Gradient-clipped text → solid accent so it stays crisp and legible. */
+  .ink-grad {
+    background: none;
+    -webkit-text-fill-color: var(--accent);
+    color: var(--accent);
+    animation: none;
+  }
+
+  /* Tighten heading rhythm now that they're set in the sans. */
+  .stat-val { letter-spacing: -0.01em; }
+
+  /* Hero: keep the product mockup and its glass cards on-screen, centered. */
+  .hero-stage { max-width: 100%; }
+  .fc-pos-tl  { left: -4px; }
+  .fc-pos-br  { right: -4px; }
+}
+
+/* On the narrowest phones, the outer floating cards have nowhere to go —
+   drop them so the mockup reads as one clean product shot. */
+@media (max-width: 430px) {
+  .fc-pos-tl, .fc-pos-br { display: none !important; }
 }

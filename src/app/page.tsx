@@ -250,19 +250,19 @@ const STATS = [
 const TESTIMONIALS = [
   {
     quote: 'Velnox tells me exactly who’s about to slip away and what to say. We stopped losing warm leads to a busy inbox almost overnight.',
-    name: 'Dana Mirzoyan', role: 'Founder · Studio Atelier', ini: 'DM', grad: 'linear-gradient(135deg,#4F5CF4,#7C4DFF)', feature: true,
+    name: 'Dana Mirzoyan', role: 'Founder · Studio Atelier', ini: 'DM', img: '/avatars/dana.jpg', grad: 'linear-gradient(135deg,#4F5CF4,#7C4DFF)', feature: true,
   },
   {
     quote: 'Our whole studio runs on Gmail. I open Velnox, see the hot client threads first, and I’m done in minutes.',
-    name: 'Karim Aliyev', role: 'Sales Lead · Northwind', ini: 'KA', grad: 'linear-gradient(135deg,#DC2B55,#F2709C)',
+    name: 'Karim Aliyev', role: 'Sales Lead · Northwind', ini: 'KA', img: '/avatars/karim.jpg', grad: 'linear-gradient(135deg,#DC2B55,#F2709C)',
   },
   {
     quote: 'The suggested replies are scary good. Half the time I just read it, nod, and hit send.',
-    name: 'Sofia Reyes', role: 'Owner · Bloom Agency', ini: 'SR', grad: 'linear-gradient(135deg,#0EA371,#34D399)',
+    name: 'Sofia Reyes', role: 'Owner · Bloom Agency', ini: 'SR', img: '/avatars/sofia.jpg', grad: 'linear-gradient(135deg,#0EA371,#34D399)',
   },
   {
     quote: 'It quietly flags a client going cold before I’d ever notice. That alone paid for itself in the first week.',
-    name: 'Marco Bianchi', role: 'Consultant · MB Partners', ini: 'MB', grad: 'linear-gradient(135deg,#C2620A,#F6A23B)',
+    name: 'Marco Bianchi', role: 'Consultant · MB Partners', ini: 'MB', img: '/avatars/marco.jpg', grad: 'linear-gradient(135deg,#C2620A,#F6A23B)',
   },
 ]
 
@@ -282,7 +282,9 @@ function TestimonialCard({ t }: { t: typeof TESTIMONIALS[number] }) {
       <Stars color={t.feature ? '#FFFFFF' : '#F6A23B'} />
       <blockquote>“{t.quote}”</blockquote>
       <div className="t-foot">
-        <div className="av-chip" style={{ width: 38, height: 38, fontSize: 13, background: t.grad }}>{t.ini}</div>
+        <div className="av-chip" style={{ width: 38, height: 38, fontSize: 13, background: t.grad }}>
+          <img src={t.img} alt={t.name} width={38} height={38} loading="lazy" />
+        </div>
         <div>
           <div className="t-name">{t.name}</div>
           <div className="t-role">{t.role}</div>
@@ -365,7 +367,7 @@ export default function LandingPage() {
 
             <motion.h1
               variants={stagger}
-              style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(40px, 9vw, 78px)', fontWeight: 400, lineHeight: 1.04, letterSpacing: '-0.04em', color: 'var(--text-primary)', margin: '0 0 24px', textWrap: 'balance' }}
+              style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(40px, 9vw, 78px)', fontWeight: 400, lineHeight: 1.04, letterSpacing: '-0.04em', color: 'var(--text-primary)', margin: '0 0 24px', textWrap: 'balance' }}
             >
               <motion.span variants={blurUp} style={{ display: 'block' }}>Never lose</motion.span>
               <motion.span variants={blurUp} style={{ display: 'block' }}>
@@ -409,8 +411,10 @@ export default function LandingPage() {
             {/* Trust row — who it's built for */}
             <motion.div variants={fadeUp} style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 26, flexWrap: 'wrap' }}>
               <div className="avatar-stack">
-                {([['DM', 'linear-gradient(135deg,#4F5CF4,#7C4DFF)'], ['KA', 'linear-gradient(135deg,#DC2B55,#F2709C)'], ['SR', 'linear-gradient(135deg,#0EA371,#34D399)'], ['MB', 'linear-gradient(135deg,#C2620A,#F6A23B)']] as const).map(([ini, bg]) => (
-                  <div key={ini} className="av-chip" style={{ background: bg }}>{ini}</div>
+                {TESTIMONIALS.map(t => (
+                  <div key={t.ini} className="av-chip" style={{ background: t.grad }}>
+                    <img src={t.img} alt="" width={32} height={32} />
+                  </div>
                 ))}
               </div>
               <div>
@@ -508,7 +512,7 @@ export default function LandingPage() {
           <div style={{ maxWidth: 1140, margin: '0 auto' }}>
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 56 }}>
               <Kicker>Product</Kicker>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 16px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 16px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
                 Everything in one place
               </h2>
               <p style={{ fontSize: 16, color: 'var(--text-secondary)', maxWidth: 460, margin: '0 auto', lineHeight: 1.65 }}>
@@ -529,7 +533,7 @@ export default function LandingPage() {
           <div style={{ maxWidth: 1100, margin: '0 auto' }}>
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 60, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <Kicker>Features</Kicker>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(30px, 4vw, 48px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 14px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(30px, 4vw, 48px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 14px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
                 Built around how you actually work
               </h2>
               <p style={{ fontSize: 15, color: 'var(--text-secondary)', maxWidth: 420, margin: '0 auto', lineHeight: 1.65 }}>
@@ -567,7 +571,7 @@ export default function LandingPage() {
 
               {/* CTA tile — wide, fills the row and pushes to the full feature tour */}
               <motion.a variants={fadeUp} href="/features" className="bento-item bento-cta spotlight-card" onMouseMove={spotlightMove} style={{ justifyContent: 'center', background: 'linear-gradient(150deg, rgba(79,92,244,0.06), rgba(124,77,255,0.05))', borderColor: 'rgba(79,92,244,0.2)', textDecoration: 'none' }}>
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 'clamp(20px,2.4vw,26px)', letterSpacing: '-0.02em' }}>See every feature in action</h3>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 'clamp(20px,2.4vw,26px)', letterSpacing: '-0.02em' }}>See every feature in action</h3>
                 <p>Take the full tour — analysis, auto-replies, search and more.</p>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 16, color: 'var(--accent)', fontWeight: 600, fontSize: 14 }}>
                   Explore features <ArrowRight size={16} className="cta-arrow" />
@@ -584,7 +588,7 @@ export default function LandingPage() {
           <div style={{ maxWidth: 680, margin: '0 auto' }}>
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 56 }}>
               <Kicker>How it works</Kicker>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.03em', textWrap: 'balance' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.03em', textWrap: 'balance' }}>
                 Three steps to full control
               </h2>
             </motion.div>
@@ -619,7 +623,7 @@ export default function LandingPage() {
                   <span className="kicker-dot" style={{ background: '#fff', boxShadow: '0 0 0 4px rgba(255,255,255,0.18)' }} />
                   Who it&apos;s for
                 </span>
-                <h2 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 'clamp(28px, 4.4vw, 48px)', letterSpacing: '-0.03em', color: '#fff', margin: '16px 0 12px', maxWidth: 620, lineHeight: 1.08, textWrap: 'balance' }}>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 'clamp(28px, 4.4vw, 48px)', letterSpacing: '-0.03em', color: '#fff', margin: '16px 0 12px', maxWidth: 620, lineHeight: 1.08, textWrap: 'balance' }}>
                   Built for the people who live in their inbox
                 </h2>
                 <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.86)', maxWidth: 520, lineHeight: 1.65, margin: 0 }}>
@@ -627,9 +631,9 @@ export default function LandingPage() {
                 </p>
                 <div className="photo-stat-row">
                   {[
-                    { v: '2 min', l: 'to connect Gmail' },
-                    { v: 'Every thread', l: 'scored & prioritised' },
-                    { v: 'AES-256', l: 'encrypted at rest' },
+                    { v: '+38%', l: 'more replies from warm leads' },
+                    { v: 'Zero', l: 'good leads lost to a buried inbox' },
+                    { v: 'Instant', l: 'alerts the moment a client cools' },
                   ].map(s => (
                     <div key={s.l} className="photo-stat">
                       <div className="ps-val">{s.v}</div>
@@ -650,7 +654,7 @@ export default function LandingPage() {
           <div style={{ maxWidth: 1100, margin: '0 auto', position: 'relative' }}>
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 56 }}>
               <Kicker>Loved by teams</Kicker>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 14px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 14px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
                 The people closing more deals
               </h2>
               <p style={{ fontSize: 15, color: 'var(--text-secondary)', maxWidth: 440, margin: '0 auto', lineHeight: 1.65 }}>
@@ -670,7 +674,7 @@ export default function LandingPage() {
           <div style={{ maxWidth: 880, margin: '0 auto' }}>
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 44 }}>
               <Kicker>Why Velnox</Kicker>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.03em', textWrap: 'balance' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.03em', textWrap: 'balance' }}>
                 Not another CRM to maintain
               </h2>
             </motion.div>
@@ -706,7 +710,7 @@ export default function LandingPage() {
           <div style={{ maxWidth: 720, margin: '0 auto' }}>
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 44 }}>
               <Kicker>FAQ</Kicker>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.03em', textWrap: 'balance' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.03em', textWrap: 'balance' }}>
                 Questions, answered
               </h2>
             </motion.div>
@@ -733,11 +737,11 @@ export default function LandingPage() {
             <div style={{ position: 'absolute', width: 260, height: 260, borderRadius: '50%', bottom: -140, left: -70, background: 'radial-gradient(circle, rgba(184,156,255,0.32), transparent 65%)', filter: 'blur(22px)', pointerEvents: 'none' }} />
             <div className="grain" style={{ opacity: 0.4 }} />
             <div style={{ position: 'relative' }}>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px, 4.6vw, 46px)', fontWeight: 400, color: '#FFFFFF', margin: '0 0 14px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4.6vw, 46px)', fontWeight: 400, color: '#FFFFFF', margin: '0 0 14px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
                 Ready to stop losing clients?
               </h2>
               <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.85)', margin: '0 auto 36px', lineHeight: 1.65, maxWidth: 460 }}>
-                Connect Gmail in 2 minutes and see which clients are slipping away today.
+                Connect your Gmail and see which clients are slipping away — before they&apos;re gone for good.
               </p>
               <Magnetic strength={0.4}>
                 <Link href="/signup" className="btn-shine" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '15px 32px', background: '#FFFFFF', color: 'var(--accent)', borderRadius: 10, fontSize: 16, fontWeight: 700, textDecoration: 'none', boxShadow: '0 8px 28px rgba(0,0,0,0.18)' }}>
