@@ -23,6 +23,8 @@ interface NavEntry {
   icon: typeof Inbox
   label: string
   pill?: string
+  /** `data-tour` key — marks the element for the onboarding spotlight tour. */
+  tour?: string
 }
 
 const SECTIONS: { label: string | null; items: NavEntry[] }[] = [
@@ -30,21 +32,21 @@ const SECTIONS: { label: string | null; items: NavEntry[] }[] = [
     label: null,
     items: [
       { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { href: '/inbox', icon: Inbox, label: 'Inbox' },
+      { href: '/inbox', icon: Inbox, label: 'Inbox', tour: 'inbox' },
     ],
   },
   {
     label: 'Intelligence',
     items: [
-      { href: '/clients', icon: Users, label: 'Clients' },
-      { href: '/insights', icon: Lightbulb, label: 'Insights' },
-      { href: '/risk', icon: ShieldAlert, label: 'Risk Monitor' },
-      { href: '/analytics', icon: ChartColumn, label: 'Analytics' },
+      { href: '/clients', icon: Users, label: 'Clients', tour: 'clients' },
+      { href: '/insights', icon: Lightbulb, label: 'Insights', tour: 'insights' },
+      { href: '/risk', icon: ShieldAlert, label: 'Risk Monitor', tour: 'risk' },
+      { href: '/analytics', icon: ChartColumn, label: 'Analytics', tour: 'analytics' },
     ],
   },
   {
     label: 'Assistant',
-    items: [{ href: '/assistant', icon: Bot, label: 'AI Assistant', pill: 'Beta' }],
+    items: [{ href: '/assistant', icon: Bot, label: 'AI Assistant', pill: 'Beta', tour: 'assistant' }],
   },
 ]
 
@@ -61,6 +63,7 @@ function NavItem({ entry, active }: { entry: NavEntry; active: boolean }) {
       className={`nav-item${active ? ' active' : ''}`}
       title={entry.label} /* tooltip for icon-only mobile view */
       aria-current={active ? 'page' : undefined}
+      data-tour={entry.tour}
     >
       <Icon size={15} />
       {/* span allows hiding label text on mobile while keeping icon */}
@@ -107,7 +110,7 @@ export default function Sidebar({ userName, userEmail }: { userName?: string | n
       <Brand size={22} className="sidebar-logo-link" style={{ padding: '6px 8px', marginBottom: 6 }} />
 
       {/* Command palette trigger */}
-      <button type="button" className="sidebar-search-btn" onClick={togglePalette} title="Search (Ctrl/⌘ K)">
+      <button type="button" className="sidebar-search-btn" onClick={togglePalette} title="Search (Ctrl/⌘ K)" data-tour="search">
         <Search size={14} />
         <span className="sidebar-nav-label">Search</span>
         <span className="cmdk-kbd">{metaKey} K</span>

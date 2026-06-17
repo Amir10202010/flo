@@ -7,6 +7,7 @@ import {
   Bot,
   ChartColumn,
   CircleCheck,
+  Compass,
   CornerDownLeft,
   Inbox,
   LayoutDashboard,
@@ -139,6 +140,7 @@ function PaletteDialog({
 }) {
   const router = useRouter()
   const setComposeOpen = useUiStore((s) => s.setComposeOpen)
+  const startTour = useUiStore((s) => s.startTour)
   const [query, setQuery] = useState('')
   const [rawIndex, setRawIndex] = useState(0)
   const [syncState, setSyncState] = useState<'idle' | 'starting' | 'started' | 'failed'>('idle')
@@ -243,6 +245,17 @@ function PaletteDialog({
         keywords: 'gmail integration add account',
         run: () => go('/integrations'),
       },
+      {
+        id: 'action-tour',
+        group: 'Actions',
+        label: 'Take a tour',
+        icon: <Compass size={15} />,
+        keywords: 'onboarding guide help walkthrough product tour intro',
+        run: () => {
+          onClose()
+          startTour()
+        },
+      },
     ]
     const actions = actionDefs.filter((a) => matches(q, a.label, a.keywords) > 0)
 
@@ -284,7 +297,7 @@ function PaletteDialog({
             }))
 
     return [...pages, ...actions, ...conversations]
-  }, [query, convs, aiResults, go, startSync, syncState, onClose, setComposeOpen])
+  }, [query, convs, aiResults, go, startSync, syncState, onClose, setComposeOpen, startTour])
 
   // Clamp at render time instead of syncing state in an effect.
   const index = Math.min(rawIndex, Math.max(0, entries.length - 1))

@@ -4,6 +4,7 @@ import Sidebar from '@/components/layout/Sidebar'
 import Brand from '@/components/layout/Brand'
 import CommandPalette from '@/components/CommandPalette'
 import ComposeModal from '@/components/ComposeModal'
+import OnboardingTour from '@/components/onboarding/OnboardingTour'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // getCurrentUser() is request-scoped and cached via React.cache().
@@ -32,6 +33,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Global ⌘K / Ctrl+K command palette + Smart Compose modal (client islands) */}
       <CommandPalette />
       <ComposeModal />
+
+      {/* First-run onboarding spotlight tour (auto-runs once, replayable) */}
+      <OnboardingTour />
     </div>
   )
 }

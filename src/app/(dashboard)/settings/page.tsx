@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { Bell, CircleCheck, Crown, Mail, ShieldCheck, UserRound } from 'lucide-react'
+import { Bell, CircleCheck, Compass, Crown, Mail, ShieldCheck, UserRound } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
 import { Reveal } from '@/components/dashboard/Motion'
 import WidgetShell from '@/components/dashboard/WidgetShell'
 import SignOutButton from '@/components/ui/SignOutButton'
+import ReplayTourButton from '@/components/onboarding/ReplayTourButton'
 
 export const metadata: Metadata = { title: 'Settings — Velnox' }
 
@@ -133,8 +134,25 @@ export default async function SettingsPage() {
           </WidgetShell>
         </Reveal>
 
+        {/* Getting started — replay the first-run product tour */}
+        <Reveal delay={0.18}>
+          <WidgetShell
+            icon={<Compass size={14} />}
+            title="Getting started"
+            sub="A quick guided tour of the workspace"
+            bodyStyle={{ padding: '16px 20px' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted)', maxWidth: 440 }}>
+                Replay the spotlight tour that highlights Inbox, Clients, Insights, Risk, Analytics and the AI Assistant.
+              </p>
+              <ReplayTourButton />
+            </div>
+          </WidgetShell>
+        </Reveal>
+
         {/* Account */}
-        <Reveal delay={0.2}>
+        <Reveal delay={0.22}>
           <WidgetShell
             icon={<ShieldCheck size={14} />}
             title="Account"
