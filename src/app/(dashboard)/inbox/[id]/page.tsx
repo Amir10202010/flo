@@ -8,6 +8,7 @@ import { sanitizeMessageHtml } from '@/lib/html'
 import PriorityBadge from '@/components/ui/PriorityBadge'
 import Composer from '@/components/Composer'
 import CategoryMover from '@/components/CategoryMover'
+import ThreadSummary from '@/components/ThreadSummary'
 import { getReadyDraft } from '@/services/draft.service'
 import type { EmailCategory, PriorityLevel } from '@/types'
 
@@ -149,6 +150,8 @@ export default async function ConversationPage({
             )}
           </div>
         )}
+
+        {conv.messages.length > 6 && <ThreadSummary conversationId={conv.id} />}
       </div>
 
       {/* Messages */}

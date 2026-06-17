@@ -6,10 +6,11 @@ import type {
   GeminiAnalysisPayload,
   RiskLevel,
   Sentiment,
+  ThreadSummary,
 } from '@/types'
 import { AiProviderError, type AiEmbeddingProvider, type AiJsonSchema, type AiTextProvider, type EmbedTaskType } from './types'
 import { geminiProvider } from './gemini.provider'
-import { localAnalyzeConversation, localReplyDraft } from './local.provider'
+import { localAnalyzeConversation, localReplyDraft, localThreadSummary } from './local.provider'
 
 /**
  * High-level AI entry points. Everything here is provider-agnostic:
@@ -280,6 +281,80 @@ export async function generateReplyDraft(
   }
 
   return { ...localReplyDraft(payload), provider: 'local' }
+}
+
+// ── Thread summarization ("catch me up") ────────────────────────────────────
+
+export interface ThreadSummaryPayload {
+  channel: string
+  contactName: string
+  messages: { direction: 'INBOUND' | 'OUTBOUND'; content: string }[]
+}
+
+export interface ThreadSummaryOutcome extends ThreadSummary {
+  provider: AnalyzedBy
+}
+
+const SUMMARY_SCHEMA: AiJsonSchema = {
+  type: 'object',
+  properties: {
+    tldr: { type: 'string', description: 'One or two sentences on where the conversation stands right now.' },
+    keyPoints: {
+      type: 'array',
+      items: { type: 'string' },
+      description: 'The most important facts, decisions and commitments so far (max 5), most important first.',
+    },
+    openItems: {
+      type: 'array',
+      items: { type: 'string' },
+      description: 'Unresolved questions or things still awaiting action. Empty array if none.',
+    },
+  },
+  required: ['tldr', 'keyPoints', 'openItems'],
+}
+
+function buildSummaryPrompt(p: ThreadSummaryPayload): string {
+  const thread = p.messages
+    .map((m) => {
+      const role = m.direction === 'INBOUND' ? `THEM (${p.contactName})` : 'ME'
+      const body = m.content.length > 600 ? m.content.slice(0, 600) + '…' : m.content
+      return `${role}: ${body}`
+    })
+    .join('\n\n')
+
+  return `Summarize this ${p.channel} conversation with "${p.contactName}" so the manager can catch up fast.
+Respond in the SAME LANGUAGE as the conversation. Be concrete and brief.
+
+CONVERSATION:
+${thread}
+
+Return a JSON object matching the schema (tldr, keyPoints, openItems).`
+}
+
+/**
+ * "Catch me up" — a structured summary of a (usually long) thread. On-demand and
+ * user-facing, so any provider error degrades straight to the local heuristic
+ * (no rethrow): a labelled offline summary beats an error in the UI.
+ */
+export async function summarizeThread(payload: ThreadSummaryPayload): Promise<ThreadSummaryOutcome> {
+  const provider = getTextProvider()
+  if (provider) {
+    try {
+      const raw = await provider.generateJson<{ tldr?: unknown; keyPoints?: unknown; openItems?: unknown }>({
+        prompt: buildSummaryPrompt(payload),
+        schema: SUMMARY_SCHEMA,
+        maxOutputTokens: 700,
+      })
+      const tldr = String(raw.tldr ?? '').trim()
+      if (!tldr) throw new AiProviderError('Summary had an empty tldr', 'bad_response')
+      const keyPoints = Array.isArray(raw.keyPoints) ? raw.keyPoints.map(String).filter(Boolean).slice(0, 6) : []
+      const openItems = Array.isArray(raw.openItems) ? raw.openItems.map(String).filter(Boolean).slice(0, 6) : []
+      return { tldr, keyPoints, openItems, provider: 'gemini' }
+    } catch (err) {
+      console.warn(`[ai] ${provider.name} summarize failed (${String(err)}); using local heuristic`)
+    }
+  }
+  return { ...localThreadSummary(payload), provider: 'local' }
 }
 
 // ── Search-query understanding ──────────────────────────────────────────────

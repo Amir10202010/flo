@@ -1102,6 +1102,66 @@
 .chat-ai-summary { margin: 0 0 6px; font-size: 13px; color: var(--text-secondary); line-height: 1.55; }
 .chat-ai-action { margin: 0; font-size: 13px; font-weight: 600; color: var(--accent); }
 
+/* "Catch me up" thread summary */
+.thread-summary { margin-top: 12px; }
+.thread-summary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  border: 1px solid rgba(79,92,244,0.35);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background 0.13s, border-color 0.13s;
+}
+.thread-summary-btn:hover:not(:disabled) { background: rgba(79,92,244,0.16); }
+.thread-summary-btn:disabled { opacity: 0.6; cursor: default; }
+.thread-summary-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--hot);
+}
+.thread-summary-card {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+.ts-tldr { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 1.5; }
+.ts-label { margin: 10px 0 4px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
+.ts-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.ts-list li { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
+.ts-open li { color: var(--text-primary); }
+.ts-offline { display: inline-block; margin-top: 8px; font-size: 10.5px; font-weight: 600; font-style: italic; color: var(--text-muted); }
+
+/* One-click "Reply" quick action in conversation rows */
+.conv-quick-reply {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: 100px;
+  border: 1px solid rgba(79,92,244,0.35);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background 0.13s, border-color 0.13s;
+}
+.conv-quick-reply:hover { background: rgba(79,92,244,0.16); border-color: var(--accent); }
+
 .chat-messages {
   flex: 1;
   min-height: 0;

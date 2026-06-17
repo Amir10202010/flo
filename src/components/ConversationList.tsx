@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Inbox, Sparkles } from 'lucide-react'
 import { avatarGradient, initialsOf } from '@/components/dashboard/avatar'
 import EmptyNote from '@/components/dashboard/EmptyNote'
@@ -30,10 +30,13 @@ export type ConversationSummary = {
   awaitingReply?: boolean
   /** A READY AI auto-draft is waiting for this conversation. */
   hasDraft?: boolean
+  /** AI's suggested next step — tooltip for the one-click reply action. */
+  nextAction?: string | null
 }
 
 export default function ConversationList({ conversations }: { conversations: ConversationSummary[] }) {
   const pathname = usePathname()
+  const router = useRouter()
 
   if (!conversations.length) {
     return (
@@ -111,6 +114,22 @@ export default function ConversationList({ conversations }: { conversations: Con
                 <p style={{ flex: 1, margin: 0, color: 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.5 }}>
                   {c.lastMessage ?? 'No preview'}
                 </p>
+                {c.awaitingReply && !c.hasDraft && (
+                  <button
+                    type="button"
+                    className="conv-quick-reply"
+                    title={c.nextAction ?? 'Draft a reply with AI'}
+                    aria-label="Draft a reply with AI"
+                    onClick={(e) => {
+                      // Row is itself a <Link> — don't let the click bubble to it.
+                      e.preventDefault()
+                      e.stopPropagation()
+                      router.push(`/inbox/${c.id}?draft=1`)
+                    }}
+                  >
+                    <Sparkles size={11} /> Reply
+                  </button>
+                )}
                 {showBadge && (
                   <span className={`priority-badge ${m.className}`} title={m.description} style={{ flexShrink: 0 }}>
                     <span className="priority-dot" aria-hidden />

@@ -83,6 +83,13 @@ export interface DraftOutcome {
   provider: 'gemini' | 'local'
 }
 
+/** "Catch me up" structured thread summary. */
+export interface ThreadSummary {
+  tldr: string
+  keyPoints: string[]
+  openItems: string[]
+}
+
 export interface SyncResult {
   synced: number
   created: number

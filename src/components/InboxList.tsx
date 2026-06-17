@@ -100,6 +100,7 @@ function itemToSummary(r: ConversationListItem): ConversationSummary {
     unreadCount: r.unreadCount,
     awaitingReply: r.awaitingReply,
     hasDraft: r.hasDraft,
+    nextAction: r.nextAction,
   }
 }
 

@@ -1,4 +1,4 @@
-import type { AnalysisResult, DraftPayload, GeminiAnalysisPayload, RiskLevel, Sentiment } from '@/types'
+import type { AnalysisResult, DraftPayload, GeminiAnalysisPayload, RiskLevel, Sentiment, ThreadSummary } from '@/types'
 
 /**
  * Local heuristic fallback — keeps AI features functional with NO API key and
@@ -116,4 +116,32 @@ export function localReplyDraft(p: Pick<DraftPayload, 'contactName' | 'messages'
     ? `Здравствуйте${first ? `, ${first}` : ''}!\n\nСпасибо за сообщение. Я ознакомился и вернусь к вам с подробным ответом в ближайшее время.\n\nС уважением`
     : `Hi${first ? ` ${first}` : ''},\n\nThanks for your message. I've reviewed it and will get back to you shortly with a detailed reply.\n\nBest regards`
   return { body }
+}
+
+/**
+ * Zero-API "catch me up" — a heuristic thread digest from the last few messages.
+ * Tagged provider:'local' by the caller. Keeps the feature usable with no key.
+ */
+export function localThreadSummary(
+  p: { contactName: string; messages: { direction: 'INBOUND' | 'OUTBOUND'; content: string }[] },
+): ThreadSummary {
+  const msgs = p.messages
+  const last = msgs[msgs.length - 1]
+  const lastInbound = last?.direction === 'INBOUND'
+  const ru = /[Ѐ-ӿ]/.test(msgs.map((m) => m.content).join(' '))
+  const first = p.contactName?.trim().split(/\s+/)[0] || p.contactName
+  const them = first || (ru ? 'клиент' : 'them')
+  const you = ru ? 'Вы' : 'You'
+
+  const tldr = ru
+    ? `Переписка с ${p.contactName}: ${msgs.length} сообщений. ${lastInbound ? 'Ждёт вашего ответа.' : 'Последнее сообщение за вами.'}`
+    : `Conversation with ${p.contactName}: ${msgs.length} messages. ${lastInbound ? 'Awaiting your reply.' : 'You sent the last message.'}`
+
+  const keyPoints = msgs.slice(-4).map((m) => {
+    const who = m.direction === 'INBOUND' ? them : you
+    return `${who}: ${m.content.replace(/\s+/g, ' ').trim().slice(0, 120)}`
+  })
+
+  const openItems = lastInbound ? [ru ? `Ответить ${them}.` : `Reply to ${them}.`] : []
+  return { tldr, keyPoints, openItems }
 }
