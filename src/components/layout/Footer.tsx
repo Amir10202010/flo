@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { MessageCircle, Globe, Mail } from 'lucide-react'
+import Brand from './Brand'
 
 const linkStyle: React.CSSProperties = { fontSize: 13.5, color: 'var(--text-secondary)', textDecoration: 'none', transition: 'color 0.15s' }
 
@@ -43,10 +44,7 @@ export default function Footer() {
       <div style={{ maxWidth: 1140, margin: '0 auto' }}>
         <div className="footer-top" style={{ display: 'flex', flexWrap: 'wrap', gap: 48, justifyContent: 'space-between', marginBottom: 44 }}>
           <div style={{ maxWidth: 300 }}>
-            <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none', marginBottom: 14 }}>
-              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1 }}>velnox</span>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', marginBottom: 9, display: 'inline-block' }} />
-            </Link>
+            <Brand size={24} style={{ marginBottom: 14 }} />
             <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.65 }}>
               The AI Gmail inbox for client-facing teams. Every client thread, sorted by who needs you first — so no warm deal ever goes cold.
             </p>

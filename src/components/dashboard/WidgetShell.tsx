@@ -31,14 +31,14 @@ export default function WidgetShell({
     <section className="widget" style={style}>
       <header className="widget-head">
         {icon && <div className={`widget-icon${iconTone === 'ai' ? ' widget-icon-ai' : ''}`}>{icon}</div>}
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="widget-head-text" style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <h2 className="widget-title" style={{ margin: 0 }}>{title}</h2>
             {status && <ModulePill status={status} />}
           </div>
           {sub && <div className="widget-sub">{sub}</div>}
         </div>
-        {action}
+        {action && <div className="widget-action">{action}</div>}
       </header>
       <div style={{ flex: 1, minWidth: 0, ...bodyStyle }}>{children}</div>
     </section>

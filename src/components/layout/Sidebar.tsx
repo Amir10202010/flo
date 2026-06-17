@@ -16,6 +16,7 @@ import {
   Users,
 } from 'lucide-react'
 import { useUiStore } from '@/stores/ui.store'
+import Brand from './Brand'
 
 interface NavEntry {
   href: string
@@ -102,15 +103,8 @@ export default function Sidebar({ userName, userEmail }: { userName?: string | n
         overflowY: 'auto',
       }}
     >
-      {/* Logo — hidden on mobile via .sidebar-logo-link */}
-      <Link
-        href="/"
-        className="sidebar-logo-link"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none', padding: '6px 8px', marginBottom: 6 }}
-      >
-        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 23, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1 }}>velnox</span>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', marginBottom: 9, display: 'inline-block' }} />
-      </Link>
+      {/* Logo — hidden on mobile via .sidebar-logo-link (sidebar collapses to an icon rail) */}
+      <Brand size={22} className="sidebar-logo-link" style={{ padding: '6px 8px', marginBottom: 6 }} />
 
       {/* Command palette trigger */}
       <button type="button" className="sidebar-search-btn" onClick={togglePalette} title="Search (Ctrl/⌘ K)">
