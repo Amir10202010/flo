@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { ChevronDown, Loader, Plug, Search, Sparkles, TriangleAlert } from 'lucide-react'
+import { ChevronDown, Loader, Pencil, Plug, Search, Sparkles, TriangleAlert } from 'lucide-react'
 import ConversationList, { type ConversationSummary } from './ConversationList'
 import InboxFilters, { type CatFilter, type Filter, type RiskFilter, type SentFilter, type Sort } from './InboxFilters'
 import { EMAIL_CATEGORIES, isEmailCategory } from '@/lib/categories'
 import { compactAgo } from '@/lib/time'
+import { useUiStore } from '@/stores/ui.store'
 import type { ConversationListItem, EmailCategory, SearchResponse, SearchResultItem } from '@/types'
 
 export type InboxGroup = {
@@ -117,6 +118,7 @@ export default function InboxList({
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const setComposeOpen = useUiStore((s) => s.setComposeOpen)
 
   // Filters/search initialise from the URL so state survives reloads + nav.
   const [query, setQuery] = useState(() => searchParams.get('q') ?? '')
@@ -328,6 +330,15 @@ export default function InboxList({
               counts={counts}
               catCounts={catCounts}
             />
+            <button
+              type="button"
+              className="inbox-compose-btn"
+              onClick={() => setComposeOpen(true)}
+              title="Compose a new email with AI"
+            >
+              <Pencil size={14} />
+              Compose
+            </button>
           </div>
         )}
       </div>

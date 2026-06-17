@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getCurrentUser } from '@/lib/auth'
 import Sidebar from '@/components/layout/Sidebar'
 import CommandPalette from '@/components/CommandPalette'
+import ComposeModal from '@/components/ComposeModal'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // getCurrentUser() is request-scoped and cached via React.cache().
@@ -31,8 +32,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </main>
       </div>
 
-      {/* Global ⌘K / Ctrl+K command palette (client island) */}
+      {/* Global ⌘K / Ctrl+K command palette + Smart Compose modal (client islands) */}
       <CommandPalette />
+      <ComposeModal />
     </div>
   )
 }

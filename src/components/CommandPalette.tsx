@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   Lightbulb,
   Mail,
+  Pencil,
   Plug,
   RefreshCw,
   Search,
@@ -137,6 +138,7 @@ function PaletteDialog({
   reduced: boolean
 }) {
   const router = useRouter()
+  const setComposeOpen = useUiStore((s) => s.setComposeOpen)
   const [query, setQuery] = useState('')
   const [rawIndex, setRawIndex] = useState(0)
   const [syncState, setSyncState] = useState<'idle' | 'starting' | 'started' | 'failed'>('idle')
@@ -223,6 +225,17 @@ function PaletteDialog({
         run: startSync,
       },
       {
+        id: 'action-compose',
+        group: 'Actions',
+        label: 'Compose new email',
+        icon: <Pencil size={15} />,
+        keywords: 'write new email compose message send smart',
+        run: () => {
+          onClose()
+          setComposeOpen(true)
+        },
+      },
+      {
         id: 'action-connect',
         group: 'Actions',
         label: 'Connect a channel',
@@ -271,7 +284,7 @@ function PaletteDialog({
             }))
 
     return [...pages, ...actions, ...conversations]
-  }, [query, convs, aiResults, go, startSync, syncState])
+  }, [query, convs, aiResults, go, startSync, syncState, onClose, setComposeOpen])
 
   // Clamp at render time instead of syncing state in an effect.
   const index = Math.min(rawIndex, Math.max(0, entries.length - 1))
