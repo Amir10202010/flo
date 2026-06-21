@@ -8,6 +8,7 @@ import WidgetShell from './WidgetShell'
 import ContactAvatar from './ContactAvatar'
 import RiskBadge from './RiskBadge'
 import EmptyNote from './EmptyNote'
+import ContactNotesButton from './ContactNotesButton'
 
 type SortKey = 'name' | 'threads' | 'engagement' | 'lastActivity'
 
@@ -127,6 +128,7 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
                 <th style={{ width: 120 }}>Risk</th>
                 <th style={{ width: 110 }}>Sentiment</th>
                 <SortHead k="lastActivity" width={120} {...sortHeadProps}>Last activity</SortHead>
+                <th style={{ width: 56 }}>Notes</th>
                 <th style={{ width: 36 }} />
               </tr>
             </thead>
@@ -188,6 +190,9 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
                       )}
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{r.lastActivityAgo ?? '—'}</td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <ContactNotesButton contactId={r.id} contactName={r.name} count={r.noteCount} />
+                    </td>
                     <td>
                       <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
                     </td>

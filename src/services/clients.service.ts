@@ -1,3 +1,4 @@
+import { prisma } from '@/lib/prisma'
 import { timeAgo } from '@/lib/time'
 import type { RiskLevel, Sentiment } from '@/types'
 import { contactActivityMap, engagementScore, isAwaitingReply, loadWorkspace } from './metrics.helpers'
@@ -21,6 +22,7 @@ export interface ClientRow {
   lastActivityAt: string | null
   lastActivityAgo: string | null
   href: string | null
+  noteCount: number
 }
 
 export interface ClientDirectory {
@@ -89,6 +91,15 @@ export async function getClientDirectory(userId: string): Promise<ClientDirector
     }
   }
 
+  // Note counts per contact — one grouped query (kept sequential after
+  // loadWorkspace to respect the small connection pool).
+  const noteGroups = await prisma.contactNote.groupBy({
+    by: ['contactId'],
+    where: { userId },
+    _count: { _all: true },
+  })
+  const noteCountByContact = new Map(noteGroups.map((g) => [g.contactId, g._count._all]))
+
   const weekAgo = now - 7 * DAY_MS
   const monthAgo = now - 30 * DAY_MS
 
@@ -117,6 +128,7 @@ export async function getClientDirectory(userId: string): Promise<ClientDirector
       lastActivityAt: lastAt?.toISOString() ?? null,
       lastActivityAgo: timeAgo(lastAt, now),
       href: agg.topConvId ? `/inbox/${agg.topConvId}` : null,
+      noteCount: noteCountByContact.get(agg.contact.id) ?? 0,
     }
   })
 
