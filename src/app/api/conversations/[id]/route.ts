@@ -1,4 +1,5 @@
 import { getAuthUser, ok, err } from '@/lib/api'
+import { rateLimit } from '@/lib/ratelimit'
 import { prisma } from '@/lib/prisma'
 import { ensurePlainText } from '@/lib/html'
 import { isEmailCategory } from '@/lib/categories'
@@ -77,6 +78,8 @@ export async function PATCH(
 ) {
   const { user, error } = await getAuthUser()
   if (!user) return error
+  const limited = await rateLimit(user.id, 'mutate')
+  if (limited) return limited
 
   const { id } = await params
 

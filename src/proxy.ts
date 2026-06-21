@@ -8,6 +8,9 @@ const EMAIL_HEADER = 'x-user-email'
 const META_HEADER = 'x-user-metadata'
 
 /**
+ * Next.js request proxy (the Next 16 successor to the deprecated `middleware`
+ * convention — same execution model, renamed file + `proxy` export).
+ *
  * Validates + refreshes the Supabase session once per navigation, then forwards
  * the validated identity to the render via request headers. This removes the
  * redundant second getUser() network round-trip that getCurrentUser() used to
@@ -17,7 +20,7 @@ const META_HEADER = 'x-user-metadata'
  * trusted values are only set AFTER getUser() validates — so they can't be
  * spoofed. API routes are excluded (matcher) and keep their own getAuthUser().
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Strip incoming identity headers so a client can't forge them.
   const requestHeaders = new Headers(request.headers)
   requestHeaders.delete(ID_HEADER)

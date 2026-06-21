@@ -5,8 +5,16 @@ import { embedConversation } from '@/services/embedding.service'
 import { scanRiskAlerts } from '@/services/alert.service'
 import { sendWeeklyDigest } from '@/services/digest.service'
 import { upsertAutoDraft } from '@/services/draft.service'
+import { notifyNewAlerts } from '@/services/notification.service'
+import { runGmailMaintenance } from '@/services/maintenance.service'
 import { getTextProvider } from '@/services/ai'
-import { enqueueEmbedConversation, enqueueGenerateDraft, enqueueMany, enqueueScanRiskAlerts } from './queue'
+import {
+  enqueueEmbedConversation,
+  enqueueGenerateDraft,
+  enqueueMany,
+  enqueueNotifyAlerts,
+  enqueueScanRiskAlerts,
+} from './queue'
 
 /**
  * Executes a single job by type. Returns a JSON-serialisable result that is
@@ -27,12 +35,22 @@ export async function handleJob(job: Job): Promise<unknown> {
       // messages. De-duplicated, and inserted in ONE round trip — a per-job
       // create loop added ~100 sequential queries to the initial import.
       const changed = Array.from(new Set(result.changedConversationIds ?? []))
-      await enqueueMany('ANALYZE_CONVERSATION', changed.map((conversationId) => ({ conversationId })), { userId })
+      await enqueueMany(
+        'ANALYZE_CONVERSATION',
+        changed.map((conversationId) => ({ conversationId })),
+        { userId },
+        (p) => `ANALYZE_CONVERSATION:${p.conversationId}`,
+      )
 
       // Embeddings for the same changed threads (claimNext is FIFO on
       // createdAt, so these run after the analyses queued above), then one
       // alert scan over the refreshed workspace.
-      await enqueueMany('EMBED_CONVERSATION', changed.map((conversationId) => ({ conversationId })), { userId })
+      await enqueueMany(
+        'EMBED_CONVERSATION',
+        changed.map((conversationId) => ({ conversationId })),
+        { userId },
+        (p) => `EMBED_CONVERSATION:${p.conversationId}`,
+      )
       await enqueueScanRiskAlerts(userId)
 
       return {
@@ -70,7 +88,18 @@ export async function handleJob(job: Job): Promise<unknown> {
     case 'SCAN_RISK_ALERTS': {
       const userId = String(payload.userId ?? job.userId ?? '')
       if (!userId) throw new Error('SCAN_RISK_ALERTS job missing userId')
-      return await scanRiskAlerts(userId)
+      const result = await scanRiskAlerts(userId)
+      // New/reopened alerts may include urgent ones worth an email. The
+      // notifier itself filters to CRITICAL/HIGH + not-yet-notified + throttle,
+      // so enqueuing on any change is cheap and keeps the policy in one place.
+      if (result.created + result.reopened > 0) await enqueueNotifyAlerts(userId)
+      return result
+    }
+
+    case 'NOTIFY_ALERTS': {
+      const userId = String(payload.userId ?? job.userId ?? '')
+      if (!userId) throw new Error('NOTIFY_ALERTS job missing userId')
+      return await notifyNewAlerts(userId)
     }
 
     case 'SEND_WEEKLY_DIGEST': {
@@ -86,6 +115,12 @@ export async function handleJob(job: Job): Promise<unknown> {
       const userId = String(payload.userId ?? job.userId ?? '')
       if (!userId) throw new Error('GENERATE_DRAFT job missing userId')
       return await upsertAutoDraft(userId, conversationId)
+    }
+
+    case 'GMAIL_MAINTENANCE': {
+      const userId = String(payload.userId ?? job.userId ?? '')
+      if (!userId) throw new Error('GMAIL_MAINTENANCE job missing userId')
+      return await runGmailMaintenance(userId)
     }
 
     default: {

@@ -19,6 +19,8 @@ model User {
   riskAlerts   RiskAlert[]
   emailDigests EmailDigest[]
   categoryRules CategoryRule[]
+  reminders    Reminder[]
+  contactNotes ContactNote[]
 }
 
 model Integration {
@@ -28,6 +30,11 @@ model Integration {
   accessToken  String
   refreshToken String?
   metadata     Json        @default("{}")
+  /// Connected mailbox address (lowercased). Denormalized out of `metadata` so
+  /// the Gmail push webhook can resolve the integration on an index instead of
+  /// a full-table JSON scan (`metadata->>'email'`). Nullable for legacy rows;
+  /// `integrationEmail()` falls back to metadata until they're backfilled.
+  email        String?
   isActive     Boolean     @default(true)
   syncedAt     DateTime?
   createdAt    DateTime    @default(now())
@@ -35,6 +42,7 @@ model Integration {
   conversations Conversation[]
 
   @@unique([userId, type])
+  @@index([email])
 }
 
 model Contact {
@@ -48,10 +56,28 @@ model Contact {
   createdAt   DateTime  @default(now())
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   conversations Conversation[]
+  notes       ContactNote[]
 
   @@unique([userId, telegramId])
   @@unique([userId, email])
   @@index([userId])
+}
+
+/// A free-text note about a contact, created by the assistant's create_note
+/// action (review-before-save: the user confirms the proposed note) or manually
+/// on /clients. Recalled in the assistant briefing so it can answer "what do I
+/// know about X".
+model ContactNote {
+  id        String   @id @default(cuid())
+  userId    String
+  contactId String
+  body      String
+  source    String   @default("assistant") // assistant | manual
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([userId, contactId, createdAt])
 }
 
 model Conversation {
@@ -175,6 +201,12 @@ model Job {
   payload     Json      @default("{}")
   result      Json?
   error       String?
+  /// Collapse key for not-yet-started work, e.g. "GMAIL_SYNC:<userId>" or
+  /// "EMBED_CONVERSATION:<conversationId>". A PARTIAL UNIQUE index
+  /// (WHERE status = 'PENDING') — created in the migration, not expressible in
+  /// the Prisma schema — makes concurrent enqueues race-free: the loser hits a
+  /// unique violation and the helper returns the existing PENDING job.
+  dedupeKey   String?
   attempts    Int       @default(0)
   maxAttempts Int       @default(3)
   runAfter    DateTime  @default(now())
@@ -185,6 +217,19 @@ model Job {
 
   @@index([status, runAfter])
   @@index([userId])
+}
+
+/// Centralized fixed-window rate-limit counters. Lives in Postgres (not an
+/// in-memory map) so the limit holds across every serverless instance/region.
+/// One row per (identity + route + window); `consumeRateLimit` increments it
+/// atomically via an upsert. Stale rows are pruned by the daily maintenance cron.
+model RateLimit {
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([windowStart])
 }
 
 /// Semantic-search vector for one conversation. The embedding is stored as a
@@ -225,10 +270,36 @@ model RiskAlert {
   /// 'user' (manual) or 'auto' (condition cleared) — manual resolves get a
   /// reopen cooldown so the scanner doesn't immediately undo the user.
   resolvedBy      String?
+  /// When this alert was last included in a sent notification email. Urgent
+  /// alerts are notified exactly once: a fresh row (or a reopened one, which
+  /// clears this) qualifies; refreshed rows do not re-notify.
+  notifiedAt      DateTime?
+  /// Suppress the alert (and its notifications) until this time. Set by the
+  /// "snooze" user action; while active the alert is hidden from the OPEN list.
+  snoozedUntil    DateTime?
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   conversation    Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
+}
+
+/// A user-set follow-up reminder ("remind me to message X on Friday"), created
+/// by the assistant's create_reminder action. Surfaced in the proactive
+/// notification email and on the dashboard when due; firedAt guards against
+/// surfacing the same reminder twice.
+model Reminder {
+  id             String   @id @default(cuid())
+  userId         String
+  conversationId String?
+  contactName    String?
+  note           String
+  dueAt          DateTime
+  status         String   @default("PENDING") // PENDING | DONE | CANCELLED
+  firedAt        DateTime?
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, dueAt])
 }
 
 /// One row per delivered weekly digest — the idempotency guard that prevents
@@ -252,6 +323,8 @@ enum JobType {
   SCAN_RISK_ALERTS
   SEND_WEEKLY_DIGEST
   GENERATE_DRAFT
+  NOTIFY_ALERTS
+  GMAIL_MAINTENANCE
 }
 
 enum AlertStatus {

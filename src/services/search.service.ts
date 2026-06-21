@@ -315,6 +315,7 @@ async function enqueueEmbeddingBackfill(userId: string, conversationIds: string[
       'EMBED_CONVERSATION',
       conversationIds.slice(0, SEARCH_TUNING.BACKFILL_LIMIT).map((conversationId) => ({ conversationId })),
       { userId },
+      (p) => `EMBED_CONVERSATION:${p.conversationId}`,
     )
   } catch (err) {
     console.warn('[search] embedding backfill enqueue failed:', String(err))

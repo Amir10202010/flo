@@ -1,5 +1,6 @@
 import { type NextRequest } from 'next/server'
 import { getAuthUser, ok, err } from '@/lib/api'
+import { rateLimit } from '@/lib/ratelimit'
 import { prisma } from '@/lib/prisma'
 import {
   type ConversationStatus,
@@ -31,6 +32,8 @@ const VALID_SORT = new Set(['priority', 'recent', 'oldest'])
 export async function GET(req: NextRequest) {
   const { user, error } = await getAuthUser()
   if (!user) return error
+  const limited = await rateLimit(user.id, 'mutate')
+  if (limited) return limited
 
   const sp = req.nextUrl.searchParams
   const status = sp.get('status')

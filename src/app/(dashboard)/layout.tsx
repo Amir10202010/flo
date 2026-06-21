@@ -4,6 +4,7 @@ import Sidebar from '@/components/layout/Sidebar'
 import Brand from '@/components/layout/Brand'
 import CommandPalette from '@/components/CommandPalette'
 import ComposeModal from '@/components/ComposeModal'
+import AssistantWidget from '@/components/dashboard/AssistantWidget'
 import OnboardingTour from '@/components/onboarding/OnboardingTour'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -33,6 +34,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Global ⌘K / Ctrl+K command palette + Smart Compose modal (client islands) */}
       <CommandPalette />
       <ComposeModal />
+
+      {/* Floating AI assistant — bottom-right launcher + chat panel on every page */}
+      <AssistantWidget />
 
       {/* First-run onboarding spotlight tour (auto-runs once, replayable) */}
       <OnboardingTour />

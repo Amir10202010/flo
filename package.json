@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint",
     "worker": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local src/worker.ts",
-    "test:classifier": "tsx scripts/classifier.check.ts"
+    "test:classifier": "tsx scripts/classifier.check.ts",
+    "test:agentic": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/agentic.check.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -24,6 +25,7 @@
     "prisma": "^5.18.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "sanitize-html": "^2.17.5",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"
   },
@@ -32,6 +34,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/sanitize-html": "^2.16.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "tailwindcss": "^4",

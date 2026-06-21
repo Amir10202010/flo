@@ -76,12 +76,14 @@ export async function GET(req: NextRequest) {
         accessToken: encryptSecret(tokens.access_token!),
         refreshToken: tokens.refresh_token ? encryptSecret(tokens.refresh_token) : null,
         isActive: true,
+        email: connectedEmail,
         metadata,
       },
       update: {
         accessToken: encryptSecret(tokens.access_token!),
         ...(tokens.refresh_token ? { refreshToken: encryptSecret(tokens.refresh_token) } : {}),
         isActive: true,
+        email: connectedEmail,
         metadata,
       },
     })

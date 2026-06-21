@@ -10,8 +10,9 @@ import {
 
 /**
  * Gemini provider — the FREE default. A Google AI Studio key has a no-billing
- * free tier for both generation (gemini-2.0-flash) and embeddings
- * (gemini-embedding-001), which is what keeps the whole AI stack $0 today.
+ * free tier for both generation (gemini-2.5-flash; see the NOTE below — the
+ * 2.0 family lost its free tier) and embeddings (gemini-embedding-001), which
+ * is what keeps the whole AI stack $0 today.
  *
  * Models are overridable via GEMINI_MODEL / AI_EMBEDDING_MODEL without code
  * changes. 429s map to retryable AiProviderError so the job queue's

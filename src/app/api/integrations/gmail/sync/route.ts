@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
+import { rateLimit } from '@/lib/ratelimit'
 import { prisma } from '@/lib/prisma'
 import { enqueueGmailSync } from '@/services/jobs/queue'
 import { kickJobQueue } from '@/services/jobs/kick'
@@ -19,6 +20,8 @@ export async function POST() {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const limited = await rateLimit(user.id, 'sync')
+  if (limited) return limited
 
   const integration = await prisma.integration.findUnique({
     where: { userId_type: { userId: user.id, type: 'GMAIL' } },

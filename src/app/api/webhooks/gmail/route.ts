@@ -25,6 +25,12 @@ export async function POST(req: NextRequest) {
     if (token !== expected) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+  } else if (process.env.NODE_ENV === 'production') {
+    // Fail closed: with no verification token this receiver would let anyone
+    // POST a forged Pub/Sub envelope and trigger syncs for arbitrary mailboxes.
+    // Mirror authorizeCron's posture — refuse in production, allow only in dev.
+    console.error('[webhooks/gmail] GMAIL_PUBSUB_VERIFICATION_TOKEN is not set — refusing push in production')
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 })
   }
 
   let emailAddress: string | null = null
@@ -48,7 +54,9 @@ export async function POST(req: NextRequest) {
     where: {
       type: 'GMAIL',
       isActive: true,
-      metadata: { path: ['email'], equals: emailAddress },
+      // Indexed column lookup (see Integration.email) — replaces a full-table
+      // JSON scan of metadata->>'email' that ran on every single push.
+      email: emailAddress,
     },
     select: { userId: true },
   })

@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Harness-managed git worktrees are full repo copies — not source to lint
+    // (they double every finding and lint a stale committed snapshot).
+    ".claude/**",
   ]),
 ]);
 

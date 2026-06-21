@@ -15,6 +15,8 @@ type EnqueueOptions = {
   userId?: string
   runAfter?: Date
   maxAttempts?: number
+  /** Collapse key — see Job.dedupeKey + the partial unique index. */
+  dedupeKey?: string
 }
 
 export async function enqueue(
@@ -29,8 +31,38 @@ export async function enqueue(
       userId: opts.userId ?? null,
       runAfter: opts.runAfter ?? new Date(),
       maxAttempts: opts.maxAttempts ?? 3,
+      dedupeKey: opts.dedupeKey ?? null,
     },
   })
+}
+
+function isUniqueViolation(e: unknown): boolean {
+  return e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002'
+}
+
+/**
+ * Enqueue a job that collapses onto any existing PENDING job with the same
+ * `dedupeKey`. Race-free: the partial unique index (WHERE status = 'PENDING')
+ * means a concurrent enqueue loses the INSERT with P2002, which we catch and
+ * resolve to the winner — so a webhook/push burst can't pile up duplicates.
+ */
+async function enqueueDeduped(
+  type: JobType,
+  payload: Record<string, unknown>,
+  dedupeKey: string,
+  opts: EnqueueOptions = {},
+): Promise<Job> {
+  const existing = await prisma.job.findFirst({ where: { dedupeKey, status: 'PENDING' } })
+  if (existing) return existing
+  try {
+    return await enqueue(type, payload, { ...opts, dedupeKey })
+  } catch (e) {
+    if (isUniqueViolation(e)) {
+      const winner = await prisma.job.findFirst({ where: { dedupeKey, status: 'PENDING' } })
+      if (winner) return winner
+    }
+    throw e
+  }
 }
 
 /**
@@ -125,11 +157,17 @@ export async function getJob(id: string): Promise<Job | null> {
   return prisma.job.findUnique({ where: { id } })
 }
 
-/** Bulk-enqueue jobs of one type in a single round trip. */
+/**
+ * Bulk-enqueue jobs of one type in a single round trip. When `dedupeKeyFor` is
+ * given, rows carry a dedupeKey and `skipDuplicates` collapses them against any
+ * existing PENDING job with the same key (via the partial unique index) — so a
+ * re-run can't double-queue analysis/embeds for the same conversation.
+ */
 export async function enqueueMany(
   type: JobType,
   payloads: Record<string, unknown>[],
   opts: EnqueueOptions = {},
+  dedupeKeyFor?: (payload: Record<string, unknown>) => string,
 ): Promise<number> {
   if (!payloads.length) return 0
   const res = await prisma.job.createMany({
@@ -139,7 +177,9 @@ export async function enqueueMany(
       userId: opts.userId ?? null,
       runAfter: opts.runAfter ?? new Date(),
       maxAttempts: opts.maxAttempts ?? 3,
+      dedupeKey: dedupeKeyFor?.(payload) ?? null,
     })),
+    skipDuplicates: true,
   })
   return res.count
 }
@@ -156,16 +196,18 @@ export async function enqueueMany(
  * even eligible to run and times out.
  */
 export async function enqueueGmailSync(userId: string): Promise<Job> {
-  const pending = await prisma.job.findFirst({
-    where: { type: 'GMAIL_SYNC', userId, status: 'PENDING' },
-  })
+  const dedupeKey = `GMAIL_SYNC:${userId}`
+  const pending = await prisma.job.findFirst({ where: { dedupeKey, status: 'PENDING' } })
   if (pending) {
+    // Pull a future-scheduled backoff retry forward: an explicit trigger
+    // (connect, manual sync, push) should run now, not after the remaining
+    // backoff, or the UI polls a job that isn't even eligible yet.
     if (pending.runAfter > new Date()) {
       return prisma.job.update({ where: { id: pending.id }, data: { runAfter: new Date() } })
     }
     return pending
   }
-  return enqueue('GMAIL_SYNC', { userId }, { userId })
+  return enqueueDeduped('GMAIL_SYNC', { userId }, dedupeKey, { userId })
 }
 
 /**
@@ -174,11 +216,46 @@ export async function enqueueGmailSync(userId: string): Promise<Job> {
  * covers any number of triggers.
  */
 export async function enqueueScanRiskAlerts(userId: string): Promise<Job> {
-  const pending = await prisma.job.findFirst({
-    where: { type: 'SCAN_RISK_ALERTS', userId, status: 'PENDING' },
+  return enqueueDeduped('SCAN_RISK_ALERTS', { userId }, `SCAN_RISK_ALERTS:${userId}`, { userId })
+}
+
+/**
+ * Enqueue an urgent-alert notification pass for the user, collapsing onto an
+ * existing PENDING job — notifyNewAlerts recomputes the full set, so one
+ * pending job covers any number of scans that finished close together.
+ */
+export async function enqueueNotifyAlerts(userId: string): Promise<Job> {
+  return enqueueDeduped('NOTIFY_ALERTS', { userId }, `NOTIFY_ALERTS:${userId}`, { userId })
+}
+
+/**
+ * Enqueue the per-user daily maintenance pass (safety sync, alert scan, embed
+ * + draft backfill, watch renewal, weekly digest). The cron enqueues one of
+ * these per integration instead of doing the work inline, so a single cron tick
+ * stays O(1) regardless of how many mailboxes exist.
+ */
+export async function enqueueGmailMaintenance(userId: string): Promise<Job> {
+  return enqueueDeduped('GMAIL_MAINTENANCE', { userId }, `GMAIL_MAINTENANCE:${userId}`, { userId })
+}
+
+/**
+ * Bulk-enqueue GMAIL_MAINTENANCE for many users in ONE round trip. The daily
+ * cron uses this so a single tick stays cheap regardless of mailbox count;
+ * `skipDuplicates` + the partial unique index collapse against existing PENDING
+ * maintenance jobs, so overlapping cron runs never pile up.
+ */
+export async function enqueueMaintenanceForUsers(userIds: string[]): Promise<number> {
+  if (!userIds.length) return 0
+  const res = await prisma.job.createMany({
+    data: userIds.map((userId) => ({
+      type: 'GMAIL_MAINTENANCE' as JobType,
+      payload: { userId } as Prisma.InputJsonValue,
+      userId,
+      dedupeKey: `GMAIL_MAINTENANCE:${userId}`,
+    })),
+    skipDuplicates: true,
   })
-  if (pending) return pending
-  return enqueue('SCAN_RISK_ALERTS', { userId }, { userId })
+  return res.count
 }
 
 /**
@@ -187,15 +264,7 @@ export async function enqueueScanRiskAlerts(userId: string): Promise<Job> {
  * duplicate slipping through costs one no-op job, not a wrong result).
  */
 export async function enqueueEmbedConversation(userId: string, conversationId: string): Promise<Job> {
-  const pending = await prisma.job.findFirst({
-    where: {
-      type: 'EMBED_CONVERSATION',
-      status: 'PENDING',
-      payload: { path: ['conversationId'], equals: conversationId },
-    },
-  })
-  if (pending) return pending
-  return enqueue('EMBED_CONVERSATION', { conversationId }, { userId })
+  return enqueueDeduped('EMBED_CONVERSATION', { conversationId }, `EMBED_CONVERSATION:${conversationId}`, { userId })
 }
 
 /**
@@ -204,13 +273,5 @@ export async function enqueueEmbedConversation(userId: string, conversationId: s
  * handler re-checks awaiting + provider, so a stray duplicate is a cheap no-op).
  */
 export async function enqueueGenerateDraft(userId: string, conversationId: string): Promise<Job> {
-  const pending = await prisma.job.findFirst({
-    where: {
-      type: 'GENERATE_DRAFT',
-      status: 'PENDING',
-      payload: { path: ['conversationId'], equals: conversationId },
-    },
-  })
-  if (pending) return pending
-  return enqueue('GENERATE_DRAFT', { conversationId }, { userId })
+  return enqueueDeduped('GENERATE_DRAFT', { conversationId }, `GENERATE_DRAFT:${conversationId}`, { userId })
 }

@@ -6,13 +6,13 @@ import { getSupabaseServerClient } from './supabase-server'
 /**
  * Returns the current Supabase user for this server request.
  *
- * Fast path: the middleware (src/middleware.ts) already validated the session
+ * Fast path: the proxy (src/proxy.ts) already validated the session
  * with getUser() and forwarded the identity via x-user-* request headers. We
  * reconstruct the user from those headers — no network round-trip. This is what
  * makes navigation fast: without it, every dashboard render repeated the
- * middleware's getUser() call (~150–400ms each).
+ * proxy's getUser() call (~150–400ms each).
  *
- * Fallback: if the headers are absent (e.g. a route not behind the middleware,
+ * Fallback: if the headers are absent (e.g. a route not behind the proxy,
  * or an unauthenticated request), we call getUser() directly.
  *
  * Still wrapped in React's cache() so layout + page + nested components in the

@@ -1,5 +1,6 @@
 import { type NextRequest } from 'next/server'
 import { getAuthUser, ok, err } from '@/lib/api'
+import { rateLimit } from '@/lib/ratelimit'
 import { searchConversations, type SearchFilters } from '@/services/search.service'
 import type { Channel, ConversationStatus, PriorityLevel, RiskLevel, Sentiment } from '@/types'
 
@@ -22,6 +23,8 @@ const VALID_SENTIMENT = new Set(['POSITIVE', 'NEUTRAL', 'NEGATIVE'])
 export async function GET(req: NextRequest) {
   const { user, error } = await getAuthUser()
   if (!user) return error
+  const limited = await rateLimit(user.id, 'search')
+  if (limited) return limited
 
   const sp = req.nextUrl.searchParams
   const q = (sp.get('q') ?? '').slice(0, 300)

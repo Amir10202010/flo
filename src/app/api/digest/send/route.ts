@@ -1,4 +1,5 @@
 import { getAuthUser, ok, err } from '@/lib/api'
+import { rateLimit } from '@/lib/ratelimit'
 import { sendWeeklyDigest } from '@/services/digest.service'
 
 // Building the digest + the Gmail send can take a few seconds.
@@ -12,6 +13,8 @@ export const maxDuration = 60
 export async function POST() {
   const { user, error } = await getAuthUser()
   if (!user) return error
+  const limited = await rateLimit(user.id, 'digestSend')
+  if (limited) return limited
 
   try {
     const result = await sendWeeklyDigest(user.id, { manual: true })

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   motion, type Variants, MotionConfig, AnimatePresence,
@@ -63,14 +63,15 @@ function CountUp({ to, suffix = '', prefix = '', duration = 1.4, decimals = 0 }:
   const [val, setVal] = useState(0)
   const started = useRef(false)
   const fmt = (n: number) => `${prefix}${n.toFixed(decimals)}${suffix}`
-  // Reduced motion: skip the count, show the final value. Done in an effect
-  // (post-mount) so server and client first render agree → no hydration gap.
-  useEffect(() => { if (reduce) setVal(to) }, [reduce, to])
   return (
     <motion.span
       onViewportEnter={() => {
-        if (started.current || reduce) return
+        if (started.current) return
         started.current = true
+        // Reduced motion: snap straight to the final value, no count animation.
+        // Handled in this (post-hydration) event handler rather than an effect, so
+        // the first render stays fmt(0) on both server and client → no hydration gap.
+        if (reduce) { setVal(to); return }
         const start = performance.now()
         const tick = (now: number) => {
           const p = Math.min((now - start) / (duration * 1000), 1)

@@ -1,6 +1,7 @@
 import { google, gmail_v1 } from 'googleapis'
 import { prisma } from '@/lib/prisma'
 import { decryptSecret, encryptSecret } from '@/lib/crypto'
+import { mergeIntegrationMetadata } from '@/lib/integration-metadata'
 import { htmlToText } from '@/lib/html'
 import { classifyEmail, type ClassifierRule } from '@/services/email.classifier'
 import { markDraftSent } from '@/services/draft.service'
@@ -96,8 +97,10 @@ function headerValue(headers: gmail_v1.Schema$MessagePartHeader[] | undefined, n
 }
 
 export function integrationEmail(integration: Integration): string {
+  // Prefer the denormalized column; fall back to metadata for rows written
+  // before the column existed (until the one-time backfill UPDATE runs).
   const meta = integration.metadata as { email?: string } | null
-  return (meta?.email ?? process.env.GMAIL_USER_EMAIL ?? '').toLowerCase()
+  return (integration.email ?? meta?.email ?? process.env.GMAIL_USER_EMAIL ?? '').toLowerCase()
 }
 
 function errMessage(err: unknown): string {
@@ -486,21 +489,14 @@ export async function syncGmailForUser(userId: string): Promise<SyncResult> {
   // writes are idempotent); advancing past failures would silently drop them.
   const advanceCursor = result.errors.length === 0 && newHistoryId
 
-  // Re-read metadata before writing: a concurrent watch renewal/sync may have
-  // updated it since this sync started — don't clobber those keys.
+  // Atomic metadata merge (jsonb ||) so a concurrent watch renewal / overlapping
+  // sync can't clobber the cursor — and bump syncedAt in the same write.
   try {
-    const fresh = await prisma.integration.findUnique({
-      where: { id: integration.id },
-      select: { metadata: true },
-    })
-    const freshMeta = (fresh?.metadata as Record<string, unknown> | null) ?? meta
-    await prisma.integration.update({
-      where: { id: integration.id },
-      data: {
-        syncedAt: new Date(),
-        metadata: { ...freshMeta, ...(advanceCursor ? { lastHistoryId: newHistoryId } : {}) },
-      },
-    })
+    await mergeIntegrationMetadata(
+      integration.id,
+      advanceCursor ? { lastHistoryId: newHistoryId } : {},
+      { touchSyncedAt: true },
+    )
   } catch (err) {
     console.error('[gmail] failed to persist sync state (syncedAt/lastHistoryId):', err)
     result.errors.push(`Failed to persist sync state: ${errMessage(err)}`)
@@ -536,17 +532,8 @@ export async function startGmailWatch(integration: Integration): Promise<WatchRe
   const historyId = res.data.historyId ?? undefined
   const expiration = res.data.expiration ?? undefined
 
-  // Re-read metadata so we merge with the latest state (a sync may have
-  // written lastHistoryId since `integration` was loaded).
-  const fresh = await prisma.integration.findUnique({
-    where: { id: integration.id },
-    select: { metadata: true },
-  })
-  const meta = (fresh?.metadata as Record<string, unknown> | null) ?? {}
-  await prisma.integration.update({
-    where: { id: integration.id },
-    data: { metadata: { ...meta, watchExpiration: expiration ?? null } },
-  })
+  // Atomic merge so a concurrent sync's lastHistoryId write isn't clobbered.
+  await mergeIntegrationMetadata(integration.id, { watchExpiration: expiration ?? null })
 
   return { historyId, expiration }
 }
@@ -567,12 +554,15 @@ function buildMime(to: string, subject: string, body: string): string {
   const safeSubject = subject.toLowerCase().startsWith('re:') ? subject : `Re: ${subject}`
   const headers = [
     `To: ${to}`,
-    `Subject: ${safeSubject}`,
+    // RFC 2047-encode the subject and base64 the body. A raw UTF-8 Subject
+    // header and a 7bit-declared UTF-8 body corrupt non-ASCII replies (the app
+    // explicitly supports Cyrillic/emoji) — match the standalone send path.
+    `Subject: ${encodeHeader(safeSubject)}`,
     'MIME-Version: 1.0',
     'Content-Type: text/plain; charset="UTF-8"',
-    'Content-Transfer-Encoding: 7bit',
+    'Content-Transfer-Encoding: base64',
   ]
-  return `${headers.join('\r\n')}\r\n\r\n${body}`
+  return `${headers.join('\r\n')}\r\n\r\n${base64Body(body)}`
 }
 
 export type SendReplyResult = { messageId: string }

@@ -1,7 +1,8 @@
 import { z } from 'zod'
 import { getAuthUser, ok, err } from '@/lib/api'
+import { rateLimit } from '@/lib/ratelimit'
 import { prisma } from '@/lib/prisma'
-import { sanitizeMessageHtml } from '@/lib/html'
+import { sanitizeMessageHtml } from '@/lib/sanitize-email'
 import { sendGmailMessage } from '@/services/gmail.service'
 
 const BodySchema = z.object({
@@ -17,6 +18,8 @@ const BodySchema = z.object({
 export async function POST(req: Request) {
   const { user, error } = await getAuthUser()
   if (!user) return error
+  const limited = await rateLimit(user.id, 'composeSend')
+  if (limited) return limited
 
   let parsed: z.infer<typeof BodySchema>
   try {

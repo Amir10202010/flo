@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client'
 import { getAuthUser, ok, err } from '@/lib/api'
+import { rateLimit } from '@/lib/ratelimit'
 import { prisma } from '@/lib/prisma'
 import { ensurePlainText } from '@/lib/html'
 import { summarizeThread } from '@/services/ai'
@@ -15,6 +16,8 @@ type CachedSummary = ThreadSummary & { hash: string; provider: string; at: strin
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { user, error } = await getAuthUser()
   if (!user) return error
+  const limited = await rateLimit(user.id, 'summarize')
+  if (limited) return limited
 
   const { id } = await params
 

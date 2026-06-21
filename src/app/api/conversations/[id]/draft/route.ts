@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { getAuthUser, ok, err } from '@/lib/api'
+import { rateLimit } from '@/lib/ratelimit'
 import { prisma } from '@/lib/prisma'
 import { dismissDraft, generateReplyDraftForConversation } from '@/services/draft.service'
 
@@ -17,6 +18,8 @@ const BodySchema = z.object({
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { user, error } = await getAuthUser()
   if (!user) return error
+  const limited = await rateLimit(user.id, 'draft')
+  if (limited) return limited
 
   const { id } = await params
 

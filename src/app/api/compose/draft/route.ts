@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { getAuthUser, ok, err } from '@/lib/api'
+import { rateLimit } from '@/lib/ratelimit'
 import { generateReplyDraft } from '@/services/ai'
 import { collectStyleSamples } from '@/services/draft.service'
 
@@ -16,6 +17,8 @@ const BodySchema = z.object({
 export async function POST(req: Request) {
   const { user, error } = await getAuthUser()
   if (!user) return error
+  const limited = await rateLimit(user.id, 'composeDraft')
+  if (limited) return limited
 
   let parsed: z.infer<typeof BodySchema>
   try {

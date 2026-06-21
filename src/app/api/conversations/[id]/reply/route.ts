@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { getAuthUser, ok, err } from '@/lib/api'
+import { rateLimit } from '@/lib/ratelimit'
 import { prisma } from '@/lib/prisma'
 import { sendGmailReply } from '@/services/gmail.service'
 
@@ -13,6 +14,8 @@ export async function POST(
 ) {
   const { user, error } = await getAuthUser()
   if (!user) return error
+  const limited = await rateLimit(user.id, 'reply')
+  if (limited) return limited
 
   const { id } = await params
 

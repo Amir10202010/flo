@@ -1,5 +1,6 @@
 import { type NextRequest } from 'next/server'
 import { getAuthUser, ok, err } from '@/lib/api'
+import { rateLimit } from '@/lib/ratelimit'
 import { answerWorkspaceQuestion } from '@/services/assistant.service'
 
 /**
@@ -13,6 +14,8 @@ import { answerWorkspaceQuestion } from '@/services/assistant.service'
 export async function POST(req: NextRequest) {
   const { user, error } = await getAuthUser()
   if (!user) return error
+  const limited = await rateLimit(user.id, 'assistant')
+  if (limited) return limited
 
   let body: unknown
   try {
