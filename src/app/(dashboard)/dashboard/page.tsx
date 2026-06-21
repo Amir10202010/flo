@@ -13,6 +13,7 @@ import CommandCenter from '@/components/dashboard/CommandCenter'
 import RiskMonitor from '@/components/dashboard/RiskMonitor'
 import SmartInsights from '@/components/dashboard/SmartInsights'
 import ActivityTimeline from '@/components/dashboard/ActivityTimeline'
+import RemindersCard from '@/components/dashboard/RemindersCard'
 import RelationshipHealth from '@/components/dashboard/RelationshipHealth'
 import DashboardEmpty from '@/components/dashboard/DashboardEmpty'
 import MetricsUnavailable from '@/components/dashboard/MetricsUnavailable'
@@ -163,6 +164,7 @@ async function DashboardBody({ userId }: { userId: string }) {
           <Reveal delay={0.14}>
             <SmartInsights insights={data.insights} />
           </Reveal>
+          <RemindersCard />
           <Reveal delay={0.22}>
             <ActivityTimeline events={data.timeline} />
           </Reveal>

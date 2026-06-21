@@ -1,6 +1,11 @@
+import type { Reminder } from '@prisma/client'
 import { getTextProvider } from './ai'
 import { AiProviderError, type AiJsonSchema } from './ai/types'
 import { getDashboardData, type DashboardData } from './dashboard.service'
+import { parseAction, type AssistantAction } from './assistant.actions'
+import { listReminders } from './reminder.service'
+import { listRecentNotes, type RecentNote } from './note.service'
+import { shortDate } from '@/lib/time'
 
 /**
  * Workspace Q&A assistant — the conversational layer behind /assistant.
@@ -30,6 +35,30 @@ export interface AssistantAnswer {
   degraded: boolean
   hasIntegration: boolean
   hasData: boolean
+  /**
+   * An action the assistant proposes to take (drafts, alert triage, reminder),
+   * pending the user's explicit confirmation. Never executed here; only the AI
+   * path proposes (offline mode answers in text only).
+   */
+  proposedAction: AssistantAction | null
+  /**
+   * When `degraded`, WHY we fell back to the offline answer — so the UI can be
+   * honest (a 429 is "rate-limited", NOT "connect a Gemini key"). null on the
+   * full AI path and on the no-integration/no-data short-circuits (whose answer
+   * text already explains itself).
+   */
+  degradedReason: DegradedReason
+}
+
+export type DegradedReason = null | 'no-key' | 'rate-limited' | 'unavailable' | 'error'
+
+/** Classify a failed AI call into a user-facing degradation reason. */
+export function degradedReasonFor(err: unknown): Exclude<DegradedReason, null> {
+  if (err instanceof AiProviderError) {
+    if (err.kind === 'rate_limit') return 'rate-limited'
+    if (err.kind === 'unavailable') return 'unavailable'
+  }
+  return 'error'
 }
 
 const ANSWER_SCHEMA: AiJsonSchema = {
@@ -57,6 +86,55 @@ const ANSWER_SCHEMA: AiJsonSchema = {
       type: 'array',
       description: 'Up to 3 short, useful follow-up questions the user might ask next, in the question’s language.',
       items: { type: 'string' },
+    },
+    proposedAction: {
+      type: 'object',
+      description:
+        'OPTIONAL. Include ONLY when the user is clearly asking you to DO one of these: draft replies in bulk, triage an at-risk alert, set a follow-up reminder, or save a note about a contact. Omit entirely for informational questions. This is a PROPOSAL the user must confirm — it is never executed automatically.',
+      properties: {
+        type: { type: 'string', enum: ['bulk_draft', 'triage_alert', 'create_reminder', 'create_note'] },
+        summary: {
+          type: 'string',
+          description:
+            'One short sentence stating exactly what will happen if confirmed, e.g. "Draft replies to your 4 overdue threads." In the question’s language.',
+        },
+        params: {
+          type: 'object',
+          properties: {
+            filter: {
+              type: 'string',
+              enum: ['overdue_replies', 'at_risk', 'awaiting'],
+              description: 'bulk_draft only: which threads to draft for.',
+            },
+            alertHref: {
+              type: 'string',
+              description: 'triage_alert only: the /inbox/<id> href (verbatim from the briefing) of the at-risk thread.',
+            },
+            op: {
+              type: 'string',
+              enum: ['resolve', 'snooze', 'acknowledge'],
+              description: 'triage_alert only: what to do with the alert.',
+            },
+            snoozeDays: { type: 'number', description: 'triage_alert snooze only: number of days (default 3).' },
+            note: { type: 'string', description: 'create_reminder only: what to be reminded about.' },
+            dueAt: {
+              type: 'string',
+              description:
+                'create_reminder only: ISO 8601 datetime in the FUTURE, computed from the "Current time" in the briefing.',
+            },
+            conversationHref: {
+              type: 'string',
+              description: 'create_reminder only: optional /inbox/<id> href (verbatim from briefing) the reminder is about.',
+            },
+            contactHref: {
+              type: 'string',
+              description: 'create_note only: /inbox/<id> href (verbatim from briefing) of the person the note is about.',
+            },
+            body: { type: 'string', description: 'create_note only: the note text to save about that contact.' },
+          },
+        },
+      },
+      required: ['type', 'summary'],
     },
   },
   required: ['answer', 'sources', 'followUps'],
@@ -103,11 +181,12 @@ function clamp(s: string, max: number): string {
 }
 
 /** Compact, model-facing snapshot of the workspace. */
-function buildBriefing(data: DashboardData): string {
+function buildBriefing(data: DashboardData, reminders: Reminder[], notes: RecentNote[], now: number): string {
   const lines: string[] = []
   const s = data.stats
 
   lines.push(`WORKSPACE BRIEFING${data.integrationEmail ? ` for ${data.integrationEmail}` : ''}`)
+  lines.push(`Current time: ${new Date(now).toISOString()}`)
   lines.push(`Last Gmail sync: ${data.lastSyncAgo ?? 'never'}`)
   lines.push('')
   lines.push('KEY METRICS')
@@ -163,6 +242,24 @@ function buildBriefing(data: DashboardData): string {
     }
   }
 
+  if (reminders.length) {
+    lines.push('')
+    lines.push('YOUR REMINDERS (pending follow-ups you set)')
+    for (const r of reminders.slice(0, 10)) {
+      const due = r.dueAt.getTime() <= now ? 'DUE NOW' : `due ${shortDate(r.dueAt)}`
+      const ref = r.conversationId ? ` [/inbox/${r.conversationId}]` : r.contactName ? ` (${r.contactName})` : ''
+      lines.push(`- ${due}: ${r.note}${ref}`)
+    }
+  }
+
+  if (notes.length) {
+    lines.push('')
+    lines.push('NOTES YOU SAVED ABOUT CONTACTS')
+    for (const n of notes.slice(0, 10)) {
+      lines.push(`- ${n.contactName} (${shortDate(n.createdAt)}): ${clamp(n.body, 160)}`)
+    }
+  }
+
   return lines.join('\n')
 }
 
@@ -174,6 +271,7 @@ Rules:
 - If the briefing does not contain enough to answer, say so honestly and suggest what the manager could do (e.g. sync, open a page).
 - Be concise and specific. Prefer naming real clients/threads from the briefing over generic advice.
 - When you reference a thread or page, add it to "sources" using an href copied verbatim from the briefing (the [/...] tokens).
+- You can DO four things when (and only when) the user clearly asks you to act: draft replies in bulk (bulk_draft), triage an at-risk alert (triage_alert), set a follow-up reminder (create_reminder), or save a note about a contact (create_note — put the note text in params.body and the person's /inbox href in params.contactHref). In that case fill "proposedAction" — it is a PROPOSAL the user confirms, never auto-executed. For any informational question, OMIT proposedAction. Use only hrefs and the "Current time" from the briefing for action params.
 - Reply in the SAME LANGUAGE as the question.
 
 BRIEFING:
@@ -206,6 +304,25 @@ function validateFollowUps(raw: unknown): string[] {
     .map((x) => clamp(String(x ?? ''), 90))
     .filter((s) => s.length >= 4)
     .slice(0, 3)
+}
+
+/**
+ * Parse + sanity-check a proposed action. Beyond parseAction's shape/bounds
+ * checks, any thread the action references must be one we actually surfaced in
+ * the briefing (in `allowed`), so the model can't act on a fabricated thread.
+ * Returns null when there is no valid, grounded action to propose.
+ */
+function validateProposedAction(raw: unknown, allowed: Map<string, string>, now: number): AssistantAction | null {
+  const action = parseAction(raw, now)
+  if (!action) return null
+  const refId =
+    action.type === 'triage_alert' || action.type === 'create_note'
+      ? action.conversationId
+      : action.type === 'create_reminder'
+        ? action.conversationId
+        : null
+  if (refId && !allowed.has(`/inbox/${refId}`)) return null
+  return action
 }
 
 // ── Local (offline) fallback ────────────────────────────────────────────────
@@ -276,7 +393,7 @@ function localAnswer(question: string, data: DashboardData): { answer: string; s
 
 export async function answerWorkspaceQuestion(userId: string, question: string): Promise<AssistantAnswer> {
   const data = await getDashboardData(userId)
-  const base = { hasIntegration: data.hasIntegration, hasData: data.hasData }
+  const base = { hasIntegration: data.hasIntegration, hasData: data.hasData, proposedAction: null, degradedReason: null }
 
   // Empty workspace — short-circuit with an honest, actionable message.
   if (!data.hasIntegration) {
@@ -302,10 +419,16 @@ export async function answerWorkspaceQuestion(userId: string, question: string):
     }
   }
 
+  const reminders = await listReminders(userId)
+  const notes = await listRecentNotes(userId)
+
   const provider = getTextProvider()
+  // Reason we'd show offline output: no key, or (set in catch) a failed call.
+  let degradedReason: Exclude<DegradedReason, null> = provider ? 'error' : 'no-key'
   if (provider) {
     try {
-      const briefing = buildBriefing(data)
+      const now = Date.now()
+      const briefing = buildBriefing(data, reminders, notes, now)
       const allowed = buildSourceMap(data)
       const raw = await provider.generateJson<Record<string, unknown>>({
         prompt: buildPrompt(question, briefing),
@@ -322,10 +445,12 @@ export async function answerWorkspaceQuestion(userId: string, question: string):
           mode: 'gemini',
           degraded: false,
           ...base,
+          proposedAction: validateProposedAction(raw.proposedAction, allowed, now),
         }
       }
-      // Empty model output — fall through to the local answer.
+      // Empty model output — fall through to the local answer (reason 'error').
     } catch (err) {
+      degradedReason = degradedReasonFor(err)
       if (err instanceof AiProviderError && err.retryable) {
         // Quota/transient: don't fail the request, degrade to the local answer.
         console.warn('[assistant] provider rate-limited/unavailable, using local answer:', err.message)
@@ -336,5 +461,5 @@ export async function answerWorkspaceQuestion(userId: string, question: string):
   }
 
   const local = localAnswer(question, data)
-  return { ...local, mode: 'local', degraded: true, ...base }
+  return { ...local, mode: 'local', degraded: true, ...base, degradedReason }
 }

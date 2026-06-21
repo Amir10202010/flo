@@ -82,6 +82,10 @@ export async function scanRiskAlerts(userId: string): Promise<ScanResult> {
           acknowledgedAt: null,
           resolvedAt: null,
           resolvedBy: null,
+          // A condition that returned is "fresh" again: clear any prior snooze
+          // and the notify guard so a re-emerged urgent alert can re-notify.
+          snoozedUntil: null,
+          notifiedAt: null,
         },
       })
       reopened++
@@ -149,7 +153,12 @@ export async function listRiskAlerts(
   limit = 50,
 ): Promise<RiskAlertItem[]> {
   const rows = await prisma.riskAlert.findMany({
-    where: { userId, status: { in: statuses } },
+    where: {
+      userId,
+      status: { in: statuses },
+      // Actively-snoozed alerts are intentionally hidden until they wake up.
+      OR: [{ snoozedUntil: null }, { snoozedUntil: { lte: new Date() } }],
+    },
     orderBy: { lastSeenAt: 'desc' },
     take: limit,
   })
@@ -163,13 +172,16 @@ export async function listRiskAlerts(
     .map((a) => toItem(a, now))
 }
 
-export type AlertAction = 'acknowledge' | 'resolve' | 'reopen'
+export type AlertAction = 'acknowledge' | 'resolve' | 'reopen' | 'snooze'
+
+const DEFAULT_SNOOZE_DAYS = 3
 
 /** Apply a user status transition; returns null when the alert isn't theirs. */
 export async function setAlertStatus(
   userId: string,
   alertId: string,
   action: AlertAction,
+  opts: { snoozeDays?: number } = {},
 ): Promise<RiskAlertItem | null> {
   const alert = await prisma.riskAlert.findFirst({ where: { id: alertId, userId } })
   if (!alert) return null
@@ -180,7 +192,14 @@ export async function setAlertStatus(
       ? { status: 'ACKNOWLEDGED' as const, acknowledgedAt: now }
       : action === 'resolve'
         ? { status: 'RESOLVED' as const, resolvedAt: now, resolvedBy: 'user' }
-        : { status: 'OPEN' as const, acknowledgedAt: null, resolvedAt: null, resolvedBy: null }
+        : action === 'snooze'
+          ? {
+              // Keep the status; just hide it (and suppress notifications) until
+              // it wakes up. Treated as seen, so mark acknowledged if it wasn't.
+              snoozedUntil: new Date(now.getTime() + (opts.snoozeDays ?? DEFAULT_SNOOZE_DAYS) * 86_400_000),
+              acknowledgedAt: alert.acknowledgedAt ?? now,
+            }
+          : { status: 'OPEN' as const, acknowledgedAt: null, resolvedAt: null, resolvedBy: null, snoozedUntil: null }
 
   const updated = await prisma.riskAlert.update({ where: { id: alert.id }, data })
   return toItem(updated, Date.now())

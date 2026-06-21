@@ -7,6 +7,7 @@ import {
   BrainCircuit,
   CalendarClock,
   CircleCheck,
+  Mail,
   MessagesSquare,
   PenLine,
   ShieldAlert,
@@ -42,14 +43,29 @@ const CAPABILITIES: {
   {
     icon: <PenLine size={15} />,
     title: 'Drafted replies in your voice',
-    desc: 'One-click reply drafts grounded in the full thread history and your past replies.',
-    status: 'soon',
+    desc: 'One-click reply drafts grounded in the full thread history and your past replies — always review-before-send.',
+    status: 'live',
+    href: '/inbox',
+  },
+  {
+    icon: <Bot size={15} />,
+    title: 'Takes action when you ask',
+    desc: 'Draft replies in bulk, triage an at-risk alert, or set a follow-up reminder — proposed first, run only when you confirm.',
+    status: 'live',
+  },
+  {
+    icon: <Mail size={15} />,
+    title: 'Proactive urgent-alert emails',
+    desc: 'When a client hits critical or high risk, Velnox emails you — bundled and throttled so it never floods you.',
+    status: 'live',
+    href: '/settings',
   },
   {
     icon: <CalendarClock size={15} />,
     title: 'Weekly relationship digest',
     desc: 'A Monday-morning brief: trends, quiet clients and your top three actions.',
-    status: 'soon',
+    status: 'live',
+    href: '/insights',
   },
 ]
 

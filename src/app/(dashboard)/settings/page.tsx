@@ -6,12 +6,22 @@ import { Reveal } from '@/components/dashboard/Motion'
 import WidgetShell from '@/components/dashboard/WidgetShell'
 import SignOutButton from '@/components/ui/SignOutButton'
 import ReplayTourButton from '@/components/onboarding/ReplayTourButton'
+import AlertEmailToggle from '@/components/settings/AlertEmailToggle'
 
 export const metadata: Metadata = { title: 'Settings — Velnox' }
 
 const PRO_PERKS = ['Unlimited synced threads', 'Full AI analysis on every conversation']
 
-const NOTIFICATIONS = [
+type NotificationRow = {
+  icon: React.ReactNode
+  title: string
+  desc: string
+  live: boolean
+  state?: string
+  toggle?: boolean
+}
+
+const NOTIFICATIONS: NotificationRow[] = [
   {
     icon: <Mail size={14} />,
     title: 'Weekly digest email',
@@ -21,10 +31,10 @@ const NOTIFICATIONS = [
   },
   {
     icon: <ShieldCheck size={14} />,
-    title: 'Risk alerts',
-    desc: 'Rule + AI detections on the Risk Monitor, refreshed after every sync. Email alerts coming soon.',
-    state: 'Live in-app',
+    title: 'Urgent alert emails',
+    desc: 'Get an email when a client hits critical or high risk — bundled and throttled (max once per ~6h) so it never floods you.',
     live: true,
+    toggle: true,
   },
 ]
 
@@ -128,7 +138,11 @@ export default async function SettingsPage() {
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{n.title}</div>
                   <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1 }}>{n.desc}</div>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: n.live ? 'var(--success)' : 'var(--text-muted)', flexShrink: 0 }}>{n.state}</span>
+                {n.toggle ? (
+                  <AlertEmailToggle />
+                ) : (
+                  <span style={{ fontSize: 11, fontWeight: 600, color: n.live ? 'var(--success)' : 'var(--text-muted)', flexShrink: 0 }}>{n.state}</span>
+                )}
               </div>
             ))}
           </WidgetShell>

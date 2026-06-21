@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
-import { ArrowUpRight, CornerDownLeft, Loader2, Sparkles, TriangleAlert, User } from 'lucide-react'
+import { ArrowUpRight, Check, CornerDownLeft, Loader2, Sparkles, TriangleAlert, User, Wand2, X } from 'lucide-react'
+import type { AssistantAction } from '@/services/assistant.actions'
+import type { DegradedReason } from '@/services/assistant.service'
 
 const SUGGESTED = [
   'Who should I follow up with today?',
@@ -23,6 +25,8 @@ interface AssistantTurn {
   sources: Source[]
   followUps: string[]
   degraded: boolean
+  degradedReason: DegradedReason
+  proposedAction: AssistantAction | null
 }
 
 interface ApiAnswer {
@@ -31,6 +35,24 @@ interface ApiAnswer {
   followUps: string[]
   mode: 'gemini' | 'local'
   degraded: boolean
+  degradedReason: DegradedReason
+  proposedAction: AssistantAction | null
+}
+
+/** Honest, cause-specific note for an offline (degraded) answer. */
+function degradedNote(reason: DegradedReason): string | null {
+  switch (reason) {
+    case 'rate-limited':
+      return "Velnox's free AI tier is rate-limited right now — this is a quick offline summary, so it may not match your question. Try again in a minute for a precise answer."
+    case 'unavailable':
+      return 'The AI service is temporarily unavailable — showing a quick offline summary. Try again shortly.'
+    case 'no-key':
+      return 'No AI key is configured, so this is an offline summary. Add a Gemini key for full answers.'
+    case 'error':
+      return "The AI couldn't process that just now — showing a quick offline summary. Try again in a moment."
+    default:
+      return null
+  }
 }
 
 /**
@@ -69,7 +91,15 @@ export default function AssistantComposer() {
       const data = (await res.json()) as ApiAnswer
       setTurns((prev) => [
         ...prev,
-        { question: q, answer: data.answer, sources: data.sources ?? [], followUps: data.followUps ?? [], degraded: data.degraded },
+        {
+          question: q,
+          answer: data.answer,
+          sources: data.sources ?? [],
+          followUps: data.followUps ?? [],
+          degraded: data.degraded,
+          degradedReason: data.degradedReason ?? null,
+          proposedAction: data.proposedAction ?? null,
+        },
       ])
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.')
@@ -285,12 +315,167 @@ function AnswerBubble({ turn, reduced }: { turn: AssistantTurn; reduced: boolean
           </div>
         )}
 
-        {turn.degraded && (
-          <div style={{ marginTop: 9, fontSize: 11, color: 'var(--text-muted)' }}>
-            Quick scan · offline mode — connect a Gemini key for richer answers.
-          </div>
-        )}
+        {turn.proposedAction && <ActionCard action={turn.proposedAction} />}
+
+        <DegradedNote reason={turn.degradedReason} />
       </div>
     </motion.div>
+  )
+}
+
+function DegradedNote({ reason }: { reason: DegradedReason }) {
+  const note = degradedNote(reason)
+  if (!note) return null
+  // Rate-limit / unavailable / error get an amber tint (the answer may be
+  // off-topic); a missing key is just informational.
+  const warn = reason === 'rate-limited' || reason === 'unavailable' || reason === 'error'
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 7,
+        marginTop: 9,
+        padding: '8px 10px',
+        borderRadius: 9,
+        background: warn ? 'rgba(245,158,11,0.08)' : 'transparent',
+        border: warn ? '1px solid rgba(245,158,11,0.25)' : 'none',
+        fontSize: 11,
+        lineHeight: 1.5,
+        color: 'var(--text-muted)',
+      }}
+    >
+      {warn && <TriangleAlert size={12} style={{ color: '#D97706', flexShrink: 0, marginTop: 1 }} />}
+      {note}
+    </div>
+  )
+}
+
+/**
+ * Confirm-before-execute card for an assistant-proposed action. Nothing runs
+ * until the user clicks Confirm, which POSTs to /api/assistant/act; the server
+ * re-validates and executes through authorized, reversible services.
+ */
+function ActionCard({ action }: { action: AssistantAction }) {
+  const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error' | 'dismissed'>('idle')
+  const [message, setMessage] = useState('')
+
+  async function confirm() {
+    setStatus('running')
+    try {
+      const res = await fetch('/api/assistant/act', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      const data = (await res.json().catch(() => null)) as { ok?: boolean; message?: string; error?: string } | null
+      if (!res.ok) {
+        setMessage(data?.error || 'Could not complete that action.')
+        setStatus('error')
+        return
+      }
+      setMessage(data?.message || 'Done.')
+      setStatus(data?.ok === false ? 'error' : 'done')
+    } catch {
+      setMessage('Could not complete that action.')
+      setStatus('error')
+    }
+  }
+
+  if (status === 'dismissed') return null
+
+  const done = status === 'done' || status === 'error'
+
+  return (
+    <div
+      style={{
+        marginTop: 11,
+        padding: '12px 13px',
+        borderRadius: 11,
+        background: '#FFFFFF',
+        border: '1px solid var(--border)',
+        boxShadow: 'var(--shadow-sm)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+        <span
+          style={{
+            width: 26,
+            height: 26,
+            borderRadius: 8,
+            background: 'linear-gradient(135deg, #4F5CF4, #6D44F5)',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <Wand2 size={13} />
+        </span>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+            Suggested action
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5, marginTop: 2 }}>{action.summary}</div>
+        </div>
+      </div>
+
+      {!done && status !== 'running' && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 11 }}>
+          <button type="button" className="btn-primary" onClick={confirm} style={{ fontSize: 12.5, padding: '7px 14px' }}>
+            <Check size={13} />
+            Confirm
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatus('dismissed')}
+            style={{
+              fontSize: 12.5,
+              padding: '7px 12px',
+              borderRadius: 9,
+              border: '1px solid var(--border)',
+              background: 'transparent',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+            }}
+          >
+            <X size={13} />
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {status === 'running' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 11, fontSize: 12.5, color: 'var(--text-muted)' }}>
+          <Loader2 size={13} className="animate-spin" style={{ color: 'var(--accent)' }} />
+          Working on it…
+        </div>
+      )}
+
+      {done && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 7,
+            marginTop: 11,
+            fontSize: 12.5,
+            lineHeight: 1.5,
+            color: status === 'error' ? '#B42318' : 'var(--text-secondary)',
+          }}
+        >
+          {status === 'error' ? (
+            <TriangleAlert size={13} style={{ color: '#DC2626', flexShrink: 0, marginTop: 1 }} />
+          ) : (
+            <Check size={13} style={{ color: 'var(--success)', flexShrink: 0, marginTop: 1 }} />
+          )}
+          {message}
+        </div>
+      )}
+    </div>
   )
 }
