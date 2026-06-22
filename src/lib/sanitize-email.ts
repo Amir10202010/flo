@@ -201,3 +201,99 @@ function escapeHtml(s: string): string {
     ch === '&' ? '&amp;' : ch === '<' ? '&lt;' : ch === '>' ? '&gt;' : ch === '"' ? '&quot;' : '&#39;'
   ))
 }
+
+// ── Rich render (for the sandboxed iframe) ───────────────────────────────────
+
+/**
+ * A wider sanitiser for rendering real email HTML inside a SANDBOXED iframe
+ * (no `allow-scripts` + a strict CSP). Keeps tables, images and a CSS-allowlisted
+ * inline `style` so messages look like they do in Gmail, while still parsing
+ * through the vetted `sanitize-html` core. Remote images are defused: every
+ * `<img src>` is moved to `data-src` (nothing loads) and the caller restores it
+ * on "Show images". Returns the safe HTML plus whether any image was present.
+ *
+ * Server-only (htmlparser2) — never import from a "use client" component.
+ */
+const RICH_TAGS = [
+  'a', 'b', 'strong', 'i', 'em', 'u', 's', 'br', 'p', 'div', 'span',
+  'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'hr',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 'caption', 'colgroup', 'col',
+  'img', 'figure', 'figcaption', 'font', 'center', 'small', 'big', 'sub', 'sup',
+  'dl', 'dt', 'dd',
+]
+
+// Presentation attributes carried on legacy email markup (kept on every tag).
+const PRESENTATION_ATTRS = [
+  'style', 'align', 'valign', 'width', 'height', 'bgcolor', 'color', 'face',
+  'size', 'cellpadding', 'cellspacing', 'border', 'colspan', 'rowspan', 'dir', 'lang',
+]
+
+// CSS value guards. SAFE excludes parentheses / semicolons / braces / colon,
+// which kills url() / expression() / javascript:; colour props also accept
+// rgb()/rgba(). Any property NOT listed (e.g. position, z-index) is dropped.
+const SAFE = /^[#a-z0-9\s.,%_'"/-]+$/i
+const RGB = /^rgba?\([\d\s.,%]+\)$/i
+const DISPLAY = /^(block|inline|inline-block|table|table-cell|table-row|table-header-group|table-row-group|none|flex)$/i
+
+const STYLE_RULES: Record<string, RegExp[]> = { display: [DISPLAY] }
+for (const p of [
+  'font-size', 'font-weight', 'font-style', 'font-family', 'font',
+  'text-align', 'text-decoration', 'text-transform', 'line-height',
+  'letter-spacing', 'vertical-align', 'white-space',
+  'width', 'max-width', 'min-width', 'height', 'max-height',
+  'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+  'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+  'border-width', 'border-style', 'border-radius', 'border-collapse', 'border-spacing',
+]) STYLE_RULES[p] = [SAFE]
+for (const p of [
+  'color', 'background', 'background-color',
+  'border', 'border-top', 'border-right', 'border-bottom', 'border-left', 'border-color',
+]) STYLE_RULES[p] = [SAFE, RGB]
+
+const SAFE_IMG_SRC = /^(https?:|data:image\/|cid:)/i
+
+export function sanitizeEmailRich(input: string): { html: string; hasImages: boolean } {
+  if (!input) return { html: '', hasImages: false }
+  const capped = input.length > 200_000 ? input.slice(0, 200_000) : input
+
+  let hasImages = false
+  const html = sanitizeHtml(capped, {
+    allowedTags: RICH_TAGS,
+    allowedAttributes: {
+      '*': PRESENTATION_ATTRS,
+      a: ['href', 'name', 'target', 'rel', ...PRESENTATION_ATTRS],
+      img: ['data-src', 'alt', 'title', ...PRESENTATION_ATTRS],
+    },
+    allowedStyles: { '*': STYLE_RULES },
+    allowedSchemes: ['http', 'https', 'mailto', 'tel'],
+    allowedSchemesByTag: { a: ['http', 'https', 'mailto', 'tel'] },
+    allowProtocolRelative: false,
+    disallowedTagsMode: 'discard',
+    nonTextTags: ['script', 'style', 'textarea', 'option', 'noscript', 'iframe', 'head', 'title', 'object', 'embed', 'svg', 'math'],
+    transformTags: {
+      a: (_tagName, attribs) => ({
+        tagName: 'a',
+        attribs: {
+          ...(attribs.href ? { href: attribs.href } : {}),
+          ...(attribs.style ? { style: attribs.style } : {}),
+          target: '_blank',
+          rel: 'noopener noreferrer nofollow',
+        },
+      }),
+      img: (_tagName, attribs) => {
+        const src = (attribs.src ?? '').trim()
+        const out: Record<string, string> = { ...attribs }
+        delete out.src
+        // Defer the load: only a scheme-checked src is parked in data-src.
+        if (src && SAFE_IMG_SRC.test(src)) {
+          out['data-src'] = src
+          hasImages = true
+        }
+        return { tagName: 'img', attribs: out }
+      },
+    },
+  })
+
+  return { html: html.trim(), hasImages }
+}

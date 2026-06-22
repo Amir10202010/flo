@@ -1349,6 +1349,32 @@
 .msg-html h3, .msg-html h4, .msg-html h5, .msg-html h6 { font-size: 1em; font-weight: 700; margin: 8px 0 5px; }
 .msg-html hr { border: none; border-top: 1px solid currentColor; opacity: 0.2; margin: 10px 0; }
 
+/* Rich HTML email — rendered full-width in a sandboxed iframe (EmailFrame) */
+.msg-email { width: 100%; align-self: stretch; }
+.email-frame-wrap {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+}
+.email-frame { width: 100%; border: 0; background: #fff; display: block; }
+.email-img-bar {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.email-img-bar:hover { background: rgba(79, 92, 244, 0.14); }
+
 /* Folded quoted history (<details> emitted by sanitizeMessageHtml) */
 .msg-quote { margin-top: 8px; }
 .msg-quote summary {

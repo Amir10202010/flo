@@ -143,6 +143,7 @@ model Message {
   externalId     String?
   direction      MessageDirection
   content        String
+  contentHtml    String?
   contentType    ContentType @default(TEXT)
   sentAt         DateTime
   isRead         Boolean     @default(false)

@@ -4,8 +4,9 @@ import Link from 'next/link'
 import { ArrowLeft, Sparkles } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { sanitizeMessageHtml } from '@/lib/sanitize-email'
+import { sanitizeMessageHtml, sanitizeEmailRich } from '@/lib/sanitize-email'
 import PriorityBadge from '@/components/ui/PriorityBadge'
+import EmailFrame from '@/components/EmailFrame'
 import Composer from '@/components/Composer'
 import CategoryMover from '@/components/CategoryMover'
 import ThreadSummary from '@/components/ThreadSummary'
@@ -166,6 +167,9 @@ export default async function ConversationPage({
         ) : (
           rows.map(({ msg, sentAt, newDay, cont, groupEnd }) => {
             const out = msg.direction === 'OUTBOUND'
+            // Rich HTML emails render in a sandboxed iframe; everything else
+            // (plain text + pre-HTML-storage rows) keeps the inline bubble.
+            const rich = msg.contentHtml ? sanitizeEmailRich(msg.contentHtml) : null
             return (
               <Fragment key={msg.id}>
                 {newDay && (
@@ -174,10 +178,16 @@ export default async function ConversationPage({
                   </div>
                 )}
                 <div className={`chat-row ${out ? 'out' : 'in'}${cont ? ' cont' : ''}`}>
-                  <div
-                    className={`msg-bubble msg-html ${out ? 'msg-bubble-out' : 'msg-bubble-in'}`}
-                    dangerouslySetInnerHTML={{ __html: sanitizeMessageHtml(msg.content) }}
-                  />
+                  {rich && rich.html.length > 0 ? (
+                    <div className="msg-email">
+                      <EmailFrame html={rich.html} hasImages={rich.hasImages} />
+                    </div>
+                  ) : (
+                    <div
+                      className={`msg-bubble msg-html ${out ? 'msg-bubble-out' : 'msg-bubble-in'}`}
+                      dangerouslySetInnerHTML={{ __html: sanitizeMessageHtml(msg.content) }}
+                    />
+                  )}
                   {groupEnd && <span className="chat-time">{formatTime(msg.sentAt)}</span>}
                 </div>
               </Fragment>

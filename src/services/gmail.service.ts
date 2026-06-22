@@ -65,8 +65,13 @@ async function mapPool<T, R>(items: T[], limit: number, fn: (item: T) => Promise
   return results
 }
 
-/** Recursively collect the best plain-text body, falling back to converted HTML. */
-function extractBody(payload: gmail_v1.Schema$MessagePart | undefined): string {
+/**
+ * Recursively collect both bodies: a clean plain-text `content` (used by
+ * analysis/search/embeddings/preview) and the raw `html` when the message had a
+ * text/html part (rendered richly in the inbox, stored separately so HTML never
+ * pollutes the text pipelines).
+ */
+function extractBody(payload: gmail_v1.Schema$MessagePart | undefined): { content: string; html: string | null } {
   const found = { text: '', html: '' }
 
   function walk(part: gmail_v1.Schema$MessagePart | undefined) {
@@ -87,9 +92,9 @@ function extractBody(payload: gmail_v1.Schema$MessagePart | undefined): string {
   }
 
   walk(payload)
-  if (found.text.trim()) return found.text
-  if (found.html.trim()) return htmlToText(found.html)
-  return ''
+  const html = found.html.trim() ? found.html : null
+  const content = found.text.trim() ? found.text : html ? htmlToText(html) : ''
+  return { content, html }
 }
 
 function headerValue(headers: gmail_v1.Schema$MessagePartHeader[] | undefined, name: string): string {
@@ -135,6 +140,7 @@ type ParsedMessage = {
   externalId: string
   direction: 'INBOUND' | 'OUTBOUND'
   content: string
+  html: string | null
   sentAt: Date
 }
 
@@ -185,10 +191,12 @@ function parseThread(
     if (headerValue(msg.payload?.headers, 'List-Unsubscribe')) hasListUnsubscribe = true
     const msgFrom = headerValue(msg.payload?.headers, 'from').toLowerCase()
     const isOutbound = accountEmail ? msgFrom.includes(accountEmail) : false
+    const body = extractBody(msg.payload)
     parsedMessages.push({
       externalId: msg.id,
       direction: isOutbound ? 'OUTBOUND' : 'INBOUND',
-      content: extractBody(msg.payload).slice(0, 5000) || '(no text content)',
+      content: body.content.slice(0, 5000) || '(no text content)',
+      html: body.html ? body.html.slice(0, 200_000) : null,
       sentAt: new Date(parseInt(msg.internalDate ?? '0')),
     })
   }
@@ -347,7 +355,8 @@ async function persistThreads(
           externalId: c.externalId,
           direction: c.direction,
           content: c.content,
-          contentType: 'TEXT' as const,
+          contentHtml: c.html,
+          contentType: c.html ? ('HTML' as const) : ('TEXT' as const),
           sentAt: c.sentAt,
         })),
         skipDuplicates: true,
