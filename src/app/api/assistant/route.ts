@@ -1,5 +1,6 @@
 import { type NextRequest } from 'next/server'
-import { getAuthUser, ok, err } from '@/lib/api'
+import { ok, err } from '@/lib/api'
+import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
 import { answerWorkspaceQuestion } from '@/services/assistant.service'
 
@@ -12,9 +13,9 @@ import { answerWorkspaceQuestion } from '@/services/assistant.service'
  * degrade to a deterministic local answer when no AI provider is configured.
  */
 export async function POST(req: NextRequest) {
-  const { user, error } = await getAuthUser()
-  if (!user) return error
-  const limited = await rateLimit(user.id, 'assistant')
+  const { ctx, error } = await requireOrg()
+  if (!ctx) return error
+  const limited = await rateLimit(ctx.userId, 'assistant')
   if (limited) return limited
 
   let body: unknown
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
   if (question.length > 500) return err('Question is too long (max 500 characters)', 400)
 
   try {
-    const result = await answerWorkspaceQuestion(user.id, question)
+    const result = await answerWorkspaceQuestion(ctx.organization.id, question)
     return ok(result)
   } catch (e) {
     console.error('[api/assistant] failed:', e)

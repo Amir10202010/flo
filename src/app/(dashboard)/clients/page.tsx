@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
 import { Activity, ShieldAlert, UserPlus, Users } from 'lucide-react'
-import { getCurrentUser } from '@/lib/auth'
+import { requireOrgPage } from '@/lib/org'
 import { getClientDirectory } from '@/services/clients.service'
 import { Reveal } from '@/components/dashboard/Motion'
 import StatCard from '@/components/dashboard/StatCard'
@@ -12,10 +11,9 @@ import DashboardEmpty from '@/components/dashboard/DashboardEmpty'
 export const metadata: Metadata = { title: 'Clients — Velnox' }
 
 export default async function ClientsPage() {
-  const user = await getCurrentUser()
-  if (!user) redirect('/login')
+  const ctx = await requireOrgPage()
 
-  const data = await getClientDirectory(user.id)
+  const data = await getClientDirectory(ctx.organization.id)
 
   return (
     <div className="dash-page" style={{ padding: '28px 32px 56px', maxWidth: 1480, margin: '0 auto', width: '100%' }}>

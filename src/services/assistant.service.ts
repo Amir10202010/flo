@@ -391,8 +391,8 @@ function localAnswer(question: string, data: DashboardData): { answer: string; s
 
 // ── Public entry point ──────────────────────────────────────────────────────
 
-export async function answerWorkspaceQuestion(userId: string, question: string): Promise<AssistantAnswer> {
-  const data = await getDashboardData(userId)
+export async function answerWorkspaceQuestion(organizationId: string, question: string): Promise<AssistantAnswer> {
+  const data = await getDashboardData(organizationId)
   const base = { hasIntegration: data.hasIntegration, hasData: data.hasData, proposedAction: null, degradedReason: null }
 
   // Empty workspace — short-circuit with an honest, actionable message.
@@ -419,8 +419,8 @@ export async function answerWorkspaceQuestion(userId: string, question: string):
     }
   }
 
-  const reminders = await listReminders(userId)
-  const notes = await listRecentNotes(userId)
+  const reminders = await listReminders(organizationId)
+  const notes = await listRecentNotes(organizationId)
 
   const provider = getTextProvider()
   // Reason we'd show offline output: no key, or (set in catch) a failed call.

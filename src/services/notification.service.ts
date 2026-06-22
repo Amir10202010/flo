@@ -1,7 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { mergeIntegrationMetadata } from '@/lib/integration-metadata'
 import { integrationEmail, sendGmailMessage } from './gmail.service'
-import { digestOwnerEmail } from './digest.service'
 import { dueReminders, markRemindersFired } from './reminder.service'
 import { shortDate } from '@/lib/time'
 import type { RiskLevel } from '@/types'
@@ -32,9 +31,8 @@ const URGENT_SEVERITIES: RiskLevel[] = ['CRITICAL', 'HIGH']
 const SEVERITY_RANK: Record<RiskLevel, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 }
 
 export type NotifySkipReason =
-  | 'owner-email-not-set'
   | 'no-integration'
-  | 'not-owner-mailbox'
+  | 'no-recipient'
   | 'disabled'
   | 'nothing-new'
   | 'throttled'
@@ -213,23 +211,28 @@ function appUrl(): string {
 }
 
 /**
- * Send one rollup email covering the user's NEW urgent alerts plus any due
- * reminders. Idempotent enough for the job queue (see file header). Only the
- * GMAIL_USER_EMAIL mailbox is notified.
+ * Send one rollup email covering the organization's NEW urgent alerts plus any
+ * due reminders. Idempotent enough for the job queue (see file header). Sent
+ * from the org's connected inbox to the organization owner's address.
  *
  * The 6h throttle suppresses alert-spam only; reminders are user-set and fire
  * on time regardless (guarded once-only by `firedAt`). A reminders-only send
  * does NOT stamp the alert throttle, so it can't delay a later alert email.
  */
-export async function notifyNewAlerts(userId: string): Promise<NotifyAlertsResult> {
-  const ownerEmail = digestOwnerEmail()
-  if (!ownerEmail) return { status: 'skipped', reason: 'owner-email-not-set' }
-
+export async function notifyNewAlerts(organizationId: string): Promise<NotifyAlertsResult> {
   const integration = await prisma.integration.findFirst({
-    where: { userId, type: 'GMAIL', isActive: true },
+    where: { organizationId, type: 'GMAIL', isActive: true },
+    orderBy: { createdAt: 'asc' },
   })
   if (!integration) return { status: 'skipped', reason: 'no-integration' }
-  if (integrationEmail(integration) !== ownerEmail) return { status: 'skipped', reason: 'not-owner-mailbox' }
+
+  const owner = await prisma.membership.findFirst({
+    where: { organizationId, status: 'ACTIVE' },
+    orderBy: { role: 'asc' }, // OWNER sorts first alphabetically
+    include: { user: { select: { email: true } } },
+  })
+  const recipient = owner?.user.email ?? integrationEmail(integration)
+  if (!recipient) return { status: 'skipped', reason: 'no-recipient' }
 
   const meta = (integration.metadata as Record<string, unknown> | null) ?? {}
   if (meta.alertEmailsEnabled === false) return { status: 'skipped', reason: 'disabled' }
@@ -241,7 +244,7 @@ export async function notifyNewAlerts(userId: string): Promise<NotifyAlertsResul
     ? []
     : await prisma.riskAlert.findMany({
         where: {
-          userId,
+          organizationId,
           status: 'OPEN',
           severity: { in: URGENT_SEVERITIES },
           notifiedAt: null,
@@ -249,7 +252,7 @@ export async function notifyNewAlerts(userId: string): Promise<NotifyAlertsResul
         },
       })
 
-  const due = await dueReminders(userId, new Date(now))
+  const due = await dueReminders(organizationId, new Date(now))
 
   if (!alertRows.length && !due.length) {
     return { status: 'skipped', reason: throttled ? 'throttled' : 'nothing-new' }
@@ -269,7 +272,7 @@ export async function notifyNewAlerts(userId: string): Promise<NotifyAlertsResul
   }))
 
   const { subject, html, text } = buildAlertEmail(items, reminderItems, appUrl())
-  const { messageId } = await sendGmailMessage(integration, { to: ownerEmail, subject, html, text })
+  const { messageId } = await sendGmailMessage(integration, { to: recipient, subject, html, text })
 
   // Mark only after a successful send.
   const sentAt = new Date()
@@ -281,5 +284,5 @@ export async function notifyNewAlerts(userId: string): Promise<NotifyAlertsResul
   }
   if (due.length) await markRemindersFired(due.map((r) => r.id), sentAt)
 
-  return { status: 'sent', count: alertRows.length + due.length, to: ownerEmail, messageId }
+  return { status: 'sent', count: alertRows.length + due.length, to: recipient, messageId }
 }

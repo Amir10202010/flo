@@ -6,15 +6,17 @@ import { formatHours, shortDate } from '@/lib/time'
 import type { RiskLevel } from '@/types'
 
 /**
- * Weekly digest email.
+ * Weekly digest email (organization-scoped).
  *
- * Owner/access identity is GMAIL_USER_EMAIL: the digest is only built for the
- * user whose connected mailbox matches it, is sent FROM that mailbox (via the
- * existing Gmail OAuth — no SMTP/extra env) and TO that same address.
+ * Each organization gets one digest built from its shared workspace, sent FROM
+ * the org's connected inbox (via the existing Gmail OAuth — no SMTP/extra env)
+ * TO the organization owner's address.
  *
- * Idempotency: an EmailDigest row per (userId, ISO week) is claimed BEFORE
- * sending — a retry after a successful send can never produce a duplicate
- * email; a failed send releases the claim so the job retry can run.
+ * Idempotency: an EmailDigest row per (owner userId, periodKey) is claimed
+ * BEFORE sending — a retry after a successful send can never produce a duplicate
+ * email; a failed send releases the claim so the job retry can run. The
+ * periodKey embeds the org (`<isoWeek>:<orgId>`) so one owner of several orgs
+ * still receives a digest per org.
  */
 
 const DAY_MS = 86_400_000
@@ -28,9 +30,36 @@ export function isoWeekKey(d: Date): string {
   return `${date.getUTCFullYear()}-W${String(week).padStart(2, '0')}`
 }
 
+/**
+ * The deployment/app-owner mailbox (GMAIL_USER_EMAIL). This is a GLOBAL identity
+ * — the person who runs this Velnox instance — used for app-level concerns like
+ * access-request notifications and the manual digest preview. It is NOT the
+ * per-organization digest identity (orgs send to their own owners).
+ */
 export function digestOwnerEmail(): string | null {
   const v = process.env.GMAIL_USER_EMAIL?.trim().toLowerCase()
   return v || null
+}
+
+/** Resolve the recipient (org owner email + claim userId) and the inbox to send
+ * from. Returns null when the org has no active integration. */
+async function resolveDigestTarget(
+  organizationId: string,
+): Promise<{ integration: Awaited<ReturnType<typeof prisma.integration.findFirst>>; recipient: string | null; claimUserId: string } | null> {
+  const integration = await prisma.integration.findFirst({
+    where: { organizationId, type: 'GMAIL', isActive: true },
+    orderBy: { createdAt: 'asc' },
+  })
+  if (!integration) return null
+
+  const owner = await prisma.membership.findFirst({
+    where: { organizationId, status: 'ACTIVE' },
+    orderBy: { role: 'asc' }, // OWNER sorts first alphabetically
+    include: { user: { select: { id: true, email: true } } },
+  })
+  const recipient = owner?.user.email ?? integrationEmail(integration)
+  const claimUserId = owner?.user.id ?? integration.userId
+  return { integration, recipient, claimUserId }
 }
 
 // ── Digest read model ───────────────────────────────────────────────────────
@@ -59,8 +88,8 @@ function pct(current: number, previous: number): number | null {
 
 const SEVERITY_RANK: Record<RiskLevel, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 }
 
-export async function buildWeeklyDigest(userId: string): Promise<DigestData | null> {
-  const ws: Workspace = await loadWorkspace(userId)
+export async function buildWeeklyDigest(organizationId: string): Promise<DigestData | null> {
+  const ws: Workspace = await loadWorkspace(organizationId)
   if (!ws.integration || ws.conversations.length === 0) return null
 
   const now = ws.now
@@ -288,31 +317,24 @@ export function renderDigestText(d: DigestData): string {
 export type DigestSendResult =
   | { status: 'sent'; periodKey: string; to: string; messageId: string }
   | { status: 'duplicate-skipped'; periodKey: string }
-  | { status: 'skipped'; reason: 'owner-email-not-set' | 'no-integration' | 'not-owner-mailbox' | 'no-data' }
+  | { status: 'skipped'; reason: 'no-integration' | 'no-recipient' | 'no-data' }
 
 /**
- * Build + send the weekly digest for `userId`.
- * `manual` (the "Send now" button) bypasses the weekly dedupe and does NOT
- * claim the period — Monday's scheduled send still goes out.
+ * Build + send the weekly digest for an organization. Sent from the org's
+ * connected inbox to the owner's address. `manual` (the "Send now" button)
+ * bypasses the weekly dedupe and does NOT claim the period — Monday's scheduled
+ * send still goes out.
  */
 export async function sendWeeklyDigest(
-  userId: string,
+  organizationId: string,
   opts: { periodKey?: string; manual?: boolean } = {},
 ): Promise<DigestSendResult> {
-  const ownerEmail = digestOwnerEmail()
-  if (!ownerEmail) return { status: 'skipped', reason: 'owner-email-not-set' }
+  const target = await resolveDigestTarget(organizationId)
+  if (!target || !target.integration) return { status: 'skipped', reason: 'no-integration' }
+  const { integration, recipient, claimUserId } = target
+  if (!recipient) return { status: 'skipped', reason: 'no-recipient' }
 
-  const integration = await prisma.integration.findFirst({
-    where: { userId, type: 'GMAIL', isActive: true },
-  })
-  if (!integration) return { status: 'skipped', reason: 'no-integration' }
-
-  // Access identity: only the GMAIL_USER_EMAIL mailbox receives digests.
-  if (integrationEmail(integration) !== ownerEmail) {
-    return { status: 'skipped', reason: 'not-owner-mailbox' }
-  }
-
-  const data = await buildWeeklyDigest(userId)
+  const data = await buildWeeklyDigest(organizationId)
   if (!data) return { status: 'skipped', reason: 'no-data' }
 
   const periodKey = opts.periodKey ?? data.periodKey
@@ -320,7 +342,7 @@ export async function sendWeeklyDigest(
   if (!opts.manual) {
     // Claim the period before sending — the unique constraint is the lock.
     try {
-      await prisma.emailDigest.create({ data: { userId, periodKey } })
+      await prisma.emailDigest.create({ data: { userId: claimUserId, organizationId, periodKey } })
     } catch {
       return { status: 'duplicate-skipped', periodKey }
     }
@@ -328,28 +350,28 @@ export async function sendWeeklyDigest(
 
   const attention = data.needsAttention.length
   const subject =
-    `${opts.manual ? '[Preview] ' : ''}Your week in review — ${data.stats.inbound} new emails` +
+    `${opts.manual ? '[Preview] ' : ''}Your team’s week in review — ${data.stats.inbound} new emails` +
     (attention ? `, ${attention} need${attention === 1 ? 's' : ''} attention` : '')
 
   try {
     const { messageId } = await sendGmailMessage(integration, {
-      to: ownerEmail,
+      to: recipient,
       subject,
       html: renderDigestHtml(data),
       text: renderDigestText(data),
     })
     if (!opts.manual) {
       await prisma.emailDigest.update({
-        where: { userId_periodKey: { userId, periodKey } },
+        where: { userId_periodKey: { userId: claimUserId, periodKey } },
         data: { messageId },
       })
     }
-    return { status: 'sent', periodKey, to: ownerEmail, messageId }
+    return { status: 'sent', periodKey, to: recipient, messageId }
   } catch (err) {
     if (!opts.manual) {
       // Release the claim so the job retry can attempt the send again.
       await prisma.emailDigest
-        .delete({ where: { userId_periodKey: { userId, periodKey } } })
+        .delete({ where: { userId_periodKey: { userId: claimUserId, periodKey } } })
         .catch(() => {})
     }
     throw err

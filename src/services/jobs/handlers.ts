@@ -1,4 +1,5 @@
 import type { Job } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { syncGmailForUser } from '@/services/gmail.service'
 import { analyzeConversation } from '@/services/conversation.analyzer'
 import { embedConversation } from '@/services/embedding.service'
@@ -51,7 +52,12 @@ export async function handleJob(job: Job): Promise<unknown> {
         { userId },
         (p) => `EMBED_CONVERSATION:${p.conversationId}`,
       )
-      await enqueueScanRiskAlerts(userId)
+      // Org-scoped alert scan over the refreshed shared workspace.
+      const syncInteg = await prisma.integration.findFirst({
+        where: { userId, type: 'GMAIL' },
+        select: { organizationId: true },
+      })
+      if (syncInteg?.organizationId) await enqueueScanRiskAlerts(syncInteg.organizationId)
 
       return {
         synced: result.synced,
@@ -70,11 +76,11 @@ export async function handleJob(job: Job): Promise<unknown> {
       const lastAttempt = job.attempts >= job.maxAttempts
       const { priority } = await analyzeConversation(conversationId, { fallbackOnRetryable: lastAttempt })
       // The fresh summary changes the embedding text — refresh it (hash-deduped).
-      if (job.userId) await enqueueEmbedConversation(job.userId, conversationId)
+      await enqueueEmbedConversation(conversationId)
       // Pre-draft a reply for urgent threads (gated on priority here; the job
       // re-checks awaiting + provider). Skipped entirely without an AI key.
-      if (job.userId && (priority.level === 'HOT' || priority.level === 'ATTENTION') && getTextProvider()) {
-        await enqueueGenerateDraft(job.userId, conversationId)
+      if ((priority.level === 'HOT' || priority.level === 'ATTENTION') && getTextProvider()) {
+        await enqueueGenerateDraft(conversationId)
       }
       return { conversationId, priority: priority.level, score: priority.score }
     }
@@ -86,35 +92,33 @@ export async function handleJob(job: Job): Promise<unknown> {
     }
 
     case 'SCAN_RISK_ALERTS': {
-      const userId = String(payload.userId ?? job.userId ?? '')
-      if (!userId) throw new Error('SCAN_RISK_ALERTS job missing userId')
-      const result = await scanRiskAlerts(userId)
+      const organizationId = String(payload.organizationId ?? '')
+      if (!organizationId) throw new Error('SCAN_RISK_ALERTS job missing organizationId')
+      const result = await scanRiskAlerts(organizationId)
       // New/reopened alerts may include urgent ones worth an email. The
       // notifier itself filters to CRITICAL/HIGH + not-yet-notified + throttle,
       // so enqueuing on any change is cheap and keeps the policy in one place.
-      if (result.created + result.reopened > 0) await enqueueNotifyAlerts(userId)
+      if (result.created + result.reopened > 0) await enqueueNotifyAlerts(organizationId)
       return result
     }
 
     case 'NOTIFY_ALERTS': {
-      const userId = String(payload.userId ?? job.userId ?? '')
-      if (!userId) throw new Error('NOTIFY_ALERTS job missing userId')
-      return await notifyNewAlerts(userId)
+      const organizationId = String(payload.organizationId ?? '')
+      if (!organizationId) throw new Error('NOTIFY_ALERTS job missing organizationId')
+      return await notifyNewAlerts(organizationId)
     }
 
     case 'SEND_WEEKLY_DIGEST': {
-      const userId = String(payload.userId ?? job.userId ?? '')
-      if (!userId) throw new Error('SEND_WEEKLY_DIGEST job missing userId')
+      const organizationId = String(payload.organizationId ?? '')
+      if (!organizationId) throw new Error('SEND_WEEKLY_DIGEST job missing organizationId')
       const periodKey = typeof payload.periodKey === 'string' ? payload.periodKey : undefined
-      return await sendWeeklyDigest(userId, { periodKey })
+      return await sendWeeklyDigest(organizationId, { periodKey })
     }
 
     case 'GENERATE_DRAFT': {
       const conversationId = String(payload.conversationId ?? '')
       if (!conversationId) throw new Error('GENERATE_DRAFT job missing conversationId')
-      const userId = String(payload.userId ?? job.userId ?? '')
-      if (!userId) throw new Error('GENERATE_DRAFT job missing userId')
-      return await upsertAutoDraft(userId, conversationId)
+      return await upsertAutoDraft(conversationId)
     }
 
     case 'GMAIL_MAINTENANCE': {

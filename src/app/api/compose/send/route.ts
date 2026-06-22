@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { getAuthUser, ok, err } from '@/lib/api'
+import { ok, err } from '@/lib/api'
+import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
 import { prisma } from '@/lib/prisma'
 import { sanitizeMessageHtml } from '@/lib/sanitize-email'
@@ -16,9 +17,9 @@ const BodySchema = z.object({
  * rendered to safe HTML for the multipart/alternative message.
  */
 export async function POST(req: Request) {
-  const { user, error } = await getAuthUser()
-  if (!user) return error
-  const limited = await rateLimit(user.id, 'composeSend')
+  const { ctx, error } = await requireOrg('MEMBER')
+  if (!ctx) return error
+  const limited = await rateLimit(ctx.userId, 'composeSend')
   if (limited) return limited
 
   let parsed: z.infer<typeof BodySchema>
@@ -30,7 +31,8 @@ export async function POST(req: Request) {
   }
 
   const integration = await prisma.integration.findFirst({
-    where: { userId: user.id, type: 'GMAIL', isActive: true },
+    where: { organizationId: ctx.organization.id, type: 'GMAIL', isActive: true },
+    orderBy: { createdAt: 'asc' },
   })
   if (!integration) return err('No active Gmail integration', 400)
 

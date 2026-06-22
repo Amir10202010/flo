@@ -1,5 +1,6 @@
 import { type NextRequest } from 'next/server'
-import { getAuthUser, ok, err } from '@/lib/api'
+import { ok, err } from '@/lib/api'
+import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
 import { searchConversations, type SearchFilters } from '@/services/search.service'
 import type { Channel, ConversationStatus, PriorityLevel, RiskLevel, Sentiment } from '@/types'
@@ -21,9 +22,9 @@ const VALID_SENTIMENT = new Set(['POSITIVE', 'NEUTRAL', 'NEGATIVE'])
  * Degrades to keyword-only search with `meta.degraded` notes when AI is off.
  */
 export async function GET(req: NextRequest) {
-  const { user, error } = await getAuthUser()
-  if (!user) return error
-  const limited = await rateLimit(user.id, 'search')
+  const { ctx, error } = await requireOrg()
+  if (!ctx) return error
+  const limited = await rateLimit(ctx.userId, 'search')
   if (limited) return limited
 
   const sp = req.nextUrl.searchParams
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const result = await searchConversations(user.id, q, filters, limit)
+    const result = await searchConversations(ctx.organization.id, q, filters, limit)
     return ok(result)
   } catch (e) {
     console.error('[api/search] failed:', e)

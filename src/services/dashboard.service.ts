@@ -654,8 +654,8 @@ function buildInsights(facts: ConvFacts[], ws: Workspace, stats: ExecStats): Ins
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
-export async function getDashboardData(userId: string): Promise<DashboardData> {
-  const ws = await loadWorkspace(userId)
+export async function getDashboardData(organizationId: string): Promise<DashboardData> {
+  const ws = await loadWorkspace(organizationId)
   const facts = buildFacts(ws.conversations, ws.now)
   const stats = buildStats(ws, facts)
   const commandCenter = buildCommandItems(facts, ws.now)
@@ -702,8 +702,8 @@ export interface RiskOverview {
   hasData: boolean
 }
 
-export async function getRiskOverview(userId: string): Promise<RiskOverview> {
-  const ws = await loadWorkspace(userId)
+export async function getRiskOverview(organizationId: string): Promise<RiskOverview> {
+  const ws = await loadWorkspace(organizationId)
   const facts = buildFacts(ws.conversations, ws.now)
 
   const toThread = (f: ConvFacts): RiskThread => ({
@@ -770,8 +770,8 @@ export interface InsightsFeed {
   hasData: boolean
 }
 
-export async function getInsightsFeed(userId: string): Promise<InsightsFeed> {
-  const ws = await loadWorkspace(userId)
+export async function getInsightsFeed(organizationId: string): Promise<InsightsFeed> {
+  const ws = await loadWorkspace(organizationId)
   const facts = buildFacts(ws.conversations, ws.now)
   const stats = buildStats(ws, facts)
   const { messages, now } = ws

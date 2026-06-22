@@ -1,42 +1,42 @@
 import { type NextRequest } from 'next/server'
-import { getAuthUser, ok, err } from '@/lib/api'
+import { ok, err } from '@/lib/api'
+import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
 import { prisma } from '@/lib/prisma'
 import { mergeIntegrationMetadata } from '@/lib/integration-metadata'
-import { integrationEmail } from '@/services/gmail.service'
-import { digestOwnerEmail } from '@/services/digest.service'
 
 /**
- * Per-mailbox notification preferences, stored on Integration.metadata.
- *   GET   → { connected, alertEmailsEnabled, ownerMailbox }
- *   PATCH { alertEmailsEnabled: boolean } → persist the toggle
+ * Organization notification preferences, stored on the connected inbox's
+ * Integration.metadata.
+ *   GET   → { connected, alertEmailsEnabled }
+ *   PATCH { alertEmailsEnabled: boolean } → persist the toggle (admin+)
  *
- * Urgent-alert emails default ON (absent flag = enabled) and only ever go to
- * the GMAIL_USER_EMAIL owner mailbox, so `ownerMailbox` tells the UI whether
- * the toggle has any real effect for this user.
+ * Urgent-alert emails default ON (absent flag = enabled) and go to the org
+ * owner's mailbox. `connected` tells the UI whether the toggle has any effect.
  */
 
 export async function GET() {
-  const { user, error } = await getAuthUser()
-  if (!user) return error
+  const { ctx, error } = await requireOrg()
+  if (!ctx) return error
 
   const integration = await prisma.integration.findFirst({
-    where: { userId: user.id, type: 'GMAIL', isActive: true },
+    where: { organizationId: ctx.organization.id, type: 'GMAIL', isActive: true },
+    orderBy: { createdAt: 'asc' },
   })
   const meta = (integration?.metadata as Record<string, unknown> | null) ?? {}
-  const ownerEmail = digestOwnerEmail()
 
   return ok({
     connected: Boolean(integration),
     alertEmailsEnabled: meta.alertEmailsEnabled !== false,
-    ownerMailbox: Boolean(integration && ownerEmail && integrationEmail(integration) === ownerEmail),
+    // The toggle is effective whenever the org has a connected inbox to send from.
+    ownerMailbox: Boolean(integration),
   })
 }
 
 export async function PATCH(req: NextRequest) {
-  const { user, error } = await getAuthUser()
-  if (!user) return error
-  const limited = await rateLimit(user.id, 'mutate')
+  const { ctx, error } = await requireOrg('ADMIN')
+  if (!ctx) return error
+  const limited = await rateLimit(ctx.userId, 'mutate')
   if (limited) return limited
 
   const body = await req.json().catch(() => null)
@@ -45,7 +45,8 @@ export async function PATCH(req: NextRequest) {
   }
 
   const integration = await prisma.integration.findFirst({
-    where: { userId: user.id, type: 'GMAIL', isActive: true },
+    where: { organizationId: ctx.organization.id, type: 'GMAIL', isActive: true },
+    orderBy: { createdAt: 'asc' },
   })
   if (!integration) return err('No connected mailbox', 404)
 

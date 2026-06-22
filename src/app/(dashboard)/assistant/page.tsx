@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
 import {
   ArrowRight,
   Bot,
@@ -12,7 +11,7 @@ import {
   PenLine,
   ShieldAlert,
 } from 'lucide-react'
-import { getCurrentUser } from '@/lib/auth'
+import { requireOrgPage } from '@/lib/org'
 import { Reveal } from '@/components/dashboard/Motion'
 import ModulePill, { type ModuleStatus } from '@/components/dashboard/ModulePill'
 import AssistantComposer from '@/components/dashboard/AssistantComposer'
@@ -76,8 +75,7 @@ const GROUNDING = [
 ]
 
 export default async function AssistantPage() {
-  const user = await getCurrentUser()
-  if (!user) redirect('/login')
+  await requireOrgPage()
 
   return (
     <div className="dash-page" style={{ padding: '28px 32px 56px', maxWidth: 1100, margin: '0 auto', width: '100%' }}>

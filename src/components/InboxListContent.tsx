@@ -1,4 +1,4 @@
-import { getCurrentUser } from '@/lib/auth'
+import { getOrgContext } from '@/lib/org'
 import { prisma } from '@/lib/prisma'
 import { messagePreview } from '@/lib/html'
 import { compactAgo } from '@/lib/time'
@@ -11,28 +11,29 @@ function channelLabel(type: string, email?: string | null): string {
 }
 
 /**
- * Async server component that loads + groups the user's conversations by the
- * owning (active) integration. Disconnected integrations are excluded, so their
- * chats disappear from the inbox. Rendered inside a <Suspense> boundary (see
- * inbox/layout.tsx) so the shell paints instantly and this streams in.
+ * Async server component that loads + groups the organization's shared
+ * conversations by the owning (active) inbox integration. Disconnected
+ * integrations are excluded, so their chats disappear from the inbox. Rendered
+ * inside a <Suspense> boundary (see inbox/layout.tsx) so the shell paints
+ * instantly and this streams in.
  */
 export default async function InboxListContent() {
-  const user = await getCurrentUser()
+  const ctx = await getOrgContext()
 
   let groups: InboxGroup[] = []
   let total = 0
   let hasConnection = false
 
-  if (user) {
+  if (ctx) {
     const activeIntegration = await prisma.integration.findFirst({
-      where: { userId: user.id, isActive: true },
+      where: { organizationId: ctx.organization.id, isActive: true },
       select: { id: true },
     })
     hasConnection = Boolean(activeIntegration)
 
     // Only conversations whose integration is still active — disconnecting hides them.
     const dbConvs = await prisma.conversation.findMany({
-      where: { userId: user.id, integration: { isActive: true } },
+      where: { organizationId: ctx.organization.id, integration: { isActive: true } },
       include: {
         contact: { select: { name: true, email: true } },
         integration: { select: { id: true, type: true, metadata: true } },

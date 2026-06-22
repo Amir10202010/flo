@@ -1,5 +1,6 @@
 import { type NextRequest } from 'next/server'
-import { getAuthUser, ok, err } from '@/lib/api'
+import { ok, err } from '@/lib/api'
+import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
 import { setReminderStatus } from '@/services/reminder.service'
 
@@ -8,9 +9,9 @@ import { setReminderStatus } from '@/services/reminder.service'
  *   PATCH /api/reminders/:id  { "action": "done" | "cancel" }
  */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { user, error } = await getAuthUser()
-  if (!user) return error
-  const limited = await rateLimit(user.id, 'mutate')
+  const { ctx, error } = await requireOrg('MEMBER')
+  if (!ctx) return error
+  const limited = await rateLimit(ctx.userId, 'mutate')
   if (limited) return limited
 
   const { id } = await params
@@ -19,7 +20,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const status = action === 'done' ? 'DONE' : action === 'cancel' ? 'CANCELLED' : null
   if (!status) return err('Invalid action — expected done | cancel', 400)
 
-  const updated = await setReminderStatus(user.id, id, status)
+  const updated = await setReminderStatus(ctx.organization.id, id, status)
   if (!updated) return err('Reminder not found', 404)
   return ok({ id: updated.id, status: updated.status })
 }

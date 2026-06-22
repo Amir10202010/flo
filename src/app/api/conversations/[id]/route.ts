@@ -1,4 +1,5 @@
-import { getAuthUser, ok, err } from '@/lib/api'
+import { ok, err } from '@/lib/api'
+import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
 import { prisma } from '@/lib/prisma'
 import { ensurePlainText } from '@/lib/html'
@@ -13,8 +14,8 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { user, error } = await getAuthUser()
-  if (!user) return error
+  const { ctx, error } = await requireOrg()
+  if (!ctx) return error
 
   const { id } = await params
 
@@ -27,8 +28,8 @@ export async function GET(
     },
   })
 
-  // Return 404 for both missing and wrong-owner — avoids leaking IDs
-  if (!conv || conv.userId !== user.id) return err('Not found', 404)
+  // Return 404 for both missing and wrong-org — avoids leaking IDs
+  if (!conv || conv.organizationId !== ctx.organization.id) return err('Not found', 404)
 
   const detail: ConversationDetail = {
     id: conv.id,
@@ -76,9 +77,9 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { user, error } = await getAuthUser()
-  if (!user) return error
-  const limited = await rateLimit(user.id, 'mutate')
+  const { ctx, error } = await requireOrg('MEMBER')
+  if (!ctx) return error
+  const limited = await rateLimit(ctx.userId, 'mutate')
   if (limited) return limited
 
   const { id } = await params
@@ -94,7 +95,7 @@ export async function PATCH(
   if (!isEmailCategory(category)) return err('Invalid category', 400)
 
   try {
-    const result = await setConversationCategory(user.id, id, category)
+    const result = await setConversationCategory(ctx.organization.id, ctx.userId, id, category)
     return ok(result)
   } catch (e) {
     if (e instanceof CategoryMoveError) return err(e.message, e.status)

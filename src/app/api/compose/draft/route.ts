@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { getAuthUser, ok, err } from '@/lib/api'
+import { ok, err } from '@/lib/api'
+import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
 import { generateReplyDraft } from '@/services/ai'
 import { collectStyleSamples } from '@/services/draft.service'
@@ -15,9 +16,9 @@ const BodySchema = z.object({
  * (subject + body) for review. Never sends (that's POST /api/compose/send).
  */
 export async function POST(req: Request) {
-  const { user, error } = await getAuthUser()
-  if (!user) return error
-  const limited = await rateLimit(user.id, 'composeDraft')
+  const { ctx, error } = await requireOrg('MEMBER')
+  if (!ctx) return error
+  const limited = await rateLimit(ctx.userId, 'composeDraft')
   if (limited) return limited
 
   let parsed: z.infer<typeof BodySchema>
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
   }
 
   const tone = parsed.tone ?? 'WARM'
-  const styleSamples = tone === 'MATCH' ? await collectStyleSamples(user.id) : undefined
+  const styleSamples = tone === 'MATCH' ? await collectStyleSamples(ctx.organization.id) : undefined
 
   try {
     const draft = await generateReplyDraft(

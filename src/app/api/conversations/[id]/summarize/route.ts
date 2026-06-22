@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client'
-import { getAuthUser, ok, err } from '@/lib/api'
+import { ok, err } from '@/lib/api'
+import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
 import { prisma } from '@/lib/prisma'
 import { ensurePlainText } from '@/lib/html'
@@ -14,15 +15,15 @@ type CachedSummary = ThreadSummary & { hash: string; provider: string; at: strin
  * hash so repeat opens don't re-spend the model. Recomputed when the thread changes.
  */
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { user, error } = await getAuthUser()
-  if (!user) return error
-  const limited = await rateLimit(user.id, 'summarize')
+  const { ctx, error } = await requireOrg()
+  if (!ctx) return error
+  const limited = await rateLimit(ctx.userId, 'summarize')
   if (limited) return limited
 
   const { id } = await params
 
   const conv = await prisma.conversation.findFirst({
-    where: { id, userId: user.id },
+    where: { id, organizationId: ctx.organization.id },
     select: {
       channel: true,
       contact: { select: { name: true } },

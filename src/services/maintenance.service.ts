@@ -1,21 +1,25 @@
 import { prisma } from '@/lib/prisma'
-import { enqueue, enqueueGmailSync, enqueueScanRiskAlerts, enqueueNotifyAlerts, enqueueMany } from './jobs/queue'
-import { integrationEmail, startGmailWatch } from './gmail.service'
+import { enqueueGmailSync, enqueueScanRiskAlerts, enqueueNotifyAlerts, enqueueMany, enqueueDeduped } from './jobs/queue'
+import { startGmailWatch } from './gmail.service'
 import { findUnembeddedConversationIds } from './embedding.service'
-import { digestOwnerEmail, isoWeekKey } from './digest.service'
+import { isoWeekKey } from './digest.service'
 import { getTextProvider } from './ai'
 
 /**
- * Per-user daily maintenance, run from the GMAIL_MAINTENANCE job (one per active
- * integration). This used to live inline in /api/cron/gmail's per-integration
- * loop, which made a single cron invocation O(N integrations) — at scale it
- * timed out before reaching the tail. Moving it onto the durable queue keeps the
- * cron O(1) per user (a bulk enqueue) and lets the work drain, bounded, across
- * many worker/drain invocations.
+ * Per-connector daily maintenance, run from the GMAIL_MAINTENANCE job (one per
+ * active integration). This used to live inline in /api/cron/gmail's
+ * per-integration loop, which made a single cron invocation O(N integrations) —
+ * at scale it timed out before reaching the tail. Moving it onto the durable
+ * queue keeps the cron O(1) per user (a bulk enqueue) and lets the work drain,
+ * bounded, across many worker/drain invocations.
  *
  * Everything here is idempotent and collapse-safe: the enqueue helpers dedupe on
- * PENDING jobs, and the digest is guarded by both a job-count check and the
+ * PENDING jobs, and the digest is guarded by both a deduped enqueue and the
  * EmailDigest unique claim — so a re-run of the maintenance job is harmless.
+ *
+ * Org-scoped work (alert scan, notify, embed/draft backfill, digest) is keyed on
+ * the integration's organization; the safety sync + watch renewal stay keyed on
+ * the connector mailbox.
  */
 
 // Renew push watches that expire within this window.
@@ -47,13 +51,12 @@ export async function runGmailMaintenance(userId: string): Promise<MaintenanceRe
     // Disconnected between enqueue and run — nothing to do.
     return result
   }
+  const organizationId = integration.organizationId
 
   const aiOn = Boolean(getTextProvider())
   const pubsubConfigured = Boolean(process.env.GMAIL_PUBSUB_TOPIC)
-  const ownerEmail = digestOwnerEmail()
   const now = new Date()
   const isMonday = now.getUTCDay() === 1
-  const periodKey = isoWeekKey(now)
 
   // 1. Safety sync — covers any push notification we missed.
   try {
@@ -65,43 +68,43 @@ export async function runGmailMaintenance(userId: string): Promise<MaintenanceRe
 
   // 2. Alert scan + a notify backstop (due reminders must surface daily even
   //    when no alert changed; notifyNewAlerts no-ops cheaply when idle).
-  try {
-    await enqueueScanRiskAlerts(userId)
-    await enqueueNotifyAlerts(userId)
-  } catch (e) {
-    result.errors.push(`alert-scan: ${String(e)}`)
+  if (organizationId) {
+    try {
+      await enqueueScanRiskAlerts(organizationId)
+      await enqueueNotifyAlerts(organizationId)
+    } catch (e) {
+      result.errors.push(`alert-scan: ${String(e)}`)
+    }
   }
 
   // 3. Embedding backfill — bounded; skipped while a previous batch is pending.
-  try {
-    const missing = await findUnembeddedConversationIds(userId, 50)
-    if (missing.length) {
-      const pending = await prisma.job.count({
-        where: { type: 'EMBED_CONVERSATION', userId, status: 'PENDING' },
-      })
-      if (pending === 0) {
-        result.embedsQueued += await enqueueMany(
-          'EMBED_CONVERSATION',
-          missing.map((conversationId) => ({ conversationId })),
-          { userId },
-          (p) => `EMBED_CONVERSATION:${p.conversationId}`,
-        )
+  if (organizationId) {
+    try {
+      const missing = await findUnembeddedConversationIds(organizationId, 50)
+      if (missing.length) {
+        const pending = await prisma.job.count({ where: { type: 'EMBED_CONVERSATION', status: 'PENDING' } })
+        if (pending === 0) {
+          result.embedsQueued += await enqueueMany(
+            'EMBED_CONVERSATION',
+            missing.map((conversationId) => ({ conversationId })),
+            {},
+            (p) => `EMBED_CONVERSATION:${p.conversationId}`,
+          )
+        }
       }
+    } catch (e) {
+      result.errors.push(`embed-backfill: ${String(e)}`)
     }
-  } catch (e) {
-    result.errors.push(`embed-backfill: ${String(e)}`)
   }
 
   // 4. Auto-draft backfill — urgent awaiting threads that never got a draft.
-  if (aiOn) {
+  if (aiOn && organizationId) {
     try {
-      const pendingDrafts = await prisma.job.count({
-        where: { type: 'GENERATE_DRAFT', userId, status: 'PENDING' },
-      })
+      const pendingDrafts = await prisma.job.count({ where: { type: 'GENERATE_DRAFT', status: 'PENDING' } })
       if (pendingDrafts === 0) {
         const candidates = await prisma.conversation.findMany({
           where: {
-            userId,
+            organizationId,
             integration: { isActive: true },
             awaitingReply: true,
             priority: { in: ['HOT', 'ATTENTION'] },
@@ -115,7 +118,7 @@ export async function runGmailMaintenance(userId: string): Promise<MaintenanceRe
           result.draftsQueued += await enqueueMany(
             'GENERATE_DRAFT',
             candidates.map((c) => ({ conversationId: c.id })),
-            { userId },
+            {},
             (p) => `GENERATE_DRAFT:${p.conversationId}`,
           )
         }
@@ -125,23 +128,18 @@ export async function runGmailMaintenance(userId: string): Promise<MaintenanceRe
     }
   }
 
-  // 5. Weekly digest — only for the owner mailbox (GMAIL_USER_EMAIL identity),
-  //    Mondays (UTC). Deduped by (userId, ISO week) + the EmailDigest claim.
-  if (isMonday && ownerEmail && integrationEmail(integration) === ownerEmail) {
+  // 5. Weekly digest — per organization, Mondays (UTC). Deduped by org+week; the
+  //    digest service's EmailDigest claim is the real idempotency guard.
+  if (isMonday && organizationId) {
     try {
-      const alreadySent = await prisma.emailDigest.findUnique({
-        where: { userId_periodKey: { userId, periodKey } },
-        select: { id: true },
-      })
-      const alreadyQueued = alreadySent
-        ? 1
-        : await prisma.job.count({
-            where: { type: 'SEND_WEEKLY_DIGEST', userId, status: { in: ['PENDING', 'RUNNING'] } },
-          })
-      if (!alreadySent && alreadyQueued === 0) {
-        await enqueue('SEND_WEEKLY_DIGEST', { userId, periodKey }, { userId })
-        result.digestQueued = true
-      }
+      const weekKey = isoWeekKey(now)
+      const periodKey = `${weekKey}:${organizationId}`
+      await enqueueDeduped(
+        'SEND_WEEKLY_DIGEST',
+        { organizationId, periodKey },
+        `SEND_WEEKLY_DIGEST:${organizationId}:${weekKey}`,
+      )
+      result.digestQueued = true
     } catch (e) {
       result.errors.push(`digest: ${String(e)}`)
     }

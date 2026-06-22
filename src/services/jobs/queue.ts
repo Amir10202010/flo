@@ -46,7 +46,7 @@ function isUniqueViolation(e: unknown): boolean {
  * means a concurrent enqueue loses the INSERT with P2002, which we catch and
  * resolve to the winner — so a webhook/push burst can't pile up duplicates.
  */
-async function enqueueDeduped(
+export async function enqueueDeduped(
   type: JobType,
   payload: Record<string, unknown>,
   dedupeKey: string,
@@ -215,8 +215,8 @@ export async function enqueueGmailSync(userId: string): Promise<Job> {
  * scan for the user — a scan is a full recomputation, so one pending job
  * covers any number of triggers.
  */
-export async function enqueueScanRiskAlerts(userId: string): Promise<Job> {
-  return enqueueDeduped('SCAN_RISK_ALERTS', { userId }, `SCAN_RISK_ALERTS:${userId}`, { userId })
+export async function enqueueScanRiskAlerts(organizationId: string): Promise<Job> {
+  return enqueueDeduped('SCAN_RISK_ALERTS', { organizationId }, `SCAN_RISK_ALERTS:${organizationId}`)
 }
 
 /**
@@ -224,8 +224,8 @@ export async function enqueueScanRiskAlerts(userId: string): Promise<Job> {
  * existing PENDING job — notifyNewAlerts recomputes the full set, so one
  * pending job covers any number of scans that finished close together.
  */
-export async function enqueueNotifyAlerts(userId: string): Promise<Job> {
-  return enqueueDeduped('NOTIFY_ALERTS', { userId }, `NOTIFY_ALERTS:${userId}`, { userId })
+export async function enqueueNotifyAlerts(organizationId: string): Promise<Job> {
+  return enqueueDeduped('NOTIFY_ALERTS', { organizationId }, `NOTIFY_ALERTS:${organizationId}`)
 }
 
 /**
@@ -263,8 +263,8 @@ export async function enqueueMaintenanceForUsers(userIds: string[]): Promise<num
  * conversation id (embedConversation itself is also hash-idempotent, so a
  * duplicate slipping through costs one no-op job, not a wrong result).
  */
-export async function enqueueEmbedConversation(userId: string, conversationId: string): Promise<Job> {
-  return enqueueDeduped('EMBED_CONVERSATION', { conversationId }, `EMBED_CONVERSATION:${conversationId}`, { userId })
+export async function enqueueEmbedConversation(conversationId: string): Promise<Job> {
+  return enqueueDeduped('EMBED_CONVERSATION', { conversationId }, `EMBED_CONVERSATION:${conversationId}`)
 }
 
 /**
@@ -272,6 +272,6 @@ export async function enqueueEmbedConversation(userId: string, conversationId: s
  * conversation id (a pending draft job already covers the latest state; the
  * handler re-checks awaiting + provider, so a stray duplicate is a cheap no-op).
  */
-export async function enqueueGenerateDraft(userId: string, conversationId: string): Promise<Job> {
-  return enqueueDeduped('GENERATE_DRAFT', { conversationId }, `GENERATE_DRAFT:${conversationId}`, { userId })
+export async function enqueueGenerateDraft(conversationId: string): Promise<Job> {
+  return enqueueDeduped('GENERATE_DRAFT', { conversationId }, `GENERATE_DRAFT:${conversationId}`)
 }

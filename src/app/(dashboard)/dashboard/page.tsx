@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { Flame, Inbox, Mail, MessagesSquare, ShieldAlert, Target } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
+import { getOrgContext } from '@/lib/org'
 import { getDashboardData, type DashboardData } from '@/services/dashboard.service'
 import { longDate } from '@/lib/time'
 import { Reveal } from '@/components/dashboard/Motion'
@@ -72,10 +73,10 @@ function SyncChip({ connected, lastSyncAgo }: { connected: boolean; lastSyncAgo:
  * immediately. A metrics/DB failure degrades to <MetricsUnavailable>
  * instead of crashing the whole route.
  */
-async function DashboardBody({ userId }: { userId: string }) {
+async function DashboardBody({ organizationId }: { organizationId: string }) {
   let data: DashboardData
   try {
-    data = await getDashboardData(userId)
+    data = await getDashboardData(organizationId)
   } catch (err) {
     console.error('[dashboard] failed to load metrics:', err)
     return <MetricsUnavailable />
@@ -184,6 +185,8 @@ export default async function DashboardPage() {
   // so the shell renders instantly while DashboardBody streams in.
   const user = await getCurrentUser()
   if (!user) redirect('/login')
+  const ctx = await getOrgContext()
+  if (!ctx) redirect('/onboarding')
 
   const firstName =
     (user.user_metadata?.full_name as string | undefined)?.split(' ')[0] ??
@@ -209,7 +212,7 @@ export default async function DashboardPage() {
       </Reveal>
 
       <Suspense fallback={<DashboardBodySkeleton />}>
-        <DashboardBody userId={user.id} />
+        <DashboardBody organizationId={ctx.organization.id} />
       </Suspense>
     </div>
   )

@@ -35,8 +35,8 @@ export interface ClientDirectory {
 const DAY_MS = 86_400_000
 const RISK_RANK: Record<string, number> = { LOW: 0, MEDIUM: 1, HIGH: 2, CRITICAL: 3 }
 
-export async function getClientDirectory(userId: string): Promise<ClientDirectory> {
-  const ws = await loadWorkspace(userId)
+export async function getClientDirectory(organizationId: string): Promise<ClientDirectory> {
+  const ws = await loadWorkspace(organizationId)
   const { conversations, messages, now } = ws
 
   const convToContact = new Map(conversations.map((c) => [c.id, c.contact.id]))
@@ -95,7 +95,7 @@ export async function getClientDirectory(userId: string): Promise<ClientDirector
   // loadWorkspace to respect the small connection pool).
   const noteGroups = await prisma.contactNote.groupBy({
     by: ['contactId'],
-    where: { userId },
+    where: { organizationId },
     _count: { _all: true },
   })
   const noteCountByContact = new Map(noteGroups.map((g) => [g.contactId, g._count._all]))

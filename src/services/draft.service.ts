@@ -34,12 +34,12 @@ function textOf(content: string): string {
  * for the MATCH tone. Cached briefly per user; never persisted — they are only
  * the user's own writing, used transiently in the prompt.
  */
-export async function collectStyleSamples(userId: string): Promise<string[]> {
-  const hit = styleCache.get(userId)
+export async function collectStyleSamples(organizationId: string): Promise<string[]> {
+  const hit = styleCache.get(organizationId)
   if (hit && Date.now() - hit.at < STYLE_TTL) return hit.samples
 
   const msgs = await prisma.message.findMany({
-    where: { direction: 'OUTBOUND', conversation: { userId } },
+    where: { direction: 'OUTBOUND', conversation: { organizationId } },
     orderBy: { sentAt: 'desc' },
     take: 12,
     select: { content: true },
@@ -49,21 +49,21 @@ export async function collectStyleSamples(userId: string): Promise<string[]> {
     .filter((t) => t.length > 20)
     .slice(0, 5)
 
-  styleCache.set(userId, { samples, at: Date.now() })
+  styleCache.set(organizationId, { samples, at: Date.now() })
   return samples
 }
 
 /**
  * Generate a reply draft for one conversation. Ownership is enforced by scoping
- * the lookup to `userId`. Throws if the conversation isn't found/owned.
+ * the lookup to `organizationId`. Throws if the conversation isn't found/owned.
  */
 export async function generateReplyDraftForConversation(
-  userId: string,
+  organizationId: string,
   conversationId: string,
   opts: { tone?: DraftTone; steer?: string; fallbackOnRetryable?: boolean } = {},
 ): Promise<DraftOutcome> {
   const conv = await prisma.conversation.findFirst({
-    where: { id: conversationId, userId },
+    where: { id: conversationId, organizationId },
     select: {
       channel: true,
       contact: { select: { name: true } },
@@ -77,7 +77,7 @@ export async function generateReplyDraftForConversation(
   if (!conv) throw new Error('Conversation not found')
 
   const tone = opts.tone ?? 'WARM'
-  const styleSamples = tone === 'MATCH' ? await collectStyleSamples(userId) : undefined
+  const styleSamples = tone === 'MATCH' ? await collectStyleSamples(organizationId) : undefined
 
   return generateReplyDraft(
     {
@@ -104,27 +104,33 @@ export async function generateReplyDraftForConversation(
  * Retryable provider errors propagate so the job queue backs off and retries.
  */
 export async function upsertAutoDraft(
-  userId: string,
   conversationId: string,
 ): Promise<{ generated: boolean; reason?: string }> {
   if (!getTextProvider()) return { generated: false, reason: 'no-provider' }
 
-  const conv = await prisma.conversation.findFirst({
-    where: { id: conversationId, userId },
-    select: { messages: { orderBy: { sentAt: 'desc' }, take: 1, select: { id: true, direction: true } } },
+  // System-generated: derive the org (ownership) and author from the thread.
+  const conv = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: {
+      organizationId: true,
+      userId: true,
+      messages: { orderBy: { sentAt: 'desc' }, take: 1, select: { id: true, direction: true } },
+    },
   })
   if (!conv) return { generated: false, reason: 'not-found' }
+  if (!conv.organizationId) return { generated: false, reason: 'no-org' }
 
   const latest = conv.messages[0]
   if (!latest || latest.direction !== 'INBOUND') return { generated: false, reason: 'not-awaiting' }
 
   // fallbackOnRetryable:false → 429/transient rethrows (job retries); a
   // non-retryable failure yields a local draft, which we deliberately drop.
-  const draft = await generateReplyDraftForConversation(userId, conversationId, { tone: 'WARM' })
+  const draft = await generateReplyDraftForConversation(conv.organizationId, conversationId, { tone: 'WARM' })
   if (draft.provider === 'local') return { generated: false, reason: 'provider-fell-back' }
 
   const data = {
-    userId,
+    userId: conv.userId,
+    organizationId: conv.organizationId,
     body: draft.body,
     tone: 'WARM',
     provider: draft.provider,
@@ -141,11 +147,11 @@ export async function upsertAutoDraft(
 
 /** The latest READY auto-draft for a conversation (owner-scoped), or null. */
 export async function getReadyDraft(
-  userId: string,
+  organizationId: string,
   conversationId: string,
 ): Promise<{ body: string; provider: string } | null> {
   const d = await prisma.conversationDraft.findFirst({
-    where: { conversationId, userId, status: 'READY' },
+    where: { conversationId, organizationId, status: 'READY' },
     select: { body: true, provider: true },
   })
   return d ? { body: d.body, provider: d.provider } : null

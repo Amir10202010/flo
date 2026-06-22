@@ -2,7 +2,7 @@ import { Fragment } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Sparkles } from 'lucide-react'
-import { getCurrentUser } from '@/lib/auth'
+import { requireOrgPage } from '@/lib/org'
 import { prisma } from '@/lib/prisma'
 import { sanitizeMessageHtml, sanitizeEmailRich } from '@/lib/sanitize-email'
 import PriorityBadge from '@/components/ui/PriorityBadge'
@@ -57,14 +57,13 @@ export default async function ConversationPage({
   const { id } = await params
   const { draft: draftParam } = await searchParams
 
-  const user = await getCurrentUser()
-  if (!user) notFound()
+  const ctx = await requireOrgPage()
 
-  // findFirst (not findUnique) so we can scope by owner + active integration —
-  // prevents reading another user's conversation, and hides chats from
+  // findFirst (not findUnique) so we can scope by org + active integration —
+  // prevents reading another org's conversation, and hides chats from
   // disconnected channels.
   const conv = await prisma.conversation.findFirst({
-    where: { id, userId: user.id, integration: { isActive: true } },
+    where: { id, organizationId: ctx.organization.id, integration: { isActive: true } },
     include: {
       contact: true,
       messages: { orderBy: { sentAt: 'asc' } },
@@ -82,7 +81,7 @@ export default async function ConversationPage({
   const now = new Date()
 
   // Pending auto-draft to pre-fill, and the one-click "?draft=1" intent.
-  const readyDraft = await getReadyDraft(user.id, conv.id)
+  const readyDraft = await getReadyDraft(ctx.organization.id, conv.id)
   const wantsAutoDraft = draftParam === '1'
 
   // Pre-compute grouping: day separators + "continuation" rows (same sender,

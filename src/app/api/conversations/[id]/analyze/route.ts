@@ -1,4 +1,5 @@
-import { getAuthUser, ok, err } from '@/lib/api'
+import { ok, err } from '@/lib/api'
+import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
 import { prisma } from '@/lib/prisma'
 import { analyzeConversation } from '@/services/conversation.analyzer'
@@ -7,9 +8,9 @@ export async function POST(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { user, error } = await getAuthUser()
-  if (!user) return error
-  const limited = await rateLimit(user.id, 'analyze')
+  const { ctx, error } = await requireOrg('MEMBER')
+  if (!ctx) return error
+  const limited = await rateLimit(ctx.userId, 'analyze')
   if (limited) return limited
 
   const { id } = await params
@@ -17,10 +18,10 @@ export async function POST(
   // Ownership check before running the expensive analysis
   const conv = await prisma.conversation.findUnique({
     where: { id },
-    select: { userId: true },
+    select: { organizationId: true },
   })
 
-  if (!conv || conv.userId !== user.id) return err('Not found', 404)
+  if (!conv || conv.organizationId !== ctx.organization.id) return err('Not found', 404)
 
   try {
     const result = await analyzeConversation(id)

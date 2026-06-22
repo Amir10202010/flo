@@ -1,5 +1,6 @@
 import { type NextRequest } from 'next/server'
-import { getAuthUser, ok, err } from '@/lib/api'
+import { ok, err } from '@/lib/api'
+import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
 import { prisma } from '@/lib/prisma'
 import {
@@ -30,9 +31,9 @@ const VALID_SORT = new Set(['priority', 'recent', 'oldest'])
  * plus a day window and sort order. Reuses the shared `buildWhere`.
  */
 export async function GET(req: NextRequest) {
-  const { user, error } = await getAuthUser()
-  if (!user) return error
-  const limited = await rateLimit(user.id, 'mutate')
+  const { ctx, error } = await requireOrg()
+  if (!ctx) return error
+  const limited = await rateLimit(ctx.userId, 'mutate')
   if (limited) return limited
 
   const sp = req.nextUrl.searchParams
@@ -60,7 +61,7 @@ export async function GET(req: NextRequest) {
   const sinceDate = daysBack > 0 ? new Date(Date.now() - daysBack * 86_400_000) : null
   const awaiting = awaitingParam === 'true' ? true : awaitingParam === 'false' ? false : undefined
 
-  const where = buildWhere(user.id, {
+  const where = buildWhere(ctx.organization.id, {
     status: (status as ConversationStatus) || undefined,
     channel: (channel as ChannelEnum) || undefined,
     category: (category as EmailCategory) || undefined,

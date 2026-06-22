@@ -1,5 +1,6 @@
 import { type NextRequest } from 'next/server'
-import { getAuthUser, ok, err } from '@/lib/api'
+import { ok, err } from '@/lib/api'
+import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
 import { coerceAction, executeAction } from '@/services/assistant.actions'
 
@@ -14,9 +15,10 @@ import { coerceAction, executeAction } from '@/services/assistant.actions'
  * flipping an alert's status, or creating a reminder.
  */
 export async function POST(req: NextRequest) {
-  const { user, error } = await getAuthUser()
-  if (!user) return error
-  const limited = await rateLimit(user.id, 'assistantAct')
+  // Assistant actions mutate the workspace → require write access.
+  const { ctx, error } = await requireOrg('MEMBER')
+  if (!ctx) return error
+  const limited = await rateLimit(ctx.userId, 'assistantAct')
   if (limited) return limited
 
   let body: unknown
@@ -30,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (!action) return err('Invalid or unsupported action', 400)
 
   try {
-    const result = await executeAction(user.id, action)
+    const result = await executeAction(ctx.organization.id, ctx.userId, action)
     return ok(result)
   } catch (e) {
     console.error('[api/assistant/act] failed:', e)

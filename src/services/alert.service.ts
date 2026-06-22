@@ -27,12 +27,23 @@ export interface ScanResult {
   open: number
 }
 
-export async function scanRiskAlerts(userId: string): Promise<ScanResult> {
-  const ws = await loadWorkspace(userId)
+export async function scanRiskAlerts(organizationId: string): Promise<ScanResult> {
+  const ws = await loadWorkspace(organizationId)
   const candidates = computeAlerts(ws)
   const now = new Date()
 
-  const existing = await prisma.riskAlert.findMany({ where: { userId } })
+  // Alerts are org-scoped (the team shares them). RiskAlert.userId is a required
+  // FK, so created rows are attributed to the org owner (any active member as a
+  // fallback) — but dedupe and every read scope on organizationId.
+  const owner = await prisma.membership.findFirst({
+    where: { organizationId, status: 'ACTIVE' },
+    orderBy: { role: 'asc' }, // OWNER sorts before others alphabetically
+    select: { userId: true },
+  })
+  const ownerId = owner?.userId
+  if (!ownerId) return { created: 0, refreshed: 0, reopened: 0, autoResolved: 0, open: 0 }
+
+  const existing = await prisma.riskAlert.findMany({ where: { organizationId } })
   const byKey = new Map(existing.map((a) => [a.dedupeKey, a]))
 
   let created = 0
@@ -41,14 +52,15 @@ export async function scanRiskAlerts(userId: string): Promise<ScanResult> {
 
   const activeKeys = new Set<string>()
   for (const c of candidates) {
-    const dedupeKey = `${userId}:${c.type}:${c.dedupeScope}`
+    const dedupeKey = `${organizationId}:${c.type}:${c.dedupeScope}`
     activeKeys.add(dedupeKey)
     const prev = byKey.get(dedupeKey)
 
     if (!prev) {
       await prisma.riskAlert.create({
         data: {
-          userId,
+          organizationId,
+          userId: ownerId,
           conversationId: c.conversationId,
           type: c.type,
           severity: c.severity,
@@ -148,13 +160,13 @@ function toItem(a: RiskAlert, now: number): RiskAlertItem {
 }
 
 export async function listRiskAlerts(
-  userId: string,
+  organizationId: string,
   statuses: AlertStatusValue[] = ['OPEN', 'ACKNOWLEDGED'],
   limit = 50,
 ): Promise<RiskAlertItem[]> {
   const rows = await prisma.riskAlert.findMany({
     where: {
-      userId,
+      organizationId,
       status: { in: statuses },
       // Actively-snoozed alerts are intentionally hidden until they wake up.
       OR: [{ snoozedUntil: null }, { snoozedUntil: { lte: new Date() } }],
@@ -178,12 +190,12 @@ const DEFAULT_SNOOZE_DAYS = 3
 
 /** Apply a user status transition; returns null when the alert isn't theirs. */
 export async function setAlertStatus(
-  userId: string,
+  organizationId: string,
   alertId: string,
   action: AlertAction,
   opts: { snoozeDays?: number } = {},
 ): Promise<RiskAlertItem | null> {
-  const alert = await prisma.riskAlert.findFirst({ where: { id: alertId, userId } })
+  const alert = await prisma.riskAlert.findFirst({ where: { id: alertId, organizationId } })
   if (!alert) return null
 
   const now = new Date()

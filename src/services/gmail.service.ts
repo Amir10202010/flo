@@ -238,7 +238,13 @@ async function persistThreads(
       if (!nameByEmail.has(t.contactEmail)) nameByEmail.set(t.contactEmail, t.contactName)
     }
     await prisma.contact.createMany({
-      data: Array.from(nameByEmail, ([email, name]) => ({ userId, email, name, source: 'GMAIL' as const })),
+      data: Array.from(nameByEmail, ([email, name]) => ({
+        userId,
+        organizationId: integration.organizationId,
+        email,
+        name,
+        source: 'GMAIL' as const,
+      })),
       skipDuplicates: true,
     })
     const contacts = await prisma.contact.findMany({
@@ -290,6 +296,8 @@ async function persistThreads(
           )
           return {
             userId,
+            organizationId: integration.organizationId,
+            inboxId: integration.inboxId,
             contactId: contactIdByEmail.get(t.contactEmail)!,
             integrationId: integration.id,
             channel: 'GMAIL' as const,
@@ -581,12 +589,15 @@ export type SendReplyResult = { messageId: string }
  * message. The conversation MUST already be ownership-checked by the caller.
  */
 export async function sendGmailReply(
-  userId: string,
+  organizationId: string,
   conversationId: string,
   body: string,
 ): Promise<SendReplyResult> {
+  // Org-scoped ownership: any member may reply to a shared thread. The reply
+  // goes out through the conversation's own integration (the connected inbox),
+  // not the acting member's account.
   const conversation = await prisma.conversation.findFirst({
-    where: { id: conversationId, userId },
+    where: { id: conversationId, organizationId },
     include: { contact: true, integration: true },
   })
   if (!conversation) throw new Error('Conversation not found')

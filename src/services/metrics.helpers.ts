@@ -22,7 +22,7 @@ export interface MsgEvent {
   sentAt: Date
 }
 
-export async function loadWorkspace(userId: string) {
+export async function loadWorkspace(organizationId: string) {
   const since = daysAgoDate(35)
 
   // The runtime pool is intentionally small (Supabase transaction pooler —
@@ -30,14 +30,21 @@ export async function loadWorkspace(userId: string) {
   // a Promise.all() here makes the extra queries sit in Prisma's pool queue,
   // and under concurrent page renders those waiters exceed pool_timeout
   // (P2024: "Timed out fetching a new connection from the connection pool").
-  // Four short sequential queries borrow at most one connection per request.
-  const integration = await prisma.integration.findFirst({
-    where: { userId, isActive: true },
-    select: { type: true, metadata: true, syncedAt: true },
+  // Short sequential queries borrow at most one connection per request.
+  //
+  // Org-scoped (shared inbox): every member sees the org's connected mailboxes,
+  // conversations and sync history. `ownerIds` is the set of users whose Gmail
+  // sync jobs feed this org (used for the activity timeline below).
+  const integrations = await prisma.integration.findMany({
+    where: { organizationId, isActive: true },
+    select: { userId: true, type: true, metadata: true, syncedAt: true },
+    orderBy: { createdAt: 'asc' },
   })
+  const integration = integrations[0] ?? null
+  const ownerIds = [...new Set(integrations.map((i) => i.userId))]
 
   const conversations = await prisma.conversation.findMany({
-    where: { userId, integration: { isActive: true } },
+    where: { organizationId, integration: { isActive: true } },
     select: {
       id: true,
       subject: true,
@@ -83,12 +90,14 @@ export async function loadWorkspace(userId: string) {
     messages = rows.reverse().map((m) => ({ ...m, direction: m.direction as Dir }))
   }
 
-  const syncJobs = await prisma.job.findMany({
-    where: { userId, type: 'GMAIL_SYNC', status: 'COMPLETED' },
-    orderBy: { finishedAt: 'desc' },
-    take: 3,
-    select: { id: true, finishedAt: true, result: true },
-  })
+  const syncJobs = ownerIds.length
+    ? await prisma.job.findMany({
+        where: { userId: { in: ownerIds }, type: 'GMAIL_SYNC', status: 'COMPLETED' },
+        orderBy: { finishedAt: 'desc' },
+        take: 3,
+        select: { id: true, finishedAt: true, result: true },
+      })
+    : []
 
   return { integration, conversations, messages, syncJobs, now: Date.now() }
 }

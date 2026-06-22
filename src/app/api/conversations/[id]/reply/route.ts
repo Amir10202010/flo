@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { getAuthUser, ok, err } from '@/lib/api'
+import { ok, err } from '@/lib/api'
+import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
 import { prisma } from '@/lib/prisma'
 import { sendGmailReply } from '@/services/gmail.service'
@@ -12,19 +13,20 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { user, error } = await getAuthUser()
-  if (!user) return error
-  const limited = await rateLimit(user.id, 'reply')
+  // Replying to a shared thread requires write access (VIEWER is read-only).
+  const { ctx, error } = await requireOrg('MEMBER')
+  if (!ctx) return error
+  const limited = await rateLimit(ctx.userId, 'reply')
   if (limited) return limited
 
   const { id } = await params
 
-  // Ownership check — never act on a conversation the user doesn't own.
+  // Ownership check — never act on a conversation outside the active org.
   const conv = await prisma.conversation.findUnique({
     where: { id },
-    select: { userId: true, channel: true },
+    select: { organizationId: true, channel: true },
   })
-  if (!conv || conv.userId !== user.id) return err('Not found', 404)
+  if (!conv || conv.organizationId !== ctx.organization.id) return err('Not found', 404)
   if (conv.channel !== 'GMAIL') return err('Replies are only supported for Gmail', 400)
 
   let parsed: z.infer<typeof BodySchema>
@@ -36,7 +38,7 @@ export async function POST(
   }
 
   try {
-    const result = await sendGmailReply(user.id, id, parsed.body)
+    const result = await sendGmailReply(ctx.organization.id, id, parsed.body)
     return ok(result, 201)
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Failed to send reply'

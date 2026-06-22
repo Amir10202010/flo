@@ -6,6 +6,9 @@ import { prisma } from '@/lib/prisma'
  * assistant's create_reminder action. A reminder fires exactly once — `firedAt`
  * is the guard — surfacing in the proactive notification email when it comes
  * due. Nothing here sends mail; the notification service consumes dueReminders.
+ *
+ * Org-scoped: reminders belong to the organization (the team sees them on the
+ * shared dashboard), while `authorId` records the member who set it.
  */
 
 const MAX_LIST = 50
@@ -17,10 +20,15 @@ export interface CreateReminderInput {
   contactName?: string | null
 }
 
-export async function createReminder(userId: string, input: CreateReminderInput): Promise<Reminder> {
+export async function createReminder(
+  organizationId: string,
+  authorId: string,
+  input: CreateReminderInput,
+): Promise<Reminder> {
   return prisma.reminder.create({
     data: {
-      userId,
+      organizationId,
+      userId: authorId,
       note: input.note.slice(0, 500),
       dueAt: input.dueAt,
       conversationId: input.conversationId ?? null,
@@ -30,18 +38,18 @@ export async function createReminder(userId: string, input: CreateReminderInput)
 }
 
 /** Pending reminders, soonest first — used by the assistant briefing + UI. */
-export async function listReminders(userId: string, limit = MAX_LIST): Promise<Reminder[]> {
+export async function listReminders(organizationId: string, limit = MAX_LIST): Promise<Reminder[]> {
   return prisma.reminder.findMany({
-    where: { userId, status: 'PENDING' },
+    where: { organizationId, status: 'PENDING' },
     orderBy: { dueAt: 'asc' },
     take: limit,
   })
 }
 
 /** Reminders that have come due and have not yet been surfaced. */
-export async function dueReminders(userId: string, now: Date = new Date()): Promise<Reminder[]> {
+export async function dueReminders(organizationId: string, now: Date = new Date()): Promise<Reminder[]> {
   return prisma.reminder.findMany({
-    where: { userId, status: 'PENDING', firedAt: null, dueAt: { lte: now } },
+    where: { organizationId, status: 'PENDING', firedAt: null, dueAt: { lte: now } },
     orderBy: { dueAt: 'asc' },
   })
 }
@@ -52,13 +60,13 @@ export async function markRemindersFired(ids: string[], now: Date = new Date()):
   await prisma.reminder.updateMany({ where: { id: { in: ids } }, data: { firedAt: now } })
 }
 
-/** Owner-scoped lifecycle transitions. Returns null when not the user's. */
+/** Org-scoped lifecycle transitions. Returns null when the reminder isn't the org's. */
 export async function setReminderStatus(
-  userId: string,
+  organizationId: string,
   reminderId: string,
   status: 'DONE' | 'CANCELLED',
 ): Promise<Reminder | null> {
-  const reminder = await prisma.reminder.findFirst({ where: { id: reminderId, userId } })
+  const reminder = await prisma.reminder.findFirst({ where: { id: reminderId, organizationId } })
   if (!reminder) return null
   return prisma.reminder.update({ where: { id: reminder.id }, data: { status } })
 }

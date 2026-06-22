@@ -53,8 +53,8 @@ const SENTIMENT_COLORS: Record<string, string> = {
   NEGATIVE: '#DC2B55',
 }
 
-export async function getAnalyticsData(userId: string): Promise<AnalyticsData> {
-  const ws = await loadWorkspace(userId)
+export async function getAnalyticsData(organizationId: string): Promise<AnalyticsData> {
+  const ws = await loadWorkspace(organizationId)
   const { conversations, messages, now } = ws
 
   const since30 = now - 30 * DAY_MS

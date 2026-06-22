@@ -170,18 +170,18 @@ const DRAFT_WHERE: Record<BulkDraftFilter, Prisma.ConversationWhereInput> = {
   awaiting: { awaitingReply: true, draft: { is: null } },
 }
 
-async function execBulkDraft(userId: string, filter: BulkDraftFilter): Promise<ActionResult> {
+async function execBulkDraft(organizationId: string, actorId: string, filter: BulkDraftFilter): Promise<ActionResult> {
   if (!getTextProvider()) {
     return { ok: false, message: 'Drafting needs an AI key, and none is configured right now.' }
   }
   const convs = await prisma.conversation.findMany({
-    where: { userId, status: 'ACTIVE', integration: { isActive: true }, ...DRAFT_WHERE[filter] },
+    where: { organizationId, status: 'ACTIVE', integration: { isActive: true }, ...DRAFT_WHERE[filter] },
     select: { id: true },
     orderBy: { priorityScore: 'desc' },
     take: MAX_BULK_DRAFTS,
   })
   if (!convs.length) return { ok: true, message: 'No matching threads need a draft right now.' }
-  const n = await enqueueMany('GENERATE_DRAFT', convs.map((c) => ({ conversationId: c.id })), { userId })
+  const n = await enqueueMany('GENERATE_DRAFT', convs.map((c) => ({ conversationId: c.id })), { userId: actorId })
   return {
     ok: true,
     message: `Drafting replies for ${n} thread${n === 1 ? '' : 's'} — each will show a “draft ready” badge in your inbox shortly. Nothing is sent automatically.`,
@@ -189,16 +189,16 @@ async function execBulkDraft(userId: string, filter: BulkDraftFilter): Promise<A
 }
 
 async function execTriageAlert(
-  userId: string,
+  organizationId: string,
   action: Extract<AssistantAction, { type: 'triage_alert' }>,
 ): Promise<ActionResult> {
   const alert = await prisma.riskAlert.findFirst({
-    where: { userId, conversationId: action.conversationId, status: { in: ['OPEN', 'ACKNOWLEDGED'] } },
+    where: { organizationId, conversationId: action.conversationId, status: { in: ['OPEN', 'ACKNOWLEDGED'] } },
     orderBy: { lastSeenAt: 'desc' },
   })
   if (!alert) return { ok: false, message: 'No open alert is linked to that thread anymore.' }
 
-  await setAlertStatus(userId, alert.id, action.op, { snoozeDays: action.snoozeDays })
+  await setAlertStatus(organizationId, alert.id, action.op, { snoozeDays: action.snoozeDays })
   const verb =
     action.op === 'resolve'
       ? 'Resolved'
@@ -209,10 +209,11 @@ async function execTriageAlert(
 }
 
 async function execCreateReminder(
-  userId: string,
+  organizationId: string,
+  actorId: string,
   action: Extract<AssistantAction, { type: 'create_reminder' }>,
 ): Promise<ActionResult> {
-  const reminder = await createReminder(userId, {
+  const reminder = await createReminder(organizationId, actorId, {
     note: action.note,
     dueAt: new Date(action.dueAt),
     conversationId: action.conversationId ?? null,
@@ -222,31 +223,37 @@ async function execCreateReminder(
 }
 
 async function execCreateNote(
-  userId: string,
+  organizationId: string,
+  actorId: string,
   action: Extract<AssistantAction, { type: 'create_note' }>,
 ): Promise<ActionResult> {
   const conv = await prisma.conversation.findFirst({
-    where: { id: action.conversationId, userId },
+    where: { id: action.conversationId, organizationId },
     select: { contactId: true, contact: { select: { name: true } } },
   })
   if (!conv) return { ok: false, message: 'That contact isn’t in your workspace anymore.' }
 
-  const note = await createContactNote(userId, { contactId: conv.contactId, body: action.body, source: 'assistant' })
+  const note = await createContactNote(organizationId, actorId, { contactId: conv.contactId, body: action.body, source: 'assistant' })
   if (!note) return { ok: false, message: 'Couldn’t save the note.' }
   const preview = action.body.length > 80 ? `${action.body.slice(0, 79).trimEnd()}…` : action.body
   return { ok: true, message: `Note saved for ${conv.contact.name}: “${preview}”.` }
 }
 
-/** Run a validated action through authorized, userId-scoped services. */
-export async function executeAction(userId: string, action: AssistantAction): Promise<ActionResult> {
+/** Run a validated action through authorized, org-scoped services. `actorId` is
+ * the acting member (authorship); `organizationId` is the tenant boundary. */
+export async function executeAction(
+  organizationId: string,
+  actorId: string,
+  action: AssistantAction,
+): Promise<ActionResult> {
   switch (action.type) {
     case 'bulk_draft':
-      return execBulkDraft(userId, action.filter)
+      return execBulkDraft(organizationId, actorId, action.filter)
     case 'triage_alert':
-      return execTriageAlert(userId, action)
+      return execTriageAlert(organizationId, action)
     case 'create_reminder':
-      return execCreateReminder(userId, action)
+      return execCreateReminder(organizationId, actorId, action)
     case 'create_note':
-      return execCreateNote(userId, action)
+      return execCreateNote(organizationId, actorId, action)
   }
 }

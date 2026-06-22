@@ -1,29 +1,25 @@
 import { NextResponse } from 'next/server'
-import { getSupabaseServerClient } from '@/lib/supabase-server'
+import { requireOrg } from '@/lib/org'
 import { prisma } from '@/lib/prisma'
 import { stopGmailWatch } from '@/services/gmail.service'
 
+/** List the organization's connected integrations (any member). */
 export async function GET() {
-  const supabase = await getSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { ctx, error } = await requireOrg()
+  if (!ctx) return error
 
   const integrations = await prisma.integration.findMany({
-    where: { userId: user.id },
-    select: { type: true, isActive: true, syncedAt: true },
+    where: { organizationId: ctx.organization.id },
+    select: { type: true, isActive: true, syncedAt: true, email: true },
   })
 
   return NextResponse.json(integrations)
 }
 
+/** Disconnect a shared inbox (admin/owner only). */
 export async function DELETE(req: Request) {
-  const supabase = await getSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { ctx, error } = await requireOrg('ADMIN')
+  if (!ctx) return error
 
   const { type } = await req.json()
   if (!type) {
@@ -32,8 +28,8 @@ export async function DELETE(req: Request) {
 
   // Stop the Gmail push watch before deactivating (best-effort).
   if (type === 'GMAIL') {
-    const integration = await prisma.integration.findUnique({
-      where: { userId_type: { userId: user.id, type: 'GMAIL' } },
+    const integration = await prisma.integration.findFirst({
+      where: { organizationId: ctx.organization.id, type: 'GMAIL', isActive: true },
     })
     if (integration) {
       try {
@@ -45,7 +41,7 @@ export async function DELETE(req: Request) {
   }
 
   await prisma.integration.updateMany({
-    where: { userId: user.id, type },
+    where: { organizationId: ctx.organization.id, type },
     data: { isActive: false },
   })
 

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
 import {
   ArrowRight,
   ChevronRight,
@@ -12,7 +11,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from 'lucide-react'
-import { getCurrentUser } from '@/lib/auth'
+import { requireOrgPage } from '@/lib/org'
 import { getRiskOverview, type RiskThread } from '@/services/dashboard.service'
 import { listRiskAlerts } from '@/services/alert.service'
 import { Reveal } from '@/components/dashboard/Motion'
@@ -98,12 +97,11 @@ function RiskThreadCard({ t }: { t: RiskThread }) {
 }
 
 export default async function RiskPage() {
-  const user = await getCurrentUser()
-  if (!user) redirect('/login')
+  const ctx = await requireOrgPage()
 
-  const data = await getRiskOverview(user.id)
+  const data = await getRiskOverview(ctx.organization.id)
   // Sequential on purpose — small connection pool (see CLAUDE.md).
-  const alerts = data.hasData ? await listRiskAlerts(user.id) : []
+  const alerts = data.hasData ? await listRiskAlerts(ctx.organization.id) : []
   const allClear = data.critical.length === 0 && data.watchlist.length === 0
 
   return (

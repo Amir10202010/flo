@@ -1,5 +1,6 @@
 import { type NextRequest } from 'next/server'
-import { getAuthUser, ok, err } from '@/lib/api'
+import { ok, err } from '@/lib/api'
+import { requireOrg } from '@/lib/org'
 import { listRiskAlerts } from '@/services/alert.service'
 import type { AlertStatusValue } from '@/types'
 
@@ -12,8 +13,8 @@ const VALID_STATUS = new Set<AlertStatusValue>(['OPEN', 'ACKNOWLEDGED', 'RESOLVE
  *   GET /api/alerts?status=all       → everything
  */
 export async function GET(req: NextRequest) {
-  const { user, error } = await getAuthUser()
-  if (!user) return error
+  const { ctx, error } = await requireOrg()
+  if (!ctx) return error
 
   const raw = req.nextUrl.searchParams.get('status')
   let statuses: AlertStatusValue[] = ['OPEN', 'ACKNOWLEDGED']
@@ -24,6 +25,6 @@ export async function GET(req: NextRequest) {
     statuses = [raw as AlertStatusValue]
   }
 
-  const items = await listRiskAlerts(user.id, statuses)
+  const items = await listRiskAlerts(ctx.organization.id, statuses)
   return ok({ items })
 }

@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
 import { CalendarClock, ChartLine, Clock, Lightbulb, Mail, MessagesSquare, Send } from 'lucide-react'
-import { getCurrentUser } from '@/lib/auth'
+import { requireOrgPage } from '@/lib/org'
 import { getInsightsFeed } from '@/services/dashboard.service'
 import { Reveal } from '@/components/dashboard/Motion'
 import StatCard from '@/components/dashboard/StatCard'
@@ -21,10 +20,9 @@ const TREND_ICONS: Record<string, React.ReactNode> = {
 }
 
 export default async function InsightsPage() {
-  const user = await getCurrentUser()
-  if (!user) redirect('/login')
+  const ctx = await requireOrgPage()
 
-  const data = await getInsightsFeed(user.id)
+  const data = await getInsightsFeed(ctx.organization.id)
 
   return (
     <div className="dash-page" style={{ padding: '28px 32px 56px', maxWidth: 1480, margin: '0 auto', width: '100%' }}>

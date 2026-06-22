@@ -106,9 +106,9 @@ export async function embedConversation(conversationId: string): Promise<EmbedCo
  * Conversation IDs (for this user) that have no embedding yet — backfill
  * candidates. Bounded so a single cron tick enqueues a sane batch.
  */
-export async function findUnembeddedConversationIds(userId: string, limit = 50): Promise<string[]> {
+export async function findUnembeddedConversationIds(organizationId: string, limit = 50): Promise<string[]> {
   const rows = await prisma.conversation.findMany({
-    where: { userId, integration: { isActive: true }, embedding: null },
+    where: { organizationId, integration: { isActive: true }, embedding: null },
     select: { id: true },
     orderBy: { lastMessageAt: 'desc' },
     take: limit,

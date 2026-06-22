@@ -1,5 +1,6 @@
 import { type NextRequest } from 'next/server'
-import { getAuthUser, ok, err } from '@/lib/api'
+import { ok, err } from '@/lib/api'
+import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
 import { setAlertStatus, type AlertAction } from '@/services/alert.service'
 
@@ -10,9 +11,9 @@ const VALID_ACTIONS = new Set<AlertAction>(['acknowledge', 'resolve', 'reopen', 
  *   PATCH /api/alerts/:id  { "action": "acknowledge" | "resolve" | "reopen" | "snooze", "snoozeDays"?: number }
  */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { user, error } = await getAuthUser()
-  if (!user) return error
-  const limited = await rateLimit(user.id, 'mutate')
+  const { ctx, error } = await requireOrg('MEMBER')
+  if (!ctx) return error
+  const limited = await rateLimit(ctx.userId, 'mutate')
   if (limited) return limited
 
   const { id } = await params
@@ -25,7 +26,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const rawDays = typeof body?.snoozeDays === 'number' ? body.snoozeDays : undefined
   const snoozeDays = rawDays && rawDays > 0 ? Math.min(30, Math.round(rawDays)) : undefined
 
-  const updated = await setAlertStatus(user.id, id, action, { snoozeDays })
+  const updated = await setAlertStatus(ctx.organization.id, id, action, { snoozeDays })
   if (!updated) return err('Alert not found', 404)
   return ok(updated)
 }

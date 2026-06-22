@@ -71,7 +71,7 @@ type MetaRow = Prisma.ConversationGetPayload<{ select: typeof META_SELECT }>
  * server-side `/api/conversations` filter endpoint (exported for reuse).
  */
 export function buildWhere(
-  userId: string,
+  organizationId: string,
   f: {
     status?: ConversationStatus
     channel?: Channel
@@ -90,7 +90,7 @@ export function buildWhere(
   if (f.sentiment) analysis.sentiment = f.sentiment
 
   return {
-    userId,
+    organizationId,
     integration: { isActive: true },
     ...(f.status ? { status: f.status } : {}),
     ...(f.channel ? { channel: f.channel } : {}),
@@ -154,7 +154,7 @@ function lowerFields(conv: MetaRow): Record<string, string> {
 }
 
 export async function searchConversations(
-  userId: string,
+  organizationId: string,
   q: string,
   filters: SearchFilters = {},
   limit = 20,
@@ -171,7 +171,7 @@ export async function searchConversations(
   }
 
   // Explicit filters always win over parsed ones.
-  const where = buildWhere(userId, {
+  const where = buildWhere(organizationId, {
     status: filters.status,
     channel: filters.channel,
     priority: filters.priority ?? parsed?.priority,
@@ -246,7 +246,7 @@ export async function searchConversations(
           semanticActive = true
           if (rows.length < universeIds.length) {
             degraded.push(`embeddings-partial(${rows.length}/${universeIds.length})`)
-            await enqueueEmbeddingBackfill(userId, universeIds.filter((id) => !semById.has(id)))
+            await enqueueEmbeddingBackfill(universeIds.filter((id) => !semById.has(id)))
           }
         }
       } else {
@@ -304,17 +304,19 @@ export async function searchConversations(
  * Queue EMBED jobs for conversations missing a vector — bounded, and skipped
  * entirely while a previous backfill is still pending (no job pile-up).
  */
-async function enqueueEmbeddingBackfill(userId: string, conversationIds: string[]): Promise<void> {
+async function enqueueEmbeddingBackfill(conversationIds: string[]): Promise<void> {
   if (!conversationIds.length) return
   try {
+    // Per-conversation dedupeKey already guarantees idempotency; a coarse global
+    // cap on pending EMBED work is enough to avoid piling on every search.
     const pending = await prisma.job.count({
-      where: { type: 'EMBED_CONVERSATION', userId, status: 'PENDING' },
+      where: { type: 'EMBED_CONVERSATION', status: 'PENDING' },
     })
-    if (pending > 0) return
+    if (pending > SEARCH_TUNING.BACKFILL_LIMIT) return
     await enqueueMany(
       'EMBED_CONVERSATION',
       conversationIds.slice(0, SEARCH_TUNING.BACKFILL_LIMIT).map((conversationId) => ({ conversationId })),
-      { userId },
+      {},
       (p) => `EMBED_CONVERSATION:${p.conversationId}`,
     )
   } catch (err) {

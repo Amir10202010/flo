@@ -1,4 +1,5 @@
-import { getAuthUser, ok } from '@/lib/api'
+import { ok } from '@/lib/api'
+import { requireOrg } from '@/lib/org'
 import { listReminders } from '@/services/reminder.service'
 import { shortDate } from '@/lib/time'
 
@@ -8,10 +9,10 @@ import { shortDate } from '@/lib/time'
  * Due labels are formatted server-side (no client Date() → no hydration drift).
  */
 export async function GET() {
-  const { user, error } = await getAuthUser()
-  if (!user) return error
+  const { ctx, error } = await requireOrg()
+  if (!ctx) return error
 
-  const rows = await listReminders(user.id)
+  const rows = await listReminders(ctx.organization.id)
   const now = Date.now()
 
   return ok({

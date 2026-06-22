@@ -13,6 +13,7 @@
  */
 import { cache } from 'react'
 import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 import type { NextResponse } from 'next/server'
 import type { Organization, Membership, OrgRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
@@ -79,6 +80,19 @@ export async function requireOrg(minRole: OrgRole = 'VIEWER'): Promise<RequireRe
   if (!ctx) return { ctx: null, error: err('No organization', 403) }
   if (!atLeast(ctx.role, minRole)) return { ctx: null, error: err('Forbidden', 403) }
   return { ctx, error: null }
+}
+
+/**
+ * Server-Component guard: returns the org context or redirects — to `/login`
+ * when unauthenticated, `/onboarding` when the user has no organization yet.
+ * Use this at the top of every authenticated dashboard page.
+ */
+export async function requireOrgPage(): Promise<OrgContext> {
+  const user = await getCurrentUser()
+  if (!user) redirect('/login')
+  const ctx = await getOrgContext()
+  if (!ctx) redirect('/onboarding')
+  return ctx
 }
 
 /** Route-handler guard keyed on a specific permission rather than a role floor. */

@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
 import {
   CalendarClock,
   ChartColumn,
@@ -13,7 +12,7 @@ import {
   ShieldAlert,
   Users,
 } from 'lucide-react'
-import { getCurrentUser } from '@/lib/auth'
+import { requireOrgPage } from '@/lib/org'
 import { getAnalyticsData } from '@/services/analytics.service'
 import { Reveal } from '@/components/dashboard/Motion'
 import WidgetShell from '@/components/dashboard/WidgetShell'
@@ -39,10 +38,9 @@ function LegendChip({ color, label }: { color: string; label: string }) {
 }
 
 export default async function AnalyticsPage() {
-  const user = await getCurrentUser()
-  if (!user) redirect('/login')
+  const ctx = await requireOrgPage()
 
-  const data = await getAnalyticsData(user.id)
+  const data = await getAnalyticsData(ctx.organization.id)
   const k = data.kpis
 
   return (
