@@ -10,7 +10,8 @@
     "lint": "eslint",
     "worker": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local src/worker.ts",
     "test:classifier": "tsx scripts/classifier.check.ts",
-    "test:agentic": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/agentic.check.ts"
+    "test:agentic": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/agentic.check.ts",
+    "test:access": "tsx scripts/access-request.check.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

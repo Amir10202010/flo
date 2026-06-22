@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { CheckCircle2, Loader2, Lock, Mail, Send, TriangleAlert } from 'lucide-react'
 import { Reveal } from '@/components/dashboard/Motion'
 import ModulePill from '@/components/dashboard/ModulePill'
+import RequestAccessForm from '@/components/integrations/RequestAccessForm'
 
 type Integration = { type: 'GMAIL' | 'TELEGRAM'; isActive: boolean; syncedAt: string | null }
 type SyncResult  = { synced: number; created: number; updated: number; errors: string[]; queuedAnalyses?: number; stillRunning?: boolean }
@@ -53,6 +54,7 @@ function IntegrationsContent() {
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [disconnecting, setDisconnecting] = useState(false)
+  const [showRequest, setShowRequest] = useState(false)
 
   const justConnected = searchParams.get('connected')
   const connectError  = searchParams.get('error')
@@ -227,12 +229,30 @@ function IntegrationsContent() {
                     {disconnecting ? 'Disconnecting…' : 'Disconnect'}
                   </button>
                 ) : (
-                  <a href="/api/auth/gmail" className="btn-primary integration-btn" style={{ fontSize: 13, padding: '9px 18px' }}>
-                    Connect
-                  </a>
+                  <button
+                    className="btn-primary integration-btn"
+                    onClick={() => setShowRequest((v) => !v)}
+                    style={{ fontSize: 13, padding: '9px 18px' }}
+                  >
+                    Request access
+                  </button>
                 )}
               </div>
             </div>
+
+            {!loading && !gmail && (
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                  Velnox is invite-only while we finish Google verification. Request access with the Gmail you want to
+                  connect — or{' '}
+                  <a href="/api/auth/gmail" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
+                    connect if you&apos;re already approved
+                  </a>
+                  .
+                </p>
+                {showRequest && <RequestAccessForm />}
+              </div>
+            )}
           </div>
         </Reveal>
 

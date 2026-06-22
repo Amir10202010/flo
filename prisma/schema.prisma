@@ -316,6 +316,21 @@ model EmailDigest {
   @@unique([userId, periodKey])
 }
 
+/// Invite-mode access requests. While the Gmail OAuth app is in Google Testing,
+/// only Console "Test users" can connect, so a non-approved user submits the
+/// mailbox they want to connect here; the owner is emailed and adds it manually.
+/// `email` is unique so re-submits dedupe; `notifiedAt` is the notify-once guard.
+model AccessRequest {
+  id          String              @id @default(cuid())
+  email       String              @unique
+  note        String?
+  status      AccessRequestStatus @default(PENDING)
+  requestedBy String?
+  notifiedAt  DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
 enum JobType {
   GMAIL_SYNC
   ANALYZE_CONVERSATION
@@ -385,4 +400,8 @@ enum Sentiment {
   POSITIVE
   NEUTRAL
   NEGATIVE
+}
+enum AccessRequestStatus {
+  PENDING
+  APPROVED
 }

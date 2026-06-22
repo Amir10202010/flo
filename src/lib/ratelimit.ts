@@ -42,6 +42,7 @@ export const RATE_LIMITS = {
   digestSend:   { limit: 5,  windowMs: 60 * 60_000 },   // manual digest preview (sends mail)
   notes:        { limit: 60, windowMs: 60_000 },        // contact-note writes
   mutate:       { limit: 90, windowMs: 60_000 },        // alert/reminder/category/settings writes
+  accessRequest:{ limit: 5,  windowMs: 60_000 },        // invite-gate request (sends owner mail)
 } satisfies Record<string, RateLimitConfig>
 
 export type RateLimitBucket = keyof typeof RATE_LIMITS
