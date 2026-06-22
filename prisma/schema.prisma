@@ -21,6 +21,72 @@ model User {
   categoryRules CategoryRule[]
   reminders    Reminder[]
   contactNotes ContactNote[]
+  memberships  Membership[]
+}
+
+/// The tenant. Everything a team owns hangs off an Organization. A user joins one
+/// or more orgs via Membership; the connected mailboxes become shared Inboxes.
+model Organization {
+  id           String        @id @default(cuid())
+  name         String
+  slug         String        @unique
+  createdAt    DateTime      @default(now())
+  memberships  Membership[]
+  invitations  Invitation[]
+  inboxes      Inbox[]
+  subscription Subscription?
+}
+
+/// A user's seat in an organization, with a role. The unit billing counts as a seat.
+model Membership {
+  id             String         @id @default(cuid())
+  organizationId String
+  userId         String
+  role           OrgRole        @default(MEMBER)
+  status         MemberStatus   @default(ACTIVE)
+  createdAt      DateTime       @default(now())
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assigned       Conversation[] @relation("ConversationAssignee")
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+/// A pending invite to join an org at a given role. Accepting it creates a Membership.
+model Invitation {
+  id             String       @id @default(cuid())
+  organizationId String
+  email          String
+  role           OrgRole      @default(MEMBER)
+  token          String       @unique
+  status         InviteStatus @default(PENDING)
+  invitedById    String?
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+}
+
+/// A shared mailbox owned by the organization (support@, sales@, hello@). The
+/// Integration holds the OAuth tokens that power it; conversations belong to it.
+model Inbox {
+  id             String         @id @default(cuid())
+  organizationId String
+  name           String
+  address        String
+  channel        ChannelEnum    @default(GMAIL)
+  color          String?
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  integration    Integration?
+  conversations  Conversation[]
+
+  @@unique([organizationId, address])
 }
 
 model Integration {
@@ -38,16 +104,25 @@ model Integration {
   isActive     Boolean     @default(true)
   syncedAt     DateTime?
   createdAt    DateTime    @default(now())
+  /// Tenant + shared-inbox wiring (organization-first). `organizationId` is the
+  /// denormalized tenant key; `inboxId` is the shared mailbox this connection
+  /// powers (1:1); `connectedById` records which member connected it.
+  organizationId String?
+  inboxId        String?  @unique
+  connectedById  String?
   user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inbox        Inbox?      @relation(fields: [inboxId], references: [id])
   conversations Conversation[]
 
   @@unique([userId, type])
   @@index([email])
+  @@index([organizationId])
 }
 
 model Contact {
   id          String    @id @default(cuid())
   userId      String
+  organizationId String?
   name        String
   email       String?
   telegramId  String?
@@ -61,6 +136,7 @@ model Contact {
   @@unique([userId, telegramId])
   @@unique([userId, email])
   @@index([userId])
+  @@index([organizationId])
 }
 
 /// A free-text note about a contact, created by the assistant's create_note
@@ -70,6 +146,7 @@ model Contact {
 model ContactNote {
   id        String   @id @default(cuid())
   userId    String
+  organizationId String?
   contactId String
   body      String
   source    String   @default("assistant") // assistant | manual
@@ -78,17 +155,24 @@ model ContactNote {
   contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   @@index([userId, contactId, createdAt])
+  @@index([organizationId])
 }
 
 model Conversation {
   id             String        @id @default(cuid())
   userId         String
+  organizationId String?
+  inboxId        String?
+  assigneeId     String?
   contactId      String
   integrationId  String
   channel        ChannelEnum
   externalId     String
   subject        String?
   status         ConversationStatus @default(ACTIVE)
+  /// Shared-inbox queue workflow, orthogonal to `status`: a thread can be OPEN
+  /// (queue) and ACTIVE (lifecycle) at once. Set CLOSED when archived/lost.
+  state          ConversationState @default(OPEN)
   priority       PriorityLevel @default(COLD)
   priorityScore  Float         @default(0)
   category       EmailCategory @default(PRIMARY)
@@ -105,16 +189,61 @@ model Conversation {
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   contact        Contact       @relation(fields: [contactId], references: [id])
   integration    Integration   @relation(fields: [integrationId], references: [id])
+  inbox          Inbox?        @relation(fields: [inboxId], references: [id])
+  assignee       Membership?   @relation("ConversationAssignee", fields: [assigneeId], references: [id])
   messages       Message[]
   analysis       ConversationAnalysis?
   embedding      ConversationEmbedding?
   draft          ConversationDraft?
   riskAlerts     RiskAlert[]
+  internalNotes  InternalNote[]
+  tags           ConversationTag[]
 
   @@unique([integrationId, externalId])
   @@index([userId, priorityScore(sort: Desc), lastMessageAt(sort: Desc)])
   @@index([userId, category])
   @@index([userId, awaitingReply])
+  @@index([organizationId, state])
+  @@index([organizationId, assigneeId])
+  @@index([organizationId, inboxId])
+}
+
+/// Team-internal comment on a conversation (visible only to the org, never sent
+/// to the contact). Distinct from ContactNote, which is about a person.
+model InternalNote {
+  id             String       @id @default(cuid())
+  organizationId String
+  conversationId String
+  authorId       String
+  body           String
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([organizationId])
+}
+
+/// Org-scoped colored label applied to conversations for filtering/triage.
+model Tag {
+  id             String            @id @default(cuid())
+  organizationId String
+  name           String
+  color          String            @default("#6366F1")
+  createdAt      DateTime          @default(now())
+  conversations  ConversationTag[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model ConversationTag {
+  conversationId String
+  tagId          String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  tag            Tag          @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, tagId])
+  @@index([tagId])
 }
 
 /// Learned / custom email-routing rule. Created when the user manually moves a
@@ -124,6 +253,7 @@ model Conversation {
 model CategoryRule {
   id        String        @id @default(cuid())
   userId    String
+  organizationId String?
   matchType String        // 'email' | 'domain'
   value     String        // lowercased sender email or domain
   category  EmailCategory
@@ -135,6 +265,72 @@ model CategoryRule {
 
   @@unique([userId, matchType, value])
   @@index([userId])
+  @@index([organizationId])
+}
+
+/// A team routing/automation rule (organization-first). Conditions over inbound
+/// mail (inbox/from/domain/subject keyword/channel) trigger actions (assign a
+/// member, add a tag, set priority, set category, close). Applied in the inbound
+/// sync pipeline; ordered, toggleable. Distinct from CategoryRule (classifier).
+model Rule {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  isActive       Boolean  @default(true)
+  order          Int      @default(0)
+  conditions     Json     @default("{}")
+  actions        Json     @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId, isActive, order])
+}
+
+/// Org-scoped saved reply / snippet inserted in the composer.
+model Template {
+  id             String   @id @default(cuid())
+  organizationId String
+  title          String
+  body           String
+  shared         Boolean  @default(true)
+  createdById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+/// Append-only record of who did what in the organization (member/role changes,
+/// inbox connect/disconnect, assignment, state change, rule/template/tag CRUD,
+/// billing, settings). `actorId` is null for system/automation actions.
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  actorId        String?
+  action         String
+  targetType     String?
+  targetId       String?
+  summary        String
+  metadata       Json     @default("{}")
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+}
+
+/// One billing subscription per organization. The plan/seat model + feature
+/// gates live in code (src/lib/billing.ts); `externalCustomerId` links to the
+/// external checkout provider (Stripe-ready) — no payment processor in-app.
+model Subscription {
+  id                 String       @id @default(cuid())
+  organizationId     String       @unique
+  plan               BillingPlan  @default(FREE)
+  status             String       @default("active")
+  seats              Int          @default(1)
+  externalCustomerId String?
+  currentPeriodEnd   DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 model Message {
@@ -177,6 +373,7 @@ model ConversationDraft {
   id               String   @id @default(cuid())
   conversationId   String   @unique
   userId           String
+  organizationId   String?
   body             String
   tone             String   @default("WARM")    // WARM | CONCISE | FORMAL | MATCH
   provider         String   @default("gemini")  // gemini | local
@@ -189,6 +386,7 @@ model ConversationDraft {
   conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
+  @@index([organizationId])
 }
 
 /// Durable background-job queue. Polled by the sync/ingestion worker
@@ -256,6 +454,7 @@ model ConversationEmbedding {
 model RiskAlert {
   id              String      @id @default(cuid())
   userId          String
+  organizationId  String?
   conversationId  String?
   type            String
   severity        RiskLevel
@@ -282,6 +481,7 @@ model RiskAlert {
   conversation    Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
+  @@index([organizationId, status])
 }
 
 /// A user-set follow-up reminder ("remind me to message X on Friday"), created
@@ -291,6 +491,7 @@ model RiskAlert {
 model Reminder {
   id             String   @id @default(cuid())
   userId         String
+  organizationId String?
   conversationId String?
   contactName    String?
   note           String
@@ -301,6 +502,7 @@ model Reminder {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status, dueAt])
+  @@index([organizationId, status, dueAt])
 }
 
 /// One row per delivered weekly digest — the idempotency guard that prevents
@@ -308,6 +510,7 @@ model Reminder {
 model EmailDigest {
   id        String   @id @default(cuid())
   userId    String
+  organizationId String?
   /// ISO week key, e.g. "2026-W24".
   periodKey String
   sentAt    DateTime @default(now())
@@ -315,6 +518,7 @@ model EmailDigest {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, periodKey])
+  @@index([organizationId])
 }
 
 /// Invite-mode access requests. While the Gmail OAuth app is in Google Testing,
@@ -368,6 +572,11 @@ enum ConversationStatus {
   ARCHIVED
   LOST
 }
+enum ConversationState {
+  OPEN
+  SNOOZED
+  CLOSED
+}
 enum PriorityLevel {
   HOT
   ATTENTION
@@ -405,4 +614,27 @@ enum Sentiment {
 enum AccessRequestStatus {
   PENDING
   APPROVED
+}
+
+enum OrgRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+enum MemberStatus {
+  ACTIVE
+  SUSPENDED
+}
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+enum BillingPlan {
+  FREE
+  TEAM
+  BUSINESS
+  ENTERPRISE
 }
