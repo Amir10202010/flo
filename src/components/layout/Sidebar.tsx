@@ -16,6 +16,7 @@ import {
   Users,
 } from 'lucide-react'
 import { useUiStore } from '@/stores/ui.store'
+import OrgSwitcher from '@/components/org/OrgSwitcher'
 import Brand from './Brand'
 
 interface NavEntry {
@@ -108,6 +109,9 @@ export default function Sidebar({ userName, userEmail }: { userName?: string | n
     >
       {/* Logo — hidden on mobile via .sidebar-logo-link (sidebar collapses to an icon rail) */}
       <Brand size={22} className="sidebar-logo-link" style={{ padding: '6px 8px', marginBottom: 6 }} />
+
+      {/* Active organization picker — self-fetches so the layout stays DB-free */}
+      <OrgSwitcher />
 
       {/* Command palette trigger */}
       <button type="button" className="sidebar-search-btn" onClick={togglePalette} title="Search (Ctrl/⌘ K)" data-tour="search">

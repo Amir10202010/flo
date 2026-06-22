@@ -21,16 +21,7 @@ import {
   type Organization,
 } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-
-function slugify(input: string): string {
-  const base = input
-    .toLowerCase()
-    .replace(/@.*$/, '') // drop email domain if a full address slipped in
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
-    .slice(0, 32)
-  return base || 'team'
-}
+import { slugify } from '@/lib/slug'
 
 /** Pick a unique org slug, appending a short suffix on collision. */
 async function uniqueSlug(seed: string): Promise<string> {
