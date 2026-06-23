@@ -1,54 +1,26 @@
 import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
-import { Bell, CircleCheck, Compass, Crown, Mail, ShieldCheck, UserRound } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
+import { requireOrgPage } from '@/lib/org'
+import { prisma } from '@/lib/prisma'
 import { Reveal } from '@/components/dashboard/Motion'
-import WidgetShell from '@/components/dashboard/WidgetShell'
-import SignOutButton from '@/components/ui/SignOutButton'
-import ReplayTourButton from '@/components/onboarding/ReplayTourButton'
-import AlertEmailToggle from '@/components/settings/AlertEmailToggle'
+import SettingsTabs from '@/components/settings/SettingsTabs'
 
 export const metadata: Metadata = { title: 'Settings — Velnox' }
 
-const PRO_PERKS = ['Unlimited synced threads', 'Full AI analysis on every conversation']
-
-type NotificationRow = {
-  icon: React.ReactNode
-  title: string
-  desc: string
-  live: boolean
-  state?: string
-  toggle?: boolean
-}
-
-const NOTIFICATIONS: NotificationRow[] = [
-  {
-    icon: <Mail size={14} />,
-    title: 'Weekly digest email',
-    desc: 'A Monday-morning brief: trends, quiet clients, top actions — sent via your own Gmail.',
-    state: 'Active · Mondays',
-    live: true,
-  },
-  {
-    icon: <ShieldCheck size={14} />,
-    title: 'Urgent alert emails',
-    desc: 'Get an email when a client hits critical or high risk — bundled and throttled (max once per ~6h) so it never floods you.',
-    live: true,
-    toggle: true,
-  },
-]
-
 export default async function SettingsPage() {
+  const ctx = await requireOrgPage()
   const user = await getCurrentUser()
-  if (!user) redirect('/login')
 
-  const userName  = user.user_metadata?.full_name ?? user.user_metadata?.name ?? null
-  const userEmail = user.email ?? null
-  const display   = userName ?? userEmail ?? 'User'
-  const letter    = display[0]?.toUpperCase() ?? '?'
+  const sub = await prisma.subscription.findUnique({
+    where: { organizationId: ctx.organization.id },
+    select: { plan: true, seats: true },
+  })
+
+  const userName = (user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? null) as string | null
+  const userEmail = user?.email ?? null
 
   return (
-    <div className="dash-page" style={{ padding: '28px 32px 56px', maxWidth: 820, margin: '0 auto', width: '100%' }}>
+    <div className="dash-page" style={{ padding: '28px 32px 56px', maxWidth: 880, margin: '0 auto', width: '100%' }}>
       <Reveal>
         <div className="dash-header-row" style={{ marginBottom: 20 }}>
           <div>
@@ -56,131 +28,22 @@ export default async function SettingsPage() {
               Settings
             </h1>
             <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
-              Your profile, plan and workspace preferences.
+              Organization, team members, inboxes and audit log.
             </p>
           </div>
         </div>
       </Reveal>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {/* Profile */}
-        <Reveal delay={0.05}>
-          <WidgetShell
-            icon={<UserRound size={14} />}
-            title="Profile"
-            sub="How you appear across the workspace"
-            bodyStyle={{ padding: '18px 20px' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-              <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'linear-gradient(135deg,#4b6bff,#9b6bff)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                {letter}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <p style={{ margin: '0 0 3px', fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{display}</p>
-                {userEmail && userName && (
-                  <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userEmail}</p>
-                )}
-              </div>
-            </div>
-          </WidgetShell>
-        </Reveal>
-
-        {/* Plan / Billing — drop NEXT_PUBLIC_CHECKOUT_URL (Stripe Payment Link,
-            LemonSqueezy, or Paddle) to turn the button into a real checkout. */}
-        <Reveal delay={0.1}>
-          <WidgetShell
-            icon={<Crown size={14} />}
-            title="Plan"
-            sub="Billing and limits for this workspace"
-            bodyStyle={{ padding: '18px 20px' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>Starter</p>
-                  <span className="tag" style={{ fontSize: 10.5, padding: '2px 9px' }}>Free</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  {PRO_PERKS.map((perk) => (
-                    <span key={perk} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: 'var(--text-secondary)' }}>
-                      <CircleCheck size={13} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                      {perk} <span style={{ color: 'var(--text-muted)' }}>· Pro</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <a
-                href={process.env.NEXT_PUBLIC_CHECKOUT_URL || '/pricing'}
-                className="btn-primary"
-                style={{ fontSize: 13.5, padding: '9px 18px', flexShrink: 0 }}
-              >
-                Upgrade to Pro — $39/mo
-              </a>
-            </div>
-          </WidgetShell>
-        </Reveal>
-
-        {/* Notifications — digest + risk alerts are live; statuses stay honest */}
-        <Reveal delay={0.15}>
-          <WidgetShell
-            icon={<Bell size={14} />}
-            title="Notifications"
-            sub="Email and in-app alerts from your workspace"
-            status="live"
-            bodyStyle={{ padding: '6px 8px 8px' }}
-          >
-            {NOTIFICATIONS.map((n) => (
-              <div key={n.title} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', minWidth: 0 }}>
-                <span style={{ width: 30, height: 30, borderRadius: 9, background: n.live ? 'var(--accent-dim)' : 'var(--bg-subtle)', border: '1px solid var(--border-light)', color: n.live ? 'var(--accent)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {n.icon}
-                </span>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{n.title}</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1 }}>{n.desc}</div>
-                </div>
-                {n.toggle ? (
-                  <AlertEmailToggle />
-                ) : (
-                  <span style={{ fontSize: 11, fontWeight: 600, color: n.live ? 'var(--success)' : 'var(--text-muted)', flexShrink: 0 }}>{n.state}</span>
-                )}
-              </div>
-            ))}
-          </WidgetShell>
-        </Reveal>
-
-        {/* Getting started — replay the first-run product tour */}
-        <Reveal delay={0.18}>
-          <WidgetShell
-            icon={<Compass size={14} />}
-            title="Getting started"
-            sub="A quick guided tour of the workspace"
-            bodyStyle={{ padding: '16px 20px' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
-              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted)', maxWidth: 440 }}>
-                Replay the spotlight tour that highlights Inbox, Clients, Insights, Risk, Analytics and the AI Assistant.
-              </p>
-              <ReplayTourButton />
-            </div>
-          </WidgetShell>
-        </Reveal>
-
-        {/* Account */}
-        <Reveal delay={0.22}>
-          <WidgetShell
-            icon={<ShieldCheck size={14} />}
-            title="Account"
-            sub={userEmail ? `Signed in as ${userEmail}` : 'Session and access'}
-            bodyStyle={{ padding: '6px 8px' }}
-          >
-            <SignOutButton />
-          </WidgetShell>
-        </Reveal>
-
-        <Reveal delay={0.25}>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0', paddingLeft: 4 }}>Velnox · Early Access</p>
-        </Reveal>
-      </div>
+      <Reveal delay={0.05}>
+        <SettingsTabs
+          orgName={ctx.organization.name}
+          role={ctx.role}
+          plan={sub?.plan ?? 'FREE'}
+          seats={sub?.seats ?? 1}
+          userName={userName}
+          userEmail={userEmail}
+        />
+      </Reveal>
     </div>
   )
 }
