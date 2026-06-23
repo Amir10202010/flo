@@ -191,11 +191,11 @@ const MARQUEE: { name: string; src?: string; Icon?: LucideIcon; soon?: boolean }
 
 /* ── FAQ ───────────────────────────────────────────────────────────────────── */
 const FAQS = [
-  { q: 'How does Velnox connect to Gmail?', a: 'You connect Gmail in two clicks with Google’s secure OAuth — Velnox never sees or stores your password. Your recent client threads start syncing into your prioritised inbox within minutes.' },
-  { q: 'What does the AI actually do?', a: 'It reads each client thread, assigns a clear priority (Hot, Needs attention, Cold, Spam), explains in plain language why a deal is at risk, and drafts a suggested reply you can send in one click.' },
-  { q: 'Is this another CRM I have to maintain?', a: 'No. Velnox sits on top of the Gmail you already use — there’s nothing to migrate, no pipelines to update, no data entry. You just get a smarter, sorted inbox.' },
-  { q: 'Is my data private and secure?', a: 'Your Google tokens are encrypted at rest (AES-256-GCM) and your conversations are only ever used to power your own inbox. We never sell or share your data.' },
-  { q: 'Do other channels work too?', a: 'Today Velnox is fully focused on Gmail, where most agency and studio deals actually happen. Telegram, WhatsApp and Instagram are on the roadmap — connect Gmail now and you’ll get them as they ship.' },
+  { q: 'How does Velnox connect to our mailbox?', a: 'An admin connects a shared Gmail mailbox (support@, sales@, hello@…) in two clicks with Google’s secure OAuth — Velnox never sees or stores a password. Threads start syncing into your team’s shared inbox within minutes.' },
+  { q: 'How does the team work together on one inbox?', a: 'Every conversation can be assigned to a teammate, moved through Open / Snoozed / Closed, tagged, and discussed with internal notes only your team sees. No more “did anyone reply to this?” in Slack.' },
+  { q: 'What does the AI actually do?', a: 'It reads each thread, assigns a clear priority, flags accounts going at-risk, and drafts a reply in your team’s voice — review-before-send, never auto-sent. Routing rules can auto-assign and tag incoming mail.' },
+  { q: 'How do roles and permissions work?', a: 'Four roles — Owner, Admin, Member, Viewer. Members work the inbox; Admins manage members, inboxes, rules and billing; Viewers get read-only access. Every change is recorded in the audit log.' },
+  { q: 'Is our data private and secure?', a: 'OAuth tokens are encrypted at rest (AES-256-GCM), data is scoped per organization, and conversations are only ever used to power your own workspace. We never sell or share your data.' },
 ]
 
 function FaqItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean; onToggle: () => void }) {
@@ -223,14 +223,14 @@ function FaqItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean
 }
 
 /* ── Comparison ────────────────────────────────────────────────────────────── */
-// crm = HubSpot/CRM, manual = plain Gmail
+// crm = legacy help desk, manual = a plain shared Gmail mailbox
 const COMPARE: { label: string; flo: boolean; crm: boolean; manual: boolean }[] = [
-  { label: 'Lives inside the Gmail you already use', flo: true,  crm: false, manual: true },
-  { label: 'AI priority on every client thread', flo: true, crm: false, manual: false },
-  { label: 'Explains why a client is going cold', flo: true, crm: false, manual: false },
-  { label: 'One-click suggested replies', flo: true, crm: true, manual: false },
-  { label: 'No data entry, no pipelines to maintain', flo: true, crm: false, manual: true },
-  { label: 'Set up in minutes, no training', flo: true, crm: false, manual: true },
+  { label: 'Works on the Gmail your team already uses', flo: true, crm: false, manual: true },
+  { label: 'Assign threads to a teammate', flo: true, crm: true, manual: false },
+  { label: 'Internal notes & collision-free handling', flo: true, crm: true, manual: false },
+  { label: 'AI triage, risk flags & drafted replies', flo: true, crm: false, manual: false },
+  { label: 'Roles, permissions & audit log', flo: true, crm: true, manual: false },
+  { label: 'Live in minutes, no migration', flo: true, crm: false, manual: true },
 ]
 
 function Cell({ on }: { on: boolean }) {
@@ -241,29 +241,29 @@ function Cell({ on }: { on: boolean }) {
 
 /* ── Stats ─────────────────────────────────────────────────────────────────── */
 const STATS = [
-  { val: '2 min', lbl: 'To connect Gmail and see your inbox' },
-  { val: 'Every thread', lbl: 'Scored Hot · Attention · Cold · Spam' },
-  { val: '1-click', lbl: 'AI-drafted replies, ready to send' },
-  { val: 'AES-256', lbl: 'Encryption on your connected account' },
+  { val: 'One inbox', lbl: 'Your whole team works the same queue' },
+  { val: 'Assign & note', lbl: 'No more “did anyone reply to this?”' },
+  { val: 'Roles & audit', lbl: 'Owner · Admin · Member · Viewer' },
+  { val: 'AES-256', lbl: 'Encryption on every connected mailbox' },
 ]
 
 /* ── Testimonials ────────────────────────────────────────────────────────────── */
 const TESTIMONIALS = [
   {
-    quote: 'Velnox tells me exactly who’s about to slip away and what to say. We stopped losing warm leads to a busy inbox almost overnight.',
-    name: 'Dana Mirzoyan', role: 'Founder · Studio Atelier', ini: 'DM', img: '/avatars/dana.jpg', grad: 'linear-gradient(135deg,#4F5CF4,#7C4DFF)', feature: true,
+    quote: 'Our whole support team works one shared inbox now. Assignments and internal notes killed the duplicate replies overnight — and the AI triage means the urgent stuff is always on top.',
+    name: 'Dana Mirzoyan', role: 'Head of Support · Studio Atelier', ini: 'DM', img: '/avatars/dana.jpg', grad: 'linear-gradient(135deg,#4F5CF4,#7C4DFF)', feature: true,
   },
   {
-    quote: 'Our whole studio runs on Gmail. I open Velnox, see the hot client threads first, and I’m done in minutes.',
-    name: 'Karim Aliyev', role: 'Sales Lead · Northwind', ini: 'KA', img: '/avatars/karim.jpg', grad: 'linear-gradient(135deg,#DC2B55,#F2709C)',
+    quote: 'Routing rules drop each lead onto the right rep automatically. My team opens Velnox and just works their queue.',
+    name: 'Karim Aliyev', role: 'Sales Manager · Northwind', ini: 'KA', img: '/avatars/karim.jpg', grad: 'linear-gradient(135deg,#DC2B55,#F2709C)',
   },
   {
-    quote: 'The suggested replies are scary good. Half the time I just read it, nod, and hit send.',
-    name: 'Sofia Reyes', role: 'Owner · Bloom Agency', ini: 'SR', img: '/avatars/sofia.jpg', grad: 'linear-gradient(135deg,#0EA371,#34D399)',
+    quote: 'The drafted replies are scary good, and review-before-send means I trust juniors on the shared inbox. Half the time they just read, nod, and send.',
+    name: 'Sofia Reyes', role: 'Ops Lead · Bloom Agency', ini: 'SR', img: '/avatars/sofia.jpg', grad: 'linear-gradient(135deg,#0EA371,#34D399)',
   },
   {
-    quote: 'It quietly flags a client going cold before I’d ever notice. That alone paid for itself in the first week.',
-    name: 'Marco Bianchi', role: 'Consultant · MB Partners', ini: 'MB', img: '/avatars/marco.jpg', grad: 'linear-gradient(135deg,#C2620A,#F6A23B)',
+    quote: 'Roles, permissions and the audit log made our security team comfortable in one call. It flags at-risk accounts before we’d ever notice.',
+    name: 'Marco Bianchi', role: 'COO · MB Partners', ini: 'MB', img: '/avatars/marco.jpg', grad: 'linear-gradient(135deg,#C2620A,#F6A23B)',
   },
 ]
 
@@ -363,19 +363,19 @@ export default function LandingPage() {
 
             <motion.div variants={blurUp} className="hero-badge" style={{ marginBottom: 26 }}>
               <span className="hb-dot" />
-              <span><span className="hb-shine">New</span> · AI that reads every client thread</span>
+              <span><span className="hb-shine">New</span> · The AI shared inbox for teams</span>
             </motion.div>
 
             <motion.h1
               variants={stagger}
               style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(40px, 9vw, 78px)', fontWeight: 400, lineHeight: 1.04, letterSpacing: '-0.04em', color: 'var(--text-primary)', margin: '0 0 24px', textWrap: 'balance' }}
             >
-              <motion.span variants={blurUp} style={{ display: 'block' }}>Never lose</motion.span>
+              <motion.span variants={blurUp} style={{ display: 'block' }}>One shared inbox</motion.span>
               <motion.span variants={blurUp} style={{ display: 'block' }}>
-                <em style={{ fontStyle: 'italic' }}>another</em>
+                <em style={{ fontStyle: 'italic' }}>for your whole</em>
                 {' '}
                 <span style={{ position: 'relative', display: 'inline-block' }}>
-                  <span className="ink-grad">client</span>
+                  <span className="ink-grad">team</span>
                   <svg className="flourish" viewBox="0 0 300 24" preserveAspectRatio="none" aria-hidden="true">
                     <motion.path
                       d="M5 15 C 70 5, 150 3, 295 13"
@@ -392,7 +392,7 @@ export default function LandingPage() {
               variants={blurUp}
               style={{ fontSize: 18, color: 'var(--text-secondary)', lineHeight: 1.65, margin: '0 0 36px', maxWidth: 480 }}
             >
-              Velnox reads every client thread in your Gmail, flags who&apos;s about to go cold, and drafts the reply that saves the deal. Built for agencies, studios and client-facing teams.
+              Velnox turns your team&apos;s shared mailbox into one AI-triaged queue — assign threads, leave internal notes, and send AI-drafted replies. Built for support, sales and ops teams.
             </motion.p>
 
             <motion.div variants={fadeUp} className="hero-cta" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 28 }}>
@@ -419,13 +419,13 @@ export default function LandingPage() {
                 ))}
               </div>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Built for agencies &amp; studios</div>
-                <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Run your client deals on Gmail? This is for you.</span>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Built for teams</div>
+                <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Support, sales &amp; ops teams run on Velnox.</span>
               </div>
             </motion.div>
 
             <motion.div variants={fadeUp} className="hero-checks" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-              {['Connect Gmail in 2 min', 'Free to start', 'No credit card'].map((t, i) => (
+              {['Set up in minutes', 'Free to start', 'Roles & permissions'].map((t, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                   <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(79,92,244,0.1)', border: '1px solid rgba(79,92,244,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Check size={10} style={{ color: 'var(--accent)' }} />
@@ -474,7 +474,7 @@ export default function LandingPage() {
       {/* ── Marquee strip (works with / value props) ──────────────────────── */}
       <div style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '26px 0', background: '#FFFFFF' }}>
         <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', textAlign: 'center', margin: '0 0 20px' }}>
-          Works inside the inbox you already use
+          Works on the Gmail your team already uses
         </p>
         <div className="marquee">
           <div className="marquee-track">
@@ -514,10 +514,10 @@ export default function LandingPage() {
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 56 }}>
               <Kicker>Product</Kicker>
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 16px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
-                Everything in one place
+                Your team&apos;s inbox, in one place
               </h2>
               <p style={{ fontSize: 16, color: 'var(--text-secondary)', maxWidth: 460, margin: '0 auto', lineHeight: 1.65 }}>
-                Velnox sorts your Gmail by what needs attention first, so you always know which client to answer next.
+                Velnox sorts the shared mailbox by what needs attention — and shows who&apos;s handling what, so nothing gets dropped or double-answered.
               </p>
             </motion.div>
             <motion.div variants={{ hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: 'easeOut' } } }} style={{ position: 'relative' }}>
@@ -535,18 +535,18 @@ export default function LandingPage() {
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 60, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <Kicker>Features</Kicker>
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(30px, 4vw, 48px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 14px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
-                Built around how you actually work
+                Built for how teams actually work
               </h2>
               <p style={{ fontSize: 15, color: 'var(--text-secondary)', maxWidth: 420, margin: '0 auto', lineHeight: 1.65 }}>
-                One inbox, a clear sense of who needs you, and a head start on what to say.
+                One shared queue, clear ownership on every thread, and a head start on every reply.
               </p>
             </motion.div>
             <div className="bento">
               {/* Showcase — wide cell with a live priority preview */}
               <motion.div variants={fadeUp} className="bento-item bento-wide spotlight-card grad-edge" onMouseMove={spotlightMove}>
                 <div className="b-icon"><Inbox size={21} style={{ color: 'var(--accent)' }} /></div>
-                <h3>Your whole client inbox, sorted</h3>
-                <p>Every client thread in your Gmail, in one calm list — already sorted by who needs you first. No more scrolling past the deal that was about to close.</p>
+                <h3>Your team&apos;s shared inbox, sorted</h3>
+                <p>Every thread in one calm queue — sorted by priority, with the assignee right on the row. No more “did anyone reply to this?” across three Slack channels.</p>
                 <div className="spotlight">
                   {[
                     { ini: 'AP', grad: 'linear-gradient(135deg,#DC2B55,#F2709C)', name: 'Alex Peterson', msg: 'When can we start?', badge: 'Urgent', cls: 'priority-hot' },
@@ -564,16 +564,16 @@ export default function LandingPage() {
                 </div>
               </motion.div>
 
-              <BentoCard icon={Sparkles} title="Conversation analyzer" desc="A clear read on every client thread: where it stands, the risk, and the next concrete step — in plain language." />
-              <BentoCard icon={Search} title="AI chat search"         desc="Ask in plain words — “who asked about pricing last week?” — and jump straight to the right thread." />
-              <BentoCard icon={SlidersHorizontal} title="Smart filtering" desc="Filter by priority or status so the inbox shows exactly which client needs you right now." />
-              <BentoCard icon={Shield} title="Notice when things go quiet" desc="When a client cools off, Velnox flags it and tells you why — so you can step in before it’s too late." />
-              <BentoCard icon={Bot}    title="Auto-responder bot · Soon" desc="Coming soon: let a bot reply from the context you give it, then hand off to you the moment a human touch is needed." />
+              <BentoCard icon={Bot} title="Assignment & ownership" desc="Assign any thread to a teammate, set Open / Snoozed / Closed, and see who’s on what — no collisions, no dropped threads." />
+              <BentoCard icon={Sparkles} title="Internal notes" desc="Discuss a thread with your team right inside it — private notes the customer never sees." />
+              <BentoCard icon={SlidersHorizontal} title="Routing rules" desc="Auto-assign and tag incoming mail by sender, subject or inbox, so every message lands on the right person." />
+              <BentoCard icon={Search} title="AI drafts & triage" desc="Priority, risk flags and a drafted reply on every thread — review-before-send, never auto-sent." />
+              <BentoCard icon={Shield} title="Roles, permissions & audit" desc="Owner, Admin, Member and Viewer roles, with an audit log of every action across the workspace." />
 
               {/* CTA tile — wide, fills the row and pushes to the full feature tour */}
               <motion.a variants={fadeUp} href="/features" className="bento-item bento-cta spotlight-card" onMouseMove={spotlightMove} style={{ justifyContent: 'center', background: 'linear-gradient(150deg, rgba(79,92,244,0.06), rgba(124,77,255,0.05))', borderColor: 'rgba(79,92,244,0.2)', textDecoration: 'none' }}>
                 <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 'clamp(20px,2.4vw,26px)', letterSpacing: '-0.02em' }}>See every feature in action</h3>
-                <p>Take the full tour — analysis, auto-replies, search and more.</p>
+                <p>Take the full tour — assignment, routing, AI drafts and more.</p>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 16, color: 'var(--accent)', fontWeight: 600, fontSize: 14 }}>
                   Explore features <ArrowRight size={16} className="cta-arrow" />
                 </span>
@@ -595,9 +595,9 @@ export default function LandingPage() {
             </motion.div>
             <Timeline
               steps={[
-                { n: 1, title: 'Connect Gmail',                     desc: 'Takes 2 minutes. Velnox securely syncs your client threads with Google OAuth and never stores your password.' },
-                { n: 2, title: 'Velnox sorts what matters most',     desc: 'Each thread gets a clear priority — Hot, Needs attention, Cold, or Spam — so you know where to look first.' },
-                { n: 3, title: 'Reply to the right clients in time', desc: 'Velnox shows you who to message right now and drafts what to say. No more deals lost to a buried email.' },
+                { n: 1, title: 'Connect a shared inbox & invite your team', desc: 'An admin connects a shared Gmail mailbox with Google OAuth and invites teammates with roles — in minutes.' },
+                { n: 2, title: 'Velnox triages and routes',                  desc: 'Every thread gets a priority and risk read; routing rules auto-assign and tag incoming mail to the right person.' },
+                { n: 3, title: 'Assign, discuss, reply',                     desc: 'Your team works one queue — assign, leave internal notes, and send AI-drafted replies. Nothing slips.' },
               ]}
             />
           </div>
@@ -625,16 +625,16 @@ export default function LandingPage() {
                   Who it&apos;s for
                 </span>
                 <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 'clamp(28px, 4.4vw, 48px)', letterSpacing: '-0.03em', color: '#fff', margin: '16px 0 12px', maxWidth: 620, lineHeight: 1.08, textWrap: 'balance' }}>
-                  Built for the people who live in their inbox
+                  Built for teams who live in a shared inbox
                 </h2>
                 <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.86)', maxWidth: 520, lineHeight: 1.65, margin: 0 }}>
-                  Agencies, studios and consultants who win or lose deals over email. Velnox keeps every client warm — so the next reply is always the right one.
+                  Support, sales and ops teams who can&apos;t afford a dropped thread. Velnox gives every message an owner — so the next reply is always handled.
                 </p>
                 <div className="photo-stat-row">
                   {[
-                    { v: '+38%', l: 'more replies from warm leads' },
-                    { v: 'Zero', l: 'good leads lost to a buried inbox' },
-                    { v: 'Instant', l: 'alerts the moment a client cools' },
+                    { v: 'Zero', l: 'dropped or double-handled threads' },
+                    { v: 'One queue', l: 'the whole team works together' },
+                    { v: 'Instant', l: 'alerts when an account goes at-risk' },
                   ].map(s => (
                     <div key={s.l} className="photo-stat">
                       <div className="ps-val">{s.v}</div>
@@ -656,10 +656,10 @@ export default function LandingPage() {
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 56 }}>
               <Kicker>Loved by teams</Kicker>
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 14px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
-                The people closing more deals
+                Teams that ship faster replies
               </h2>
               <p style={{ fontSize: 15, color: 'var(--text-secondary)', maxWidth: 440, margin: '0 auto', lineHeight: 1.65 }}>
-                Founders, sales leads and agencies who stopped letting good clients slip through the cracks.
+                Support, sales and ops teams that turned a chaotic shared mailbox into one coordinated queue.
               </p>
             </motion.div>
             <div className="tgrid">
@@ -676,7 +676,7 @@ export default function LandingPage() {
             <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 44 }}>
               <Kicker>Why Velnox</Kicker>
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.03em', textWrap: 'balance' }}>
-                Not another CRM to maintain
+                Not another help desk to migrate to
               </h2>
             </motion.div>
             <motion.div variants={fadeUp} style={{ overflowX: 'auto' }}>
@@ -685,8 +685,8 @@ export default function LandingPage() {
                   <tr>
                     <th style={{ width: '46%' }}></th>
                     <th className="col-flo" style={{ textAlign: 'center' }}>Velnox</th>
-                    <th style={{ textAlign: 'center' }}>A CRM</th>
-                    <th style={{ textAlign: 'center' }}>Plain Gmail</th>
+                    <th style={{ textAlign: 'center' }}>Help desk</th>
+                    <th style={{ textAlign: 'center' }}>Shared Gmail</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -739,10 +739,10 @@ export default function LandingPage() {
             <div className="grain" style={{ opacity: 0.4 }} />
             <div style={{ position: 'relative' }}>
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4.6vw, 46px)', fontWeight: 400, color: '#FFFFFF', margin: '0 0 14px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
-                Ready to stop losing clients?
+                Ready to get your team&apos;s inbox under control?
               </h2>
               <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.85)', margin: '0 auto 36px', lineHeight: 1.65, maxWidth: 460 }}>
-                Connect your Gmail and see which clients are slipping away — before they&apos;re gone for good.
+                Connect a shared inbox, invite your team, and give every thread an owner — set up in minutes.
               </p>
               <Magnetic strength={0.4}>
                 <Link href="/signup" className="btn-shine" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '15px 32px', background: '#FFFFFF', color: 'var(--accent)', borderRadius: 10, fontSize: 16, fontWeight: 700, textDecoration: 'none', boxShadow: '0 8px 28px rgba(0,0,0,0.18)' }}>

@@ -19,9 +19,9 @@ const instrumentSerif = Instrument_Serif({
 })
 
 export const metadata: Metadata = {
-  title: 'Velnox — The AI Gmail inbox for client-facing teams',
+  title: 'Velnox — The AI shared inbox for teams',
   description:
-    "Velnox reads every client thread in your Gmail, flags who's about to go cold, and drafts the reply that saves the deal.",
+    'Velnox turns your team’s shared Gmail into one AI-triaged queue — assign threads, leave internal notes, and send AI-drafted replies. Built for support, sales and ops teams.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
 }
 

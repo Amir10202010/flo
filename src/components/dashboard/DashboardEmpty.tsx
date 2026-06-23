@@ -3,9 +3,9 @@ import { ArrowRight, ChartColumn, Mail, ShieldAlert, Sparkles } from 'lucide-rea
 import { Reveal } from './Motion'
 
 const MODULES = [
-  { icon: <Sparkles size={15} />, title: 'AI Command Center', desc: 'Your ranked action queue — who to answer first and why.' },
-  { icon: <ShieldAlert size={15} />, title: 'Client Risk Monitor', desc: 'Churn signals and overdue replies, flagged automatically.' },
-  { icon: <ChartColumn size={15} />, title: 'Analytics', desc: 'Response times, volume and priority trends over time.' },
+  { icon: <Sparkles size={15} />, title: 'Team Command Center', desc: 'Your team’s ranked queue — who to answer first and why.' },
+  { icon: <ShieldAlert size={15} />, title: 'Risk Monitor', desc: 'At-risk accounts and overdue replies, flagged automatically.' },
+  { icon: <ChartColumn size={15} />, title: 'Team Analytics', desc: 'Response times, volume and workload across the team.' },
 ]
 
 /** First-run state: the platform is real, it just needs a connected inbox. */
@@ -30,15 +30,15 @@ export default function DashboardEmpty({ hasIntegration }: { hasIntegration: boo
           <Mail size={23} />
         </div>
         <h2 style={{ margin: '0 0 8px', fontFamily: 'var(--font-serif)', fontSize: 25, fontWeight: 400, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
-          {hasIntegration ? 'Your first sync is on its way' : 'Connect Gmail to light up your dashboard'}
+          {hasIntegration ? 'Your first sync is on its way' : 'Connect a shared inbox to light up your dashboard'}
         </h2>
         <p style={{ margin: '0 0 22px', fontSize: 14, color: 'var(--text-secondary)', maxWidth: 440, lineHeight: 1.6 }}>
           {hasIntegration
             ? 'Threads are being imported and analyzed. The command center, risk monitor and analytics fill in as data arrives.'
-            : 'Velnox reads your client threads, ranks who needs you first and watches for churn risk. Everything below starts working the moment your inbox is connected.'}
+            : 'Velnox triages your team’s shared inbox, ranks what needs attention, and watches for at-risk accounts. Everything below starts working the moment an inbox is connected.'}
         </p>
-        <Link href="/integrations" className="btn-primary" style={{ fontSize: 14 }}>
-          {hasIntegration ? 'View sync status' : 'Connect Gmail'}
+        <Link href={hasIntegration ? '/integrations' : '/settings'} className="btn-primary" style={{ fontSize: 14 }}>
+          {hasIntegration ? 'View sync status' : 'Connect a shared inbox'}
           <ArrowRight size={15} />
         </Link>
 

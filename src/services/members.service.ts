@@ -9,6 +9,7 @@ import { randomBytes } from 'node:crypto'
 import type { OrgRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { assignableRoles, canManageMember } from '@/lib/permissions'
+import { canAddSeat } from '@/lib/billing'
 import { recordAudit } from '@/services/audit.service'
 
 export class MemberError extends Error {
@@ -55,6 +56,16 @@ export async function inviteMember(
   const token = randomBytes(24).toString('hex')
   const expiresAt = new Date(Date.now() + INVITE_TTL_MS)
   const prior = await prisma.invitation.findFirst({ where: { organizationId, email: clean, status: 'PENDING' } })
+
+  // Seat gate (only for net-new invites — a refresh doesn't add a seat).
+  if (!prior) {
+    const sub = await prisma.subscription.findUnique({ where: { organizationId }, select: { plan: true } })
+    const active = await prisma.membership.count({ where: { organizationId, status: 'ACTIVE' } })
+    const pending = await prisma.invitation.count({ where: { organizationId, status: 'PENDING' } })
+    if (!canAddSeat(sub?.plan ?? 'FREE', active + pending)) {
+      throw new MemberError('Seat limit reached for your plan — upgrade to invite more teammates', 402)
+    }
+  }
 
   const invite = prior
     ? await prisma.invitation.update({
