@@ -26,34 +26,34 @@ type Row = {
 const ROWS: Row[] = [
   {
     icon: Mail,
-    eyebrow: 'One-click setup',
-    title: 'Connect Gmail in seconds',
-    desc: 'Secure Google sign-in, no passwords stored. Velnox imports your recent client threads and starts prioritising them right away.',
-    points: ['Secure OAuth — no passwords', 'Imports recent threads automatically', 'Live priority from the first sync'],
+    eyebrow: 'Shared inbox',
+    title: 'One mailbox, your whole team',
+    desc: 'Connect a shared Gmail mailbox and invite teammates with roles. Every thread becomes a queue item your team can assign, snooze, close, tag and discuss together.',
+    points: ['Assign threads to a teammate', 'Open / Snoozed / Closed states', 'Internal notes the customer never sees'],
     demo: <GmailConnectDemo />,
   },
   {
     icon: LayoutDashboard,
-    eyebrow: 'Executive dashboard',
-    title: 'Your whole pipeline on one screen',
-    desc: 'Open Velnox and instantly see your inbox health, who’s waiting on you, and which clients are at risk — with AI telling you the next best action to take.',
-    points: ['Inbox health score at a glance', 'AI-ranked next best actions', 'Risk alerts before clients go quiet'],
+    eyebrow: 'Team command center',
+    title: 'Your team’s queue on one screen',
+    desc: 'Open Velnox and instantly see inbox health, who’s waiting, which accounts are at-risk and who’s handling what — with AI ranking the next best action.',
+    points: ['See who’s on what, at a glance', 'AI-ranked next best actions', 'Risk alerts before an account goes quiet'],
     demo: <DashboardDemo />,
   },
   {
     icon: Search,
-    eyebrow: 'AI chat search',
-    title: 'Find any client thread by meaning',
-    desc: 'Ask in plain words — “who asked about the premium package?” — and Velnox surfaces the right Gmail thread instantly, then helps you close it.',
-    points: ['Semantic search, not just keywords', 'Works across your whole Gmail', 'Jump from search straight to a reply'],
+    eyebrow: 'AI triage & search',
+    title: 'Find any thread by meaning',
+    desc: 'Ask in plain words — “who asked about the enterprise plan?” — and Velnox surfaces the right thread instantly, then drafts a reply in your team’s voice.',
+    points: ['Semantic search across the shared inbox', 'Priority, risk and sentiment on every thread', 'Review-before-send AI drafts'],
     demo: <SearchDemo />,
   },
   {
     icon: Bot,
-    eyebrow: 'Auto-responder bot · Coming soon',
-    title: 'Soon: let a bot reply for you',
-    desc: 'Paste in your business details once. The bot will answer common questions from that context in your tone — and hand off to you the moment a human is needed.',
-    points: ['Answers from your own knowledge', 'Always on, even after hours', 'Seamless human hand-off'],
+    eyebrow: 'Rules & automations',
+    title: 'Route every message automatically',
+    desc: 'Set rules that auto-assign and tag incoming mail by inbox, sender, domain or subject — so the right person picks it up without anyone triaging by hand.',
+    points: ['Auto-assign by inbox or sender', 'Auto-tag and set priority', 'Roles, permissions & a full audit log'],
     demo: <BotSetupDemo />,
   },
 ]
@@ -118,10 +118,10 @@ export default function FeaturesPage() {
               initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: 'easeOut' }}
               style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(36px, 5.5vw, 60px)', fontWeight: 400, color: 'var(--text-primary)', letterSpacing: '-0.04em', lineHeight: 1.05, margin: '0 0 20px' }}
             >
-              Everything you need to <span style={{ fontStyle: 'italic', color: 'var(--accent)' }}>close more deals</span>
+              Everything your team needs to <span style={{ fontStyle: 'italic', color: 'var(--accent)' }}>stay on top of the inbox</span>
             </motion.h1>
             <motion.p initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: 'easeOut', delay: 0.1 }} style={{ fontSize: 18, color: 'var(--text-secondary)', lineHeight: 1.65, margin: '0 auto', maxWidth: 520 }}>
-              Search, automation, and one-click setup — built to turn conversations into customers.
+              Shared handling, AI triage, routing and search — built to turn a busy mailbox into a coordinated team queue.
             </motion.p>
           </div>
         </section>
@@ -143,10 +143,10 @@ export default function FeaturesPage() {
             <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.12) 0%, transparent 60%)', pointerEvents: 'none' }} />
             <div style={{ position: 'relative' }}>
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px, 4vw, 38px)', fontWeight: 400, color: '#FFFFFF', margin: '0 0 14px', letterSpacing: '-0.03em' }}>
-                See it on your own inbox
+                Bring your team onto one inbox
               </h2>
               <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.82)', margin: '0 0 32px', lineHeight: 1.65 }}>
-                Connect Gmail in minutes. Free to start, no credit card.
+                Set up in minutes. Free to start, invite your whole team.
               </p>
               <Link href="/signup" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 28px', background: '#FFFFFF', color: 'var(--accent)', borderRadius: 8, fontSize: 15, fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
                 Get started free <ArrowRight size={16} />
