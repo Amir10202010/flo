@@ -52,7 +52,7 @@ export const PLAN_CATALOG: Record<BillingPlan, PlanInfo> = {
       'Up to 15 teammates',
       '3 shared inboxes',
       'Routing rules & automations',
-      'Custom tags & labels',
+      'Saved replies / templates',
       'Risk alerts & weekly digest',
       '90-day analytics history',
     ],

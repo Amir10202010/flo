@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertCircle, Loader, PencilLine, RotateCcw, Send, Sparkles } from 'lucide-react'
+import TemplateMenu from '@/components/TemplateMenu'
 import type { DraftTone } from '@/types'
 
 const TONES: { value: DraftTone; label: string }[] = [
@@ -111,6 +112,14 @@ export default function Composer({
     }
   }
 
+  function insertTemplate(text: string) {
+    setBody((b) => (b.trim() ? `${b.trimEnd()}\n\n${text}` : text))
+    requestAnimationFrame(() => {
+      autoGrow()
+      textareaRef.current?.focus()
+    })
+  }
+
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     // Enter sends; Shift+Enter inserts a newline.
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -215,6 +224,8 @@ export default function Composer({
         >
           <PencilLine size={13} /> Steer
         </button>
+
+        <TemplateMenu onPick={insertTemplate} disabled={busy} />
 
         {aiProvider === 'local' && (
           <span
