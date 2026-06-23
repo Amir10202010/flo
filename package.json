@@ -15,6 +15,7 @@
     "test:email": "tsx scripts/email-render.check.ts",
     "test:permissions": "tsx scripts/permissions.check.ts",
     "test:billing": "tsx scripts/billing.check.ts",
+    "test:rules": "tsx scripts/rules.check.ts",
     "backfill:orgs": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/backfill-orgs.ts"
   },
   "dependencies": {

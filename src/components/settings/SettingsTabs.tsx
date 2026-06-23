@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Bell, Building2, Compass, Crown, History, Mail, ShieldCheck, Tag as TagIcon, Users } from 'lucide-react'
+import { Bell, Building2, Compass, Crown, History, Mail, ShieldCheck, Tag as TagIcon, Users, Zap } from 'lucide-react'
 import type { OrgRole } from '@prisma/client'
 import { can, ROLE_LABEL } from '@/lib/permissions'
 import WidgetShell from '@/components/dashboard/WidgetShell'
@@ -11,6 +11,7 @@ import AlertEmailToggle from '@/components/settings/AlertEmailToggle'
 import MembersPanel from '@/components/settings/MembersPanel'
 import InboxesPanel from '@/components/settings/InboxesPanel'
 import TagsPanel from '@/components/settings/TagsPanel'
+import RulesPanel from '@/components/settings/RulesPanel'
 import AuditPanel from '@/components/settings/AuditPanel'
 
 const PLAN_LABEL: Record<string, string> = { FREE: 'Free', TEAM: 'Team', BUSINESS: 'Business', ENTERPRISE: 'Enterprise' }
@@ -35,6 +36,7 @@ export default function SettingsTabs({
     { id: 'members', label: 'Members', icon: Users, show: can(role, 'members:manage') },
     { id: 'inboxes', label: 'Inboxes', icon: Mail, show: can(role, 'inbox:read') },
     { id: 'tags', label: 'Tags', icon: TagIcon, show: can(role, 'inbox:read') },
+    { id: 'rules', label: 'Rules', icon: Zap, show: can(role, 'rules:manage') },
     { id: 'audit', label: 'Audit log', icon: History, show: can(role, 'audit:read') },
   ].filter((t) => t.show)
 
@@ -120,6 +122,7 @@ export default function SettingsTabs({
       {active === 'members' && <MembersPanel myRole={role} />}
       {active === 'inboxes' && <InboxesPanel canManage={can(role, 'inbox:manage')} />}
       {active === 'tags' && <TagsPanel canManage={can(role, 'tags:manage')} />}
+      {active === 'rules' && <RulesPanel role={role} />}
       {active === 'audit' && <AuditPanel />}
     </div>
   )

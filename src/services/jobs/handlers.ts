@@ -8,6 +8,7 @@ import { sendWeeklyDigest } from '@/services/digest.service'
 import { upsertAutoDraft } from '@/services/draft.service'
 import { notifyNewAlerts } from '@/services/notification.service'
 import { runGmailMaintenance } from '@/services/maintenance.service'
+import { applyRulesToConversation } from '@/services/rule.service'
 import { getTextProvider } from '@/services/ai'
 import {
   enqueueEmbedConversation,
@@ -57,7 +58,17 @@ export async function handleJob(job: Job): Promise<unknown> {
         where: { userId, type: 'GMAIL' },
         select: { organizationId: true },
       })
-      if (syncInteg?.organizationId) await enqueueScanRiskAlerts(syncInteg.organizationId)
+      if (syncInteg?.organizationId) {
+        await enqueueScanRiskAlerts(syncInteg.organizationId)
+        // Routing/automation rules over the changed threads (skipped entirely
+        // when the org has no active rules — bounded so a big import stays cheap).
+        const ruleCount = await prisma.rule.count({ where: { organizationId: syncInteg.organizationId, isActive: true } })
+        if (ruleCount > 0) {
+          for (const cid of changed.slice(0, 200)) {
+            await applyRulesToConversation(syncInteg.organizationId, cid)
+          }
+        }
+      }
 
       return {
         synced: result.synced,
