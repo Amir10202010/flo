@@ -2416,18 +2416,18 @@ a > .insight-card:hover {
 .cat-menu-item-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
 .cat-menu-item-desc { font-size: 11.5px; color: var(--text-muted); line-height: 1.45; margin-top: 1px; }
 
-/* ── Chat composer ─────────────────────────────────────────────────────────── */
+/* ── Chat composer — one cohesive input block ──────────────────────────────── */
 .composer {
   border-top: 1px solid var(--border);
-  padding: 12px 20px 14px;
-  background: #FFFFFF;
+  padding: 12px 24px 16px;
+  background: #fff;
   flex-shrink: 0;
 }
 .composer-error {
   display: flex;
   align-items: center;
   gap: 7px;
-  margin: 0 0 8px;
+  margin: 0 0 9px;
   font-size: 12.5px;
   color: var(--hot);
   background: var(--hot-dim);
@@ -2435,30 +2435,42 @@ a > .insight-card:hover {
   border-radius: 8px;
   padding: 7px 11px;
 }
-.composer-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 9px;
+.composer-block {
   border: 1.5px solid var(--border);
   border-radius: 14px;
   background: var(--bg-surface);
-  padding: 7px 7px 7px 14px;
+  padding: 8px 8px 8px 14px;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.composer-row:focus-within {
+.composer-block:focus-within {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(79,92,244,0.1);
 }
+.composer-steer {
+  width: 100%;
+  margin: 2px 0 8px;
+  padding: 8px 11px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: var(--accent-dim);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-primary);
+  outline: none;
+  box-sizing: border-box;
+}
+.composer-steer::placeholder { color: var(--text-muted); }
+.composer-row { display: flex; align-items: flex-end; gap: 9px; }
 .composer-row textarea {
   flex: 1;
   resize: none;
-  max-height: 180px;
-  min-height: 22px;
-  padding: 4px 0;
+  max-height: 200px;
+  min-height: 24px;
+  padding: 6px 0;
   border: none;
   background: transparent;
   font-family: var(--font-sans);
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.55;
   color: var(--text-primary);
   outline: none;
@@ -2468,27 +2480,28 @@ a > .insight-card:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 10px;
   border: none;
   background: var(--accent);
   color: #fff;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.15s, opacity 0.15s, transform 0.15s;
+  transition: background 0.15s, transform 0.15s, opacity 0.15s;
 }
 .composer-send:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
 .composer-send:disabled { opacity: 0.45; cursor: default; }
-.composer-hint { margin: 6px 2px 0; font-size: 10.5px; color: var(--text-muted); user-select: none; }
 
-/* AI draft controls under the reply row */
+/* AI draft toolbar — under a hairline divider, inside the block */
 .composer-tools {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 7px;
-  margin-top: 9px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-light);
 }
 .composer-tool {
   display: inline-flex;
@@ -2497,7 +2510,7 @@ a > .insight-card:hover {
   padding: 6px 11px;
   border-radius: 9px;
   border: 1px solid var(--border);
-  background: #FFFFFF;
+  background: #fff;
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
@@ -2510,37 +2523,60 @@ a > .insight-card:hover {
 .composer-tool.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
 .composer-tool-ai { color: var(--accent); border-color: rgba(79,92,244,0.35); }
 .composer-tool-ai:hover:not(:disabled) { background: var(--accent-dim); }
-.composer-tone {
-  padding: 6px 9px;
+.composer-tone { position: relative; }
+.composer-tone-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
   border-radius: 9px;
   border: 1px solid var(--border);
-  background: #FFFFFF;
+  background: #fff;
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
   font-family: var(--font-sans);
   cursor: pointer;
 }
-.composer-tone:disabled { opacity: 0.5; cursor: default; }
-.composer-steer {
-  width: 100%;
-  margin: 0 0 9px;
-  padding: 9px 12px;
-  border: 1.5px solid var(--accent);
-  border-radius: 11px;
-  background: var(--accent-dim);
-  font-family: var(--font-sans);
-  font-size: 13px;
-  color: var(--text-primary);
-  outline: none;
-  box-sizing: border-box;
+.composer-tone-btn:hover:not(:disabled) { border-color: rgba(79,92,244,0.4); color: var(--text-primary); }
+.composer-tone-btn:disabled { opacity: 0.5; cursor: default; }
+.composer-tone-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  min-width: 150px;
+  padding: 5px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fff;
+  box-shadow: var(--shadow-lg);
 }
-.composer-steer::placeholder { color: var(--text-muted); }
+.composer-tone-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 9px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  text-align: left;
+}
+.composer-tone-item:hover { background: var(--bg-subtle); }
+.composer-tone-item[data-active='true'] { color: var(--accent); }
 .composer-ai-label { font-size: 10.5px; font-weight: 600; font-style: italic; color: var(--text-muted); }
+.composer-hint { font-size: 10.5px; color: var(--text-muted); user-select: none; }
 .composer-hint-inline { margin: 0 0 0 auto; }
 
 @media (max-width: 768px) {
-  .composer { padding: 10px 14px 12px; }
+  .composer { padding: 10px 14px 14px; }
   .composer-hint { display: none; }
 }
 
