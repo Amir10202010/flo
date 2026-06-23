@@ -39,10 +39,10 @@ export default function ThreadSummary({ conversationId }: { conversationId: stri
   }
 
   return (
-    <div className="thread-summary">
+    <div className="rail-summary">
       <button
         type="button"
-        className="thread-summary-btn"
+        className="rail-summary-btn"
         onClick={() => void load()}
         disabled={loading}
         aria-expanded={open}
@@ -53,14 +53,14 @@ export default function ThreadSummary({ conversationId }: { conversationId: stri
       </button>
 
       {error && (
-        <p className="thread-summary-error" role="alert">
+        <p className="rail-summary-error" role="alert">
           <AlertCircle size={12} style={{ flexShrink: 0 }} />
           {error}
         </p>
       )}
 
       {open && data && (
-        <div className="thread-summary-card">
+        <div className="rail-summary-card">
           <p className="ts-tldr">{data.tldr}</p>
 
           {data.keyPoints.length > 0 && (
