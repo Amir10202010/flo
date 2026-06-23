@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Check, ChevronDown, Plus, Send, Tag as TagIcon, UserRound, X } from 'lucide-react'
+import { Check, ChevronDown, Send, Tag as TagIcon, UserRound, X } from 'lucide-react'
 
 type Member = { membershipId: string; name: string | null; email: string; role: string }
 type Tag = { id: string; name: string; color: string }

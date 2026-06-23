@@ -16,7 +16,10 @@ export default function InboxesPanel({ canManage }: { canManage: boolean }) {
     setItems(Array.isArray(r) ? r : [])
     setLoaded(true)
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    const run = async () => { await load() }
+    void run()
+  }, [])
 
   async function disconnect(type: string) {
     if (!confirm('Disconnect this shared inbox? Its threads will be hidden until reconnected.')) return

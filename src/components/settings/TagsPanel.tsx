@@ -17,7 +17,10 @@ export default function TagsPanel({ canManage }: { canManage: boolean }) {
     const r = await fetch('/api/tags').then((x) => (x.ok ? x.json() : null)).catch(() => null)
     if (r) setTags(r.tags ?? [])
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    const run = async () => { await load() }
+    void run()
+  }, [])
 
   async function create(e: React.FormEvent) {
     e.preventDefault()

@@ -27,7 +27,10 @@ export default function MembersPanel({ myRole }: { myRole: OrgRole }) {
     if (m) { setMembers(m.members ?? []); setMeId(m.me ?? null) }
     if (i) setInvites(i.invitations ?? [])
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    const run = async () => { await load() }
+    void run()
+  }, [])
 
   async function invite(e: React.FormEvent) {
     e.preventDefault()
