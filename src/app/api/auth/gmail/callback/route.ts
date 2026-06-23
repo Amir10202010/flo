@@ -3,7 +3,11 @@ import { google } from 'googleapis'
 import { prisma } from '@/lib/prisma'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { encryptSecret } from '@/lib/crypto'
+import { ACTIVE_ORG_COOKIE } from '@/lib/org'
+import { createOrganization } from '@/services/organization.service'
 import { startGmailWatch } from '@/services/gmail.service'
+import { enqueueGmailSync } from '@/services/jobs/queue'
+import { kickJobQueue } from '@/services/jobs/kick'
 
 export async function GET(req: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
@@ -57,6 +61,40 @@ export async function GET(req: NextRequest) {
       update: {},
     })
 
+    // Resolve the active organization (cookie → first membership → auto-create a
+    // personal workspace) so a first connect never dead-ends, and the mailbox is
+    // wired as a shared inbox of that org.
+    const orgCookie = req.cookies.get(ACTIVE_ORG_COOKIE)?.value
+    let organizationId =
+      (orgCookie
+        ? await prisma.membership.findFirst({
+            where: { userId: user.id, organizationId: orgCookie, status: 'ACTIVE' },
+            select: { organizationId: true },
+          })
+        : null
+      )?.organizationId ??
+      (
+        await prisma.membership.findFirst({
+          where: { userId: user.id, status: 'ACTIVE' },
+          orderBy: { createdAt: 'asc' },
+          select: { organizationId: true },
+        })
+      )?.organizationId ??
+      null
+    if (!organizationId) {
+      const base = (user.email ?? 'My').split('@')[0]
+      const org = await createOrganization(user.id, `${base}'s Workspace`)
+      organizationId = org.id
+    }
+
+    // The shared inbox this mailbox powers (one per org + address).
+    const inboxAddress = (connectedEmail ?? `gmail-${user.id}`).toLowerCase()
+    const inbox = await prisma.inbox.upsert({
+      where: { organizationId_address: { organizationId, address: inboxAddress } },
+      create: { organizationId, name: connectedEmail ?? 'Gmail', address: inboxAddress, channel: 'GMAIL' },
+      update: { isActive: true, name: connectedEmail ?? 'Gmail' },
+    })
+
     // Merge metadata on reconnect: blindly replacing it wiped lastHistoryId /
     // watchExpiration, breaking incremental sync state. If a DIFFERENT mailbox
     // is being connected, the old history cursor is meaningless — start fresh.
@@ -72,6 +110,9 @@ export async function GET(req: NextRequest) {
       where: { userId_type: { userId: user.id, type: 'GMAIL' } },
       create: {
         userId: user.id,
+        organizationId,
+        inboxId: inbox.id,
+        connectedById: user.id,
         type: 'GMAIL',
         accessToken: encryptSecret(tokens.access_token!),
         refreshToken: tokens.refresh_token ? encryptSecret(tokens.refresh_token) : null,
@@ -80,6 +121,9 @@ export async function GET(req: NextRequest) {
         metadata,
       },
       update: {
+        organizationId,
+        inboxId: inbox.id,
+        connectedById: user.id,
         accessToken: encryptSecret(tokens.access_token!),
         ...(tokens.refresh_token ? { refreshToken: encryptSecret(tokens.refresh_token) } : {}),
         isActive: true,
@@ -98,8 +142,24 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const res = NextResponse.redirect(`${appUrl}/integrations?connected=gmail`)
+    // Kick the first sync so the shared inbox populates right away.
+    try {
+      await enqueueGmailSync(user.id)
+      kickJobQueue()
+    } catch (e) {
+      console.warn('[gmail/callback] initial sync enqueue failed (continuing):', e)
+    }
+
+    const res = NextResponse.redirect(`${appUrl}/dashboard?connected=gmail`)
     res.cookies.delete('gmail_oauth_state')
+    // Make the org this mailbox belongs to the active one.
+    res.cookies.set(ACTIVE_ORG_COOKIE, organizationId, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365,
+    })
     return res
   } catch (e) {
     console.error('[gmail/callback] token exchange failed:', e)
