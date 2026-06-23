@@ -1,3 +1,4 @@
+import { prisma } from '@/lib/prisma'
 import { formatHours, shortDate, weekdayName } from '@/lib/time'
 import { PRIORITY_META } from '@/lib/priority'
 import {
@@ -31,6 +32,72 @@ export interface AnalyticsData {
   sentimentDist: { label: string; value: number; color: string }[]
   heatmap: { rows: string[]; cols: string[]; cells: number[][]; max: number }
   topContacts: { name: string; count: number }[]
+  team: TeamAnalytics
+}
+
+export interface TeamAnalytics {
+  members: { name: string; assigned: number; open: number; closed: number; awaiting: number }[]
+  inboxes: { name: string; total: number; awaiting: number }[]
+  unassignedOpen: number
+}
+
+/**
+ * Per-member and per-inbox breakdown of the shared queue. One light findMany
+ * (tiny columns) aggregated in memory + member/inbox name lookups — kept
+ * sequential after the main analytics load (small connection pool).
+ */
+export async function getTeamAnalytics(organizationId: string): Promise<TeamAnalytics> {
+  const where = { organizationId, integration: { isActive: true } as const }
+  const convs = await prisma.conversation.findMany({
+    where,
+    select: { assigneeId: true, inboxId: true, state: true, awaitingReply: true },
+  })
+  const members = await prisma.membership.findMany({
+    where: { organizationId, status: 'ACTIVE' },
+    include: { user: { select: { name: true, email: true } } },
+    orderBy: { createdAt: 'asc' },
+  })
+  const inboxes = await prisma.inbox.findMany({ where: { organizationId }, select: { id: true, name: true } })
+
+  type Agg = { assigned: number; open: number; closed: number; awaiting: number }
+  const byMember = new Map<string, Agg>()
+  const byInbox = new Map<string, { total: number; awaiting: number }>()
+  let unassignedOpen = 0
+
+  for (const c of convs) {
+    if (c.assigneeId) {
+      const a = byMember.get(c.assigneeId) ?? { assigned: 0, open: 0, closed: 0, awaiting: 0 }
+      a.assigned++
+      if (c.state === 'CLOSED') a.closed++
+      else a.open++
+      if (c.awaitingReply) a.awaiting++
+      byMember.set(c.assigneeId, a)
+    } else if (c.state !== 'CLOSED') {
+      unassignedOpen++
+    }
+    if (c.inboxId) {
+      const i = byInbox.get(c.inboxId) ?? { total: 0, awaiting: 0 }
+      i.total++
+      if (c.awaitingReply) i.awaiting++
+      byInbox.set(c.inboxId, i)
+    }
+  }
+
+  return {
+    members: members
+      .map((m) => {
+        const a = byMember.get(m.id) ?? { assigned: 0, open: 0, closed: 0, awaiting: 0 }
+        return { name: m.user.name ?? m.user.email, ...a }
+      })
+      .sort((a, b) => b.assigned - a.assigned),
+    inboxes: inboxes
+      .map((ib) => {
+        const i = byInbox.get(ib.id) ?? { total: 0, awaiting: 0 }
+        return { name: ib.name, total: i.total, awaiting: i.awaiting }
+      })
+      .sort((a, b) => b.total - a.total),
+    unassignedOpen,
+  }
 }
 
 const DAY_MS = 86_400_000
@@ -141,6 +208,8 @@ export async function getAnalyticsData(organizationId: string): Promise<Analytic
     .slice(0, 5)
     .map(([name, count]) => ({ name, count }))
 
+  const team = await getTeamAnalytics(organizationId)
+
   return {
     rangeLabel: 'Last 30 days',
     hasIntegration: Boolean(ws.integration),
@@ -167,6 +236,7 @@ export async function getAnalyticsData(organizationId: string): Promise<Analytic
     sentimentDist,
     heatmap,
     topContacts,
+    team,
   }
 }
 
