@@ -9,6 +9,7 @@ import PriorityBadge from '@/components/ui/PriorityBadge'
 import EmailFrame from '@/components/EmailFrame'
 import Composer from '@/components/Composer'
 import CategoryMover from '@/components/CategoryMover'
+import ThreadCollab from '@/components/ThreadCollab'
 import ThreadSummary from '@/components/ThreadSummary'
 import { getReadyDraft } from '@/services/draft.service'
 import type { EmailCategory, PriorityLevel } from '@/types'
@@ -150,6 +151,12 @@ export default async function ConversationPage({
             )}
           </div>
         )}
+
+        <ThreadCollab
+          conversationId={conv.id}
+          initialAssigneeId={conv.assigneeId}
+          initialState={conv.state as 'OPEN' | 'SNOOZED' | 'CLOSED'}
+        />
 
         {conv.messages.length > 6 && <ThreadSummary conversationId={conv.id} />}
       </div>

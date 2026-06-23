@@ -2713,3 +2713,78 @@ a > .insight-card:hover {
 @media (max-width: 430px) {
   .fc-pos-tl, .fc-pos-br { display: none !important; }
 }
+
+/* ── Shared-inbox collaboration bar (ThreadCollab) ─────────────────────────── */
+.collab-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.collab-chip:hover { border-color: var(--accent); color: var(--text-primary); }
+.collab-chip:disabled { opacity: 0.6; cursor: default; }
+
+.collab-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 40;
+  min-width: 200px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+  padding: 4px;
+}
+.collab-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 9px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: none;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+}
+.collab-menu-item:hover { background: var(--bg-subtle); }
+.collab-menu-item:disabled { opacity: 0.5; cursor: default; }
+
+.collab-seg {
+  display: inline-flex;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 2px;
+}
+.collab-seg-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+}
+.collab-seg-btn[data-active='true'] {
+  background: #fff;
+  color: var(--text-primary);
+  box-shadow: var(--shadow-xs);
+}
+.collab-seg-btn:disabled { cursor: default; }

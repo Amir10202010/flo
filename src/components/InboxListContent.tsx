@@ -40,6 +40,7 @@ export default async function InboxListContent() {
         messages: { orderBy: { sentAt: 'desc' }, take: 1, select: { content: true, direction: true } },
         draft: { select: { status: true } },
         analysis: { select: { nextAction: true } },
+        assignee: { include: { user: { select: { name: true, email: true } } } },
       },
       orderBy: [{ priorityScore: 'desc' }, { lastMessageAt: 'desc' }],
       take: 100,
@@ -74,6 +75,7 @@ export default async function InboxListContent() {
         awaitingReply: c.messages[0]?.direction === 'INBOUND',
         hasDraft: c.draft?.status === 'READY',
         nextAction: c.analysis?.nextAction ?? null,
+        assigneeName: c.assignee ? c.assignee.user.name ?? c.assignee.user.email : null,
       }
       byIntegration.get(integ.id)!.conversations.push(summary)
     }

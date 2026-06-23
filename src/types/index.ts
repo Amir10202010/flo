@@ -147,6 +147,10 @@ export interface ConversationListItem {
   nextAction?: string | null
   /** A READY auto-draft is waiting for this conversation. */
   hasDraft?: boolean
+  /** Shared-inbox queue state. */
+  state?: 'OPEN' | 'SNOOZED' | 'CLOSED'
+  /** Display name of the member this thread is assigned to. */
+  assigneeName?: string | null
 }
 
 /** Full shape returned by GET /api/conversations/[id] (detail). */

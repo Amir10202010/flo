@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Inbox, Sparkles } from 'lucide-react'
+import { Inbox, Sparkles, UserRound } from 'lucide-react'
 import { avatarGradient, initialsOf } from '@/components/dashboard/avatar'
 import EmptyNote from '@/components/dashboard/EmptyNote'
 import { priorityMeta } from '@/lib/priority'
@@ -32,6 +32,8 @@ export type ConversationSummary = {
   hasDraft?: boolean
   /** AI's suggested next step — tooltip for the one-click reply action. */
   nextAction?: string | null
+  /** Display name of the member this thread is assigned to (shared inbox). */
+  assigneeName?: string | null
 }
 
 export default function ConversationList({ conversations }: { conversations: ConversationSummary[] }) {
@@ -107,6 +109,17 @@ export default function ConversationList({ conversations }: { conversations: Con
                 >
                   <Sparkles size={10} />
                   Draft ready
+                </span>
+              )}
+
+              {c.assigneeName && (
+                <span
+                  className="cat-tag"
+                  title={`Assigned to ${c.assigneeName}`}
+                  style={{ marginTop: 4, marginLeft: cat || c.hasDraft ? 6 : 0, color: 'var(--text-secondary)', background: 'var(--bg-subtle)' }}
+                >
+                  <UserRound size={10} />
+                  {c.assigneeName}
                 </span>
               )}
 

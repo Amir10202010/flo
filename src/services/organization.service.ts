@@ -67,3 +67,32 @@ export async function createOrganization(userId: string, rawName: string): Promi
 export async function activeSeatCount(organizationId: string): Promise<number> {
   return prisma.membership.count({ where: { organizationId, status: 'ACTIVE' } })
 }
+
+export interface OrgMember {
+  membershipId: string
+  userId: string
+  name: string | null
+  email: string
+  role: import('@prisma/client').OrgRole
+  status: import('@prisma/client').MemberStatus
+  createdAt: Date
+}
+
+/** Active + suspended members of an org with their user identity (for the
+ * assignee picker and the members admin table). */
+export async function listOrgMembers(organizationId: string): Promise<OrgMember[]> {
+  const rows = await prisma.membership.findMany({
+    where: { organizationId },
+    include: { user: { select: { id: true, name: true, email: true } } },
+    orderBy: { createdAt: 'asc' },
+  })
+  return rows.map((m) => ({
+    membershipId: m.id,
+    userId: m.userId,
+    name: m.user.name,
+    email: m.user.email,
+    role: m.role,
+    status: m.status,
+    createdAt: m.createdAt,
+  }))
+}

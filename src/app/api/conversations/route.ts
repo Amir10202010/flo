@@ -5,6 +5,7 @@ import { rateLimit } from '@/lib/ratelimit'
 import { prisma } from '@/lib/prisma'
 import {
   type ConversationStatus,
+  type ConversationState,
   type PriorityLevel,
   type ChannelEnum,
   type EmailCategory,
@@ -23,6 +24,7 @@ const VALID_CHANNEL = new Set(['TELEGRAM', 'GMAIL'])
 const VALID_RISK = new Set(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'])
 const VALID_SENTIMENT = new Set(['POSITIVE', 'NEUTRAL', 'NEGATIVE'])
 const VALID_SORT = new Set(['priority', 'recent', 'oldest'])
+const VALID_STATE = new Set(['OPEN', 'SNOOZED', 'CLOSED'])
 
 /**
  * List conversations with server-side filtering + sorting that spans the WHOLE
@@ -47,8 +49,12 @@ export async function GET(req: NextRequest) {
   const sort = sp.get('sort') ?? 'priority'
   const daysBackParam = sp.get('daysBack')
   const limitParam = sp.get('limit')
+  const assigneeParam = sp.get('assignee') // 'me' | 'unassigned' | <membershipId>
+  const stateParam = sp.get('state')
+  const inboxParam = sp.get('inbox')
 
   if (status && !VALID_STATUS.has(status)) return err('Invalid status', 400)
+  if (stateParam && !VALID_STATE.has(stateParam)) return err('Invalid state', 400)
   if (priority && !VALID_PRIORITY.has(priority)) return err('Invalid priority', 400)
   if (channel && !VALID_CHANNEL.has(channel)) return err('Invalid channel', 400)
   if (category && !isEmailCategory(category)) return err('Invalid category', 400)
@@ -72,6 +78,13 @@ export async function GET(req: NextRequest) {
     sinceDate,
   })
 
+  // Shared-inbox queue filters layered on top of the shared base WHERE.
+  if (stateParam) where.state = stateParam as ConversationState
+  if (inboxParam) where.inboxId = inboxParam
+  if (assigneeParam === 'me') where.assigneeId = ctx.membership.id
+  else if (assigneeParam === 'unassigned') where.assigneeId = null
+  else if (assigneeParam) where.assigneeId = assigneeParam
+
   const orderBy =
     sort === 'recent'
       ? [{ lastMessageAt: 'desc' as const }]
@@ -86,6 +99,7 @@ export async function GET(req: NextRequest) {
       analysis: { select: { nextAction: true } },
       messages: { orderBy: { sentAt: 'desc' }, take: 1, select: { content: true } },
       draft: { select: { status: true } },
+      assignee: { include: { user: { select: { name: true, email: true } } } },
     },
     orderBy,
     take: limit,
@@ -107,6 +121,8 @@ export async function GET(req: NextRequest) {
     awaitingReply: c.awaitingReply,
     nextAction: c.analysis?.nextAction ?? null,
     hasDraft: c.draft?.status === 'READY',
+    state: c.state as 'OPEN' | 'SNOOZED' | 'CLOSED',
+    assigneeName: c.assignee ? c.assignee.user.name ?? c.assignee.user.email : null,
   }))
 
   return ok(items)
