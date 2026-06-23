@@ -4,14 +4,14 @@ import Link from 'next/link'
 import { ArrowLeft, Sparkles } from 'lucide-react'
 import { requireOrgPage } from '@/lib/org'
 import { prisma } from '@/lib/prisma'
-import { sanitizeMessageHtml, sanitizeEmailRich } from '@/lib/sanitize-email'
 import PriorityBadge from '@/components/ui/PriorityBadge'
-import EmailFrame from '@/components/EmailFrame'
+import MessageCard from '@/components/inbox/MessageCard'
 import Composer from '@/components/Composer'
 import CategoryMover from '@/components/CategoryMover'
 import ThreadCollab from '@/components/ThreadCollab'
 import ThreadSummary from '@/components/ThreadSummary'
 import { getReadyDraft } from '@/services/draft.service'
+import { dayLabel } from '@/lib/format-time'
 import type { EmailCategory, PriorityLevel } from '@/types'
 
 const RISK: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -23,29 +23,6 @@ const RISK: Record<string, { label: string; color: string; bg: string; border: s
 
 function initials(name: string): string {
   return name.split(' ').map(w => w[0]?.toUpperCase() ?? '').slice(0, 2).join('') || '?'
-}
-
-function formatTime(d: Date | string) {
-  const diff = Date.now() - new Date(d).getTime()
-  const m = Math.floor(diff / 60000)
-  if (m < 1) return 'just now'
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  return `${Math.floor(h / 24)}d ago`
-}
-
-/** Day label for the separator: Today / Yesterday / "Mar 4" / "Mar 4, 2025". */
-function dayLabel(d: Date, now: Date): string {
-  const day = (x: Date) => Math.floor((x.getTime() - x.getTimezoneOffset() * 60000) / 86_400_000)
-  const diff = day(now) - day(d)
-  if (diff === 0) return 'Today'
-  if (diff === 1) return 'Yesterday'
-  const opts: Intl.DateTimeFormatOptions =
-    d.getFullYear() === now.getFullYear()
-      ? { month: 'short', day: 'numeric' }
-      : { month: 'short', day: 'numeric', year: 'numeric' }
-  return d.toLocaleDateString('en-US', opts)
 }
 
 export default async function ConversationPage({
@@ -86,10 +63,9 @@ export default async function ConversationPage({
   const wantsAutoDraft = draftParam === '1'
 
   // Pre-compute grouping: day separators + "continuation" rows (same sender,
-  // <10 min apart) that render tighter and without a repeated timestamp.
+  // <10 min apart) that render tighter against the previous card.
   const rows = conv.messages.map((msg, i) => {
     const prev = conv.messages[i - 1]
-    const next = conv.messages[i + 1]
     const sentAt = new Date(msg.sentAt)
     const newDay = !prev || new Date(prev.sentAt).toDateString() !== sentAt.toDateString()
     const cont =
@@ -97,12 +73,7 @@ export default async function ConversationPage({
       prev !== undefined &&
       prev.direction === msg.direction &&
       sentAt.getTime() - new Date(prev.sentAt).getTime() < 10 * 60_000
-    const groupEnd =
-      !next ||
-      next.direction !== msg.direction ||
-      new Date(next.sentAt).getTime() - sentAt.getTime() >= 10 * 60_000 ||
-      new Date(next.sentAt).toDateString() !== sentAt.toDateString()
-    return { msg, sentAt, newDay, cont, groupEnd }
+    return { msg, sentAt, newDay, cont }
   })
 
   return (
@@ -171,34 +142,16 @@ export default async function ConversationPage({
             </p>
           </div>
         ) : (
-          rows.map(({ msg, sentAt, newDay, cont, groupEnd }) => {
-            const out = msg.direction === 'OUTBOUND'
-            // Rich HTML emails render in a sandboxed iframe; everything else
-            // (plain text + pre-HTML-storage rows) keeps the inline bubble.
-            const rich = msg.contentHtml ? sanitizeEmailRich(msg.contentHtml) : null
-            return (
-              <Fragment key={msg.id}>
-                {newDay && (
-                  <div className="chat-day-sep">
-                    <span>{dayLabel(sentAt, now)}</span>
-                  </div>
-                )}
-                <div className={`chat-row ${out ? 'out' : 'in'}${cont ? ' cont' : ''}`}>
-                  {rich && rich.html.length > 0 ? (
-                    <div className="msg-email">
-                      <EmailFrame html={rich.html} hasImages={rich.hasImages} />
-                    </div>
-                  ) : (
-                    <div
-                      className={`msg-bubble msg-html ${out ? 'msg-bubble-out' : 'msg-bubble-in'}`}
-                      dangerouslySetInnerHTML={{ __html: sanitizeMessageHtml(msg.content) }}
-                    />
-                  )}
-                  {groupEnd && <span className="chat-time">{formatTime(msg.sentAt)}</span>}
+          rows.map(({ msg, sentAt, newDay, cont }) => (
+            <Fragment key={msg.id}>
+              {newDay && (
+                <div className="chat-day-sep">
+                  <span>{dayLabel(sentAt, now)}</span>
                 </div>
-              </Fragment>
-            )
-          })
+              )}
+              <MessageCard msg={msg} contactName={conv.contact.name} now={now} cont={cont} />
+            </Fragment>
+          ))
         )}
       </div>
 

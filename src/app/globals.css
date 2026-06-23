@@ -565,6 +565,38 @@
   color: #fff;
 }
 
+/* ── Email-style message cards ──────────────────────────────────────────── */
+.msg-card {
+  margin-top: 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+}
+.msg-card:first-child { margin-top: 0; }
+.msg-card.cont { margin-top: 6px; }
+.msg-card.out { border-left: 2px solid var(--accent); }
+.msg-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px 0;
+}
+.msg-avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  font-size: 11.5px; font-weight: 700; color: #fff;
+}
+.msg-avatar.in  { background: linear-gradient(135deg, #4b6bff, #9b6bff); }
+.msg-avatar.out { background: var(--accent); }
+.msg-sender { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.msg-time { margin-left: auto; font-size: 11.5px; color: var(--text-muted); flex-shrink: 0; }
+.msg-body { padding: 8px 16px 14px; font-size: 13.5px; line-height: 1.6; color: var(--text-primary); }
+.msg-body-email { padding: 12px 16px 14px; }
+/* email frame sits flush inside the card (the card already supplies the chrome) */
+.msg-body-email .email-frame-wrap { border: none; border-radius: 8px; box-shadow: none; }
+
 /* ── Dashboard mobile top bar ───────────────────────────────────────────── */
 /* Hidden on desktop — the sidebar shows its own logo there. Revealed below   */
 /* 768px, where the sidebar collapses to an icon-only rail and hides its logo.*/
