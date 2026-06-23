@@ -716,8 +716,6 @@
 @media (max-width: 768px) {
   /* Dashboard pages: tighter padding so content isn't cramped against the edges */
   .dash-page       { padding: 24px 18px !important; }
-  .thread-header   { padding: 16px 18px !important; }
-  .thread-messages { padding: 16px 18px !important; }
   .msg-bubble      { max-width: 88% !important; }
 
   /* Integration cards: stack info above actions instead of squeezing them onto one row */
@@ -1244,40 +1242,8 @@
 .rail-note-input:focus { border-color: var(--accent); }
 .rail-note-send { align-self: flex-end; padding: 7px 12px; font-size: 12.5px; gap: 6px; }
 
-/* "Catch me up" thread summary */
-.thread-summary { margin-top: 12px; }
-.thread-summary-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 12px;
-  border-radius: 9px;
-  border: 1px solid rgba(79,92,244,0.35);
-  background: var(--accent-dim);
-  color: var(--accent);
-  font-size: 12.5px;
-  font-weight: 600;
-  font-family: var(--font-sans);
-  cursor: pointer;
-  transition: background 0.13s, border-color 0.13s;
-}
-.thread-summary-btn:hover:not(:disabled) { background: rgba(79,92,244,0.16); }
-.thread-summary-btn:disabled { opacity: 0.6; cursor: default; }
-.thread-summary-error {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 8px 0 0;
-  font-size: 12px;
-  color: var(--hot);
-}
-.thread-summary-card {
-  margin-top: 10px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--bg-surface);
-}
+/* "Catch me up" thread summary — content classes (wrapper styles live in
+   .rail-summary*; the summary renders inside the rail's AI panel). */
 .ts-tldr { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 1.5; }
 .ts-label { margin: 10px 0 4px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
 .ts-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
@@ -1396,15 +1362,8 @@
 .compose-send:disabled { opacity: 0.5; cursor: default; }
 .compose-sent { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 40px; color: var(--cold); font-size: 15px; font-weight: 700; }
 
-.chat-messages {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 22px 24px;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-subtle);
-}
+/* .chat-row / .chat-time / .chat-ai* / .msg-bubble* are retained: the marketing
+   ProductDemo + FeatureDemos reuse them. The thread view now uses .msg-card. */
 .chat-row { display: flex; flex-direction: column; max-width: 100%; margin-top: 16px; }
 .chat-row.cont { margin-top: 3px; }   /* consecutive message from the same side */
 .chat-row:first-child { margin-top: 0; }
@@ -1437,11 +1396,13 @@
 .chat-day-sep:first-child { margin-top: 0; }
 
 /* Back button — hidden on desktop, shown on the mobile single-pane inbox. */
+/* Back button — hidden on desktop, shown in the header row on the mobile
+   single-pane inbox (sits inline with the identity, so no stacking margin). */
 .thread-back {
   display: none;
   align-items: center;
   gap: 6px;
-  margin-bottom: 14px;
+  flex-shrink: 0;
   font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
@@ -1491,8 +1452,7 @@
 .msg-html h3, .msg-html h4, .msg-html h5, .msg-html h6 { font-size: 1em; font-weight: 700; margin: 8px 0 5px; }
 .msg-html hr { border: none; border-top: 1px solid currentColor; opacity: 0.2; margin: 10px 0; }
 
-/* Rich HTML email — rendered full-width in a sandboxed iframe (EmailFrame) */
-.msg-email { width: 100%; align-self: stretch; }
+/* Rich HTML email — rendered in a sandboxed iframe (EmailFrame) inside .msg-card */
 .email-frame-wrap {
   width: 100%;
   border: 1px solid var(--border);
@@ -1545,9 +1505,9 @@
 /* ── Dashboard chat — mobile ────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .chat-header   { padding: 14px 16px !important; }
-  .chat-messages { padding: 16px 16px !important; }
   .chat-avatar   { width: 38px; height: 38px; font-size: 13px; }
   .msg-bubble    { max-width: 86% !important; }
+  .loading-rail  { display: none !important; }
 }
 @media (max-width: 600px) {
   .thread-back { display: inline-flex !important; }
