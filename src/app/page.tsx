@@ -6,7 +6,7 @@ import {
   motion, type Variants, MotionConfig, AnimatePresence,
   useReducedMotion, useMotionValue, useMotionTemplate, useSpring, useTransform, useScroll,
 } from 'framer-motion'
-import { ArrowRight, Check, Inbox, Shield, Sparkles, Bot, Search, SlidersHorizontal, Plus, X, Star, Zap, TrendingUp, Play, type LucideIcon } from 'lucide-react'
+import { ArrowRight, Check, Inbox, Shield, Sparkles, Bot, Search, SlidersHorizontal, Plus, X, Zap, TrendingUp, Play, type LucideIcon } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import HeroVisual from '@/components/marketing/HeroVisual'
@@ -53,37 +53,6 @@ function Magnetic({ children, strength = 0.35 }: { children: React.ReactNode; st
       onMouseLeave={() => { x.set(0); y.set(0) }}
     >
       {children}
-    </motion.span>
-  )
-}
-
-/* ── Count-up — animates a numeric value when scrolled into view ──────────── */
-function CountUp({ to, suffix = '', prefix = '', duration = 1.4, decimals = 0 }: { to: number; suffix?: string; prefix?: string; duration?: number; decimals?: number }) {
-  const reduce = useReducedMotion()
-  const [val, setVal] = useState(0)
-  const started = useRef(false)
-  const fmt = (n: number) => `${prefix}${n.toFixed(decimals)}${suffix}`
-  return (
-    <motion.span
-      onViewportEnter={() => {
-        if (started.current) return
-        started.current = true
-        // Reduced motion: snap straight to the final value, no count animation.
-        // Handled in this (post-hydration) event handler rather than an effect, so
-        // the first render stays fmt(0) on both server and client → no hydration gap.
-        if (reduce) { setVal(to); return }
-        const start = performance.now()
-        const tick = (now: number) => {
-          const p = Math.min((now - start) / (duration * 1000), 1)
-          const eased = 1 - Math.pow(1 - p, 3)
-          setVal(to * eased)
-          if (p < 1) requestAnimationFrame(tick)
-        }
-        requestAnimationFrame(tick)
-      }}
-      viewport={{ once: true, margin: '-60px' }}
-    >
-      {fmt(val)}
     </motion.span>
   )
 }
@@ -247,54 +216,6 @@ const STATS = [
   { val: 'AES-256', lbl: 'Encryption on every connected mailbox' },
 ]
 
-/* ── Testimonials ────────────────────────────────────────────────────────────── */
-const TESTIMONIALS = [
-  {
-    quote: 'Our whole support team works one shared inbox now. Assignments and internal notes killed the duplicate replies overnight — and the AI triage means the urgent stuff is always on top.',
-    name: 'Dana Mirzoyan', role: 'Head of Support · Studio Atelier', ini: 'DM', img: '/avatars/dana.jpg', grad: 'linear-gradient(135deg,#4F5CF4,#7C4DFF)', feature: true,
-  },
-  {
-    quote: 'Routing rules drop each lead onto the right rep automatically. My team opens Velnox and just works their queue.',
-    name: 'Karim Aliyev', role: 'Sales Manager · Northwind', ini: 'KA', img: '/avatars/karim.jpg', grad: 'linear-gradient(135deg,#DC2B55,#F2709C)',
-  },
-  {
-    quote: 'The drafted replies are scary good, and review-before-send means I trust juniors on the shared inbox. Half the time they just read, nod, and send.',
-    name: 'Sofia Reyes', role: 'Ops Lead · Bloom Agency', ini: 'SR', img: '/avatars/sofia.jpg', grad: 'linear-gradient(135deg,#0EA371,#34D399)',
-  },
-  {
-    quote: 'Roles, permissions and the audit log made our security team comfortable in one call. It flags at-risk accounts before we’d ever notice.',
-    name: 'Marco Bianchi', role: 'COO · MB Partners', ini: 'MB', img: '/avatars/marco.jpg', grad: 'linear-gradient(135deg,#C2620A,#F6A23B)',
-  },
-]
-
-function Stars({ n = 5, color = '#F6A23B' }: { n?: number; color?: string }) {
-  return (
-    <div className="stars" aria-label={`${n} out of 5 stars`}>
-      {Array.from({ length: n }).map((_, i) => (
-        <Star key={i} size={14} style={{ color, fill: color }} />
-      ))}
-    </div>
-  )
-}
-
-function TestimonialCard({ t }: { t: typeof TESTIMONIALS[number] }) {
-  return (
-    <motion.div variants={fadeUp} className={`tcard spotlight-card${t.feature ? ' t-feature' : ''}`} onMouseMove={spotlightMove}>
-      <Stars color={t.feature ? '#FFFFFF' : '#F6A23B'} />
-      <blockquote>“{t.quote}”</blockquote>
-      <div className="t-foot">
-        <div className="av-chip" style={{ width: 38, height: 38, fontSize: 13, background: t.grad }}>
-          <img src={t.img} alt={t.name} width={38} height={38} loading="lazy" />
-        </div>
-        <div>
-          <div className="t-name">{t.name}</div>
-          <div className="t-role">{t.role}</div>
-        </div>
-      </div>
-    </motion.div>
-  )
-}
-
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
 
@@ -409,18 +330,14 @@ export default function LandingPage() {
               </a>
             </motion.div>
 
-            {/* Trust row — who it's built for */}
-            <motion.div variants={fadeUp} style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 26, flexWrap: 'wrap' }}>
-              <div className="avatar-stack">
-                {TESTIMONIALS.map(t => (
-                  <div key={t.ini} className="av-chip" style={{ background: t.grad }}>
-                    <img src={t.img} alt="" width={32} height={32} />
-                  </div>
-                ))}
+            {/* Trust row — who it's for + how it's secured */}
+            <motion.div variants={fadeUp} style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 26, flexWrap: 'wrap' }}>
+              <div style={{ width: 40, height: 40, borderRadius: 11, background: 'var(--accent-dim)', border: '1px solid rgba(79,92,244,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Shield size={18} style={{ color: 'var(--accent)' }} />
               </div>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Built for teams</div>
-                <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Support, sales &amp; ops teams run on Velnox.</span>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Built for support, sales &amp; ops teams</div>
+                <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Connected with Google OAuth · AES-256 encrypted · we never store your password.</span>
               </div>
             </motion.div>
 
@@ -443,7 +360,7 @@ export default function LandingPage() {
                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.9, ease: [0.16, 1, 0.3, 1] }}>
                   <div className="float-card bob">
                     <div className="fc-icon" style={{ background: 'rgba(14,163,113,0.12)' }}><TrendingUp size={17} style={{ color: '#0EA371' }} /></div>
-                    <div><div className="fc-val"><CountUp to={38} prefix="+" suffix="%" /></div><div className="fc-lbl">reply rate</div></div>
+                    <div><div className="fc-val">Sorted</div><div className="fc-lbl">by priority</div></div>
                   </div>
                 </motion.div>
               </motion.div>
@@ -648,23 +565,29 @@ export default function LandingPage() {
         </Section>
       </section>
 
-      {/* ── Testimonials ──────────────────────────────────────────────────── */}
+      {/* ── From the founder ──────────────────────────────────────────────── */}
       <section className="section-padded mkt-x" style={{ padding: '100px 32px', background: 'var(--bg-base)', borderTop: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
         <div className="glow" style={{ width: 480, height: 480, top: -120, left: '50%', transform: 'translateX(-50%)', background: 'radial-gradient(circle, rgba(79,92,244,0.1), transparent 70%)' }} />
         <Section>
-          <div style={{ maxWidth: 1100, margin: '0 auto', position: 'relative' }}>
-            <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 56 }}>
-              <Kicker>Loved by teams</Kicker>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 14px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
-                Teams that ship faster replies
-              </h2>
-              <p style={{ fontSize: 15, color: 'var(--text-secondary)', maxWidth: 440, margin: '0 auto', lineHeight: 1.65 }}>
-                Support, sales and ops teams that turned a chaotic shared mailbox into one coordinated queue.
-              </p>
+          <div style={{ maxWidth: 760, margin: '0 auto', position: 'relative' }}>
+            <motion.div
+              variants={fadeUp}
+              className="spotlight-card grad-edge"
+              onMouseMove={spotlightMove}
+              style={{ background: '#FFFFFF', borderRadius: 24, padding: 'clamp(36px, 5vw, 60px)', boxShadow: 'var(--shadow-md)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+            >
+              <Kicker>From the founder</Kicker>
+              <blockquote style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 'clamp(21px, 2.8vw, 31px)', lineHeight: 1.42, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '22px 0 30px', textWrap: 'balance' }}>
+                “I built Velnox because my own team kept dropping client emails in a shared Gmail — no one knew who was replying to what. So I built the tool I wished we’d had: one queue, a clear owner on every thread, and AI that flags what needs you first.”
+              </blockquote>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 13 }}>
+                <div className="av-chip" style={{ width: 46, height: 46, fontSize: 16, fontWeight: 700, background: 'linear-gradient(135deg,#4F5CF4,#7C4DFF)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>A</div>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Amirkhan</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Founder of Velnox</div>
+                </div>
+              </div>
             </motion.div>
-            <div className="tgrid">
-              {TESTIMONIALS.map(t => <TestimonialCard key={t.name} t={t} />)}
-            </div>
           </div>
         </Section>
       </section>

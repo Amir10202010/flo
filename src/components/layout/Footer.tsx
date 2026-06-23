@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { MessageCircle, Globe, Mail } from 'lucide-react'
+import { Globe, Mail } from 'lucide-react'
 import Brand from './Brand'
 
 const linkStyle: React.CSSProperties = { fontSize: 13.5, color: 'var(--text-secondary)', textDecoration: 'none', transition: 'color 0.15s' }
@@ -34,7 +34,6 @@ const columns: { title: string; links: { label: string; href: string }[] }[] = [
 
 const SOCIAL = [
   { label: 'Email', href: 'mailto:sagindiktar@gmail.com', Icon: Mail },
-  { label: 'Community', href: '#', Icon: MessageCircle },
   { label: 'Website', href: '/', Icon: Globe },
 ]
 
@@ -82,10 +81,6 @@ export default function Footer() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, fontSize: 12.5, color: 'var(--text-muted)' }}>
             <Link href="/privacy" style={{ ...linkStyle, fontSize: 12.5 }} className="footer-link">Privacy</Link>
             <Link href="/terms" style={{ ...linkStyle, fontSize: 12.5 }} className="footer-link">Terms</Link>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16A34A', boxShadow: '0 0 0 3px rgba(22,163,74,0.15)' }} />
-              All systems operational
-            </span>
           </div>
         </div>
       </div>
