@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { Bell, Building2, Compass, Crown, FileText, History, Mail, ShieldCheck, Tag as TagIcon, Users, Zap } from 'lucide-react'
-import type { OrgRole } from '@prisma/client'
+import type { OrgRole, BillingPlan } from '@prisma/client'
 import { can, ROLE_LABEL } from '@/lib/permissions'
+import { planLimits } from '@/lib/billing'
 import WidgetShell from '@/components/dashboard/WidgetShell'
 import SignOutButton from '@/components/ui/SignOutButton'
 import ReplayTourButton from '@/components/onboarding/ReplayTourButton'
@@ -15,13 +16,17 @@ import RulesPanel from '@/components/settings/RulesPanel'
 import TemplatesPanel from '@/components/settings/TemplatesPanel'
 import AuditPanel from '@/components/settings/AuditPanel'
 
-const PLAN_LABEL: Record<string, string> = { FREE: 'Free', TEAM: 'Team', BUSINESS: 'Business', ENTERPRISE: 'Enterprise' }
+const PLAN_LABEL: Record<string, string> = { FREE: 'Free', PRO: 'Pro', TEAM: 'Team', BUSINESS: 'Business', ENTERPRISE: 'Enterprise' }
 
 export default function SettingsTabs({
   orgName,
   role,
   plan,
   seats,
+  interval,
+  renewalLabel,
+  cancelAtPeriodEnd,
+  memberCount,
   userName,
   userEmail,
 }: {
@@ -29,6 +34,10 @@ export default function SettingsTabs({
   role: OrgRole
   plan: string
   seats: number
+  interval: string | null
+  renewalLabel: string | null
+  cancelAtPeriodEnd: boolean
+  memberCount: number
   userName: string | null
   userEmail: string | null
 }) {
@@ -78,16 +87,31 @@ export default function SettingsTabs({
             </div>
           </WidgetShell>
 
-          <WidgetShell icon={<Crown size={14} />} title="Plan" sub="Billing and seats for this organization" bodyStyle={{ padding: '18px 20px' }}>
+          <WidgetShell icon={<Crown size={14} />} title="Plan" sub="Billing for this organization" bodyStyle={{ padding: '18px 20px' }}>
+            {memberCount > planLimits(plan as BillingPlan).members && (
+              <div style={{ marginBottom: 14, padding: '10px 12px', borderRadius: 10, background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)', fontSize: 12.5, color: '#b91c1c' }}>
+                You have {memberCount} members but your plan allows {planLimits(plan as BillingPlan).members}. Upgrade, or remove members to stay within your plan.
+              </div>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{PLAN_LABEL[plan] ?? plan}</p>
-                <span className="tag" style={{ fontSize: 10.5, padding: '2px 9px' }}>{seats} seat{seats === 1 ? '' : 's'}</span>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{PLAN_LABEL[plan] ?? plan}</p>
+                  <span className="tag" style={{ fontSize: 10.5, padding: '2px 9px' }}>{seats} seat{seats === 1 ? '' : 's'}</span>
+                  {interval && <span className="tag" style={{ fontSize: 10.5, padding: '2px 9px' }}>{interval === 'year' ? 'Annual' : 'Monthly'}</span>}
+                </div>
+                {renewalLabel && (
+                  <p style={{ margin: '6px 0 0', fontSize: 11.5, color: 'var(--text-muted)' }}>
+                    {cancelAtPeriodEnd ? 'Ends' : 'Renews'} {renewalLabel}
+                  </p>
+                )}
               </div>
               {can(role, 'billing:manage') && (
-                <a href={process.env.NEXT_PUBLIC_CHECKOUT_URL || '/pricing'} className="btn-primary" style={{ fontSize: 13.5, padding: '9px 18px' }}>
-                  Upgrade plan
-                </a>
+                plan === 'FREE' ? (
+                  <a href="/pricing" className="btn-primary" style={{ fontSize: 13.5, padding: '9px 18px' }}>Upgrade plan</a>
+                ) : (
+                  <a href="/api/billing/portal" className="btn-ghost" style={{ fontSize: 13.5, padding: '9px 18px' }}>Manage billing</a>
+                )
               )}
             </div>
           </WidgetShell>

@@ -13,8 +13,14 @@ export default async function SettingsPage() {
 
   const sub = await prisma.subscription.findUnique({
     where: { organizationId: ctx.organization.id },
-    select: { plan: true, seats: true },
+    select: { plan: true, seats: true, interval: true, currentPeriodEnd: true, cancelAtPeriodEnd: true },
   })
+  const memberCount = await prisma.membership.count({
+    where: { organizationId: ctx.organization.id, status: 'ACTIVE' },
+  })
+  const renewalLabel = sub?.currentPeriodEnd
+    ? sub.currentPeriodEnd.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    : null
 
   const userName = (user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? null) as string | null
   const userEmail = user?.email ?? null
@@ -40,6 +46,10 @@ export default async function SettingsPage() {
           role={ctx.role}
           plan={sub?.plan ?? 'FREE'}
           seats={sub?.seats ?? 1}
+          interval={sub?.interval ?? null}
+          renewalLabel={renewalLabel}
+          cancelAtPeriodEnd={sub?.cancelAtPeriodEnd ?? false}
+          memberCount={memberCount}
           userName={userName}
           userEmail={userEmail}
         />
