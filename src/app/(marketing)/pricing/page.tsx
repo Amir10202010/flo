@@ -1,42 +1,43 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { motion, type Variants, MotionConfig } from 'framer-motion'
 import { ArrowRight, Check } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
-import { PLAN_CATALOG, PLAN_ORDER, type BillingPlan } from '@/lib/billing'
+import { PLAN_CATALOG, PLAN_ORDER, planPrice, type BillingPlan, type BillingPeriod } from '@/lib/billing'
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: 'easeOut' } },
 }
-const stagger: Variants = { hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }
+const stagger: Variants = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }
 
-// Drop a Stripe Payment Link / LemonSqueezy / Paddle checkout URL into
-// NEXT_PUBLIC_CHECKOUT_URL to turn the paid CTAs into a real checkout.
-const CHECKOUT_URL = process.env.NEXT_PUBLIC_CHECKOUT_URL || '/signup'
+const POPULAR: BillingPlan = 'PRO'
 
-const POPULAR: BillingPlan = 'TEAM'
-
-function priceParts(plan: BillingPlan): { price: string; period: string | null } {
-  const p = PLAN_CATALOG[plan].priceMonthly
-  if (p === null) return { price: 'Custom', period: null }
-  if (p === 0) return { price: 'Free', period: null }
-  return { price: `$${p}`, period: '/ mo' }
+function priceParts(plan: BillingPlan, period: BillingPeriod): { price: string; sub: string | null } {
+  const monthly = planPrice(plan, 'monthly')
+  if (monthly === null) return { price: 'Custom', sub: null }
+  if (monthly === 0) return { price: 'Free', sub: null }
+  if (period === 'annual') {
+    const annual = planPrice(plan, 'annual') as number
+    return { price: `$${Math.round(annual / 12)}`, sub: `/ mo · billed $${annual}/yr` }
+  }
+  return { price: `$${monthly}`, sub: '/ mo' }
 }
 
-function cta(plan: BillingPlan): { label: string; href: string } {
+function cta(plan: BillingPlan, period: BillingPeriod): { label: string; href: string } {
   if (plan === 'ENTERPRISE') return { label: 'Talk to sales', href: '/contact' }
   if (plan === 'FREE') return { label: 'Start free', href: '/signup' }
-  return { label: `Get ${PLAN_CATALOG[plan].name}`, href: CHECKOUT_URL }
+  return { label: `Get ${PLAN_CATALOG[plan].name}`, href: `/api/billing/checkout?plan=${plan}&period=${period}` }
 }
 
-function PlanCard({ plan }: { plan: BillingPlan }) {
+function PlanCard({ plan, period }: { plan: BillingPlan; period: BillingPeriod }) {
   const info = PLAN_CATALOG[plan]
-  const { price, period } = priceParts(plan)
+  const { price, sub } = priceParts(plan, period)
   const accent = plan === POPULAR
-  const c = cta(plan)
+  const c = cta(plan, period)
   return (
     <motion.div
       variants={fadeUp}
@@ -44,7 +45,7 @@ function PlanCard({ plan }: { plan: BillingPlan }) {
       style={{
         display: 'flex',
         flexDirection: 'column',
-        padding: '30px 26px',
+        padding: '28px 24px',
         borderRadius: 18,
         background: accent ? 'linear-gradient(180deg, rgba(79,92,244,0.05) 0%, #FFFFFF 40%)' : '#FFFFFF',
         border: `1px solid ${accent ? 'rgba(79,92,244,0.25)' : 'var(--border)'}`,
@@ -53,22 +54,22 @@ function PlanCard({ plan }: { plan: BillingPlan }) {
       }}
     >
       {accent && (
-        <span style={{ position: 'absolute', top: -12, left: 26, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', background: 'var(--accent)', padding: '5px 12px', borderRadius: 999 }}>
+        <span style={{ position: 'absolute', top: -12, left: 24, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', background: 'var(--accent)', padding: '5px 12px', borderRadius: 999 }}>
           Most popular
         </span>
       )}
       <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px' }}>{info.name}</h3>
-      <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.6, minHeight: 42 }}>{info.tagline}</p>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 22 }}>
-        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 36, fontWeight: 400, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{price}</span>
-        {period && <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{period}</span>}
+      <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 18px', lineHeight: 1.55, minHeight: 40 }}>{info.tagline}</p>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
+        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 34, fontWeight: 400, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{price}</span>
+        {sub && <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{sub}</span>}
       </div>
-      <Link href={c.href} className={accent ? 'btn-primary' : 'btn-ghost'} style={{ justifyContent: 'center', textDecoration: 'none', marginBottom: 22, gap: 8 }}>
+      <Link href={c.href} className={accent ? 'btn-primary' : 'btn-ghost'} style={{ justifyContent: 'center', textDecoration: 'none', marginBottom: 20, gap: 8 }}>
         {c.label} <ArrowRight size={14} />
       </Link>
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 11 }}>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
         {info.features.map((f) => (
-          <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+          <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
             <Check size={15} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
             {f}
           </li>
@@ -79,6 +80,7 @@ function PlanCard({ plan }: { plan: BillingPlan }) {
 }
 
 export default function PricingPage() {
+  const [period, setPeriod] = useState<BillingPeriod>('monthly')
   return (
     <MotionConfig reducedMotion="user">
       <div style={{ background: 'var(--bg-base)', minHeight: '100vh' }}>
@@ -92,16 +94,38 @@ export default function PricingPage() {
               transition={{ duration: 0.55, ease: 'easeOut' }}
               style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 400, color: 'var(--text-primary)', letterSpacing: '-0.03em', margin: '0 0 16px' }}
             >
-              Pricing that scales with <span style={{ color: 'var(--accent)' }}>your team</span>
+              Start solo, grow into a <span style={{ color: 'var(--accent)' }}>team</span>
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, ease: 'easeOut', delay: 0.1 }}
-              style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.65, margin: 0 }}
+              style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.65, margin: '0 0 22px' }}
             >
-              Per-seat, no setup fees. Start free, upgrade when your team grows. Every plan includes the AI-triaged shared inbox.
+              Flat pricing, no setup fees. Free for one mailbox; upgrade for full AI and your team.
             </motion.p>
+
+            <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 999, border: '1px solid var(--border)', background: '#fff' }}>
+              {(['monthly', 'annual'] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPeriod(p)}
+                  style={{
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '7px 16px',
+                    borderRadius: 999,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: period === p ? '#fff' : 'var(--text-secondary)',
+                    background: period === p ? 'var(--accent)' : 'transparent',
+                  }}
+                >
+                  {p === 'monthly' ? 'Monthly' : 'Annual · 2 months free'}
+                </button>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -112,21 +136,10 @@ export default function PricingPage() {
             viewport={{ once: true, margin: '-80px' }}
             variants={stagger}
             className="pricing-grid"
-            style={{ maxWidth: 1180, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18, alignItems: 'stretch' }}
+            style={{ maxWidth: 1240, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, alignItems: 'stretch' }}
           >
-            {PLAN_ORDER.map((p) => <PlanCard key={p} plan={p} />)}
+            {PLAN_ORDER.map((p) => <PlanCard key={p} plan={p} period={period} />)}
           </motion.div>
-        </section>
-
-        <section className="mkt-x" style={{ padding: '0 32px 64px' }}>
-          <div style={{ maxWidth: 680, margin: '0 auto', padding: '28px 32px', borderRadius: 18, background: 'linear-gradient(180deg, rgba(79,92,244,0.05), #FFFFFF)', border: '1px solid rgba(79,92,244,0.18)', textAlign: 'center' }}>
-            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 10px', letterSpacing: '-0.02em' }}>
-              One faster reply pays for the whole team.
-            </p>
-            <p style={{ fontSize: 14.5, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
-              Velnox turns a shared mailbox into a coordinated queue — assignments, internal notes and AI drafts — so nothing slips and every customer gets answered.
-            </p>
-          </div>
         </section>
 
         <section className="mkt-x mkt-pb" style={{ padding: '0 32px 120px' }}>
