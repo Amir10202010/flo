@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@polar-sh/sdk": "^0.48.1",
     "@prisma/client": "^5.18.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.107.0",
