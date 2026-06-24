@@ -3,6 +3,7 @@ import { ok, err } from '@/lib/api'
 import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
 import { prisma } from '@/lib/prisma'
+import { orgHasFeature } from '@/services/billing.service'
 import { dismissDraft, generateReplyDraftForConversation } from '@/services/draft.service'
 
 const BodySchema = z.object({
@@ -30,6 +31,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   })
   if (!conv || conv.organizationId !== ctx.organization.id) return err('Not found', 404)
   if (conv.channel !== 'GMAIL') return err('Drafts are only supported for Gmail', 400)
+
+  if (!(await orgHasFeature(ctx.organization.id, 'aiDrafts'))) {
+    return err('Upgrade to Pro to use AI drafts', 402)
+  }
 
   let parsed: z.infer<typeof BodySchema>
   try {

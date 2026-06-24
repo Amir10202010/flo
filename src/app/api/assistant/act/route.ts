@@ -2,6 +2,7 @@ import { type NextRequest } from 'next/server'
 import { ok, err } from '@/lib/api'
 import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
+import { orgHasFeature } from '@/services/billing.service'
 import { coerceAction, executeAction } from '@/services/assistant.actions'
 
 /**
@@ -20,6 +21,10 @@ export async function POST(req: NextRequest) {
   if (!ctx) return error
   const limited = await rateLimit(ctx.userId, 'assistantAct')
   if (limited) return limited
+
+  if (!(await orgHasFeature(ctx.organization.id, 'assistant'))) {
+    return err('Upgrade to Pro to use the AI assistant', 402)
+  }
 
   let body: unknown
   try {
