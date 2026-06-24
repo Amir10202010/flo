@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { loadWorkspace, replyStats, type Workspace } from './metrics.helpers'
 import { computeAlerts, type AlertCandidate } from './alert.engine'
 import { integrationEmail, sendGmailMessage } from './gmail.service'
+import { orgHasFeature } from './billing.service'
 import { formatHours, shortDate } from '@/lib/time'
 import type { RiskLevel } from '@/types'
 
@@ -317,7 +318,7 @@ export function renderDigestText(d: DigestData): string {
 export type DigestSendResult =
   | { status: 'sent'; periodKey: string; to: string; messageId: string }
   | { status: 'duplicate-skipped'; periodKey: string }
-  | { status: 'skipped'; reason: 'no-integration' | 'no-recipient' | 'no-data' }
+  | { status: 'skipped'; reason: 'no-integration' | 'no-recipient' | 'no-data' | 'plan' }
 
 /**
  * Build + send the weekly digest for an organization. Sent from the org's
@@ -329,6 +330,10 @@ export async function sendWeeklyDigest(
   organizationId: string,
   opts: { periodKey?: string; manual?: boolean } = {},
 ): Promise<DigestSendResult> {
+  if (!opts.manual && !(await orgHasFeature(organizationId, 'digest'))) {
+    return { status: 'skipped', reason: 'plan' }
+  }
+
   const target = await resolveDigestTarget(organizationId)
   if (!target || !target.integration) return { status: 'skipped', reason: 'no-integration' }
   const { integration, recipient, claimUserId } = target

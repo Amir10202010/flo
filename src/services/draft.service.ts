@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { ensurePlainText } from '@/lib/html'
 import { generateReplyDraft, getTextProvider } from './ai'
+import { orgHasFeature } from './billing.service'
 import type { DraftOutcome, DraftTone } from '@/types'
 
 /**
@@ -119,6 +120,7 @@ export async function upsertAutoDraft(
   })
   if (!conv) return { generated: false, reason: 'not-found' }
   if (!conv.organizationId) return { generated: false, reason: 'no-org' }
+  if (!(await orgHasFeature(conv.organizationId, 'aiDrafts'))) return { generated: false, reason: 'plan' }
 
   const latest = conv.messages[0]
   if (!latest || latest.direction !== 'INBOUND') return { generated: false, reason: 'not-awaiting' }
