@@ -1,13 +1,13 @@
 /**
- * Plan catalog, per-seat pricing and feature gates — PURE (no I/O), so it is
- * unit-testable (`npm run test:billing`) and shared by the pricing page, the
- * Settings → billing surface and the server-side limit checks at creation
- * points. Payment runs through the external checkout (Stripe-ready); nothing
- * here charges a card.
+ * Plan catalog, flat per-tier pricing and feature gates — PURE (no I/O), so it
+ * is unit-testable (`npm run test:billing`) and shared by the pricing page, the
+ * Settings → billing surface and the server-side limit checks. Payment runs
+ * through Polar (src/lib/polar.ts); nothing here charges a card.
  */
 import type { BillingPlan } from '@prisma/client'
 
 export type { BillingPlan }
+export type BillingPeriod = 'monthly' | 'annual'
 
 export interface PlanLimits {
   /** Max active members (Infinity = unlimited). */
@@ -18,17 +18,23 @@ export interface PlanLimits {
   rules: number
   /** Analytics history retained, in days. */
   analyticsHistoryDays: number
-  /** Audit log available. */
   audit: boolean
-  /** Automations (routing rules) available. */
   automations: boolean
+  /** AI reply drafts (interactive + auto). */
+  aiDrafts: boolean
+  /** Weekly digest email. */
+  digest: boolean
+  /** AI workspace assistant (Q&A + actions). */
+  assistant: boolean
 }
 
 export interface PlanInfo {
   id: BillingPlan
   name: string
-  /** Per-seat monthly price in USD; null = custom/contact sales. */
-  pricePerSeat: number | null
+  /** Flat monthly price in USD; null = custom/contact sales. */
+  priceMonthly: number | null
+  /** Flat annual price in USD (2 months free); null = custom. */
+  priceAnnual: number | null
   tagline: string
   features: string[]
   limits: PlanLimits
@@ -38,57 +44,51 @@ export const PLAN_CATALOG: Record<BillingPlan, PlanInfo> = {
   FREE: {
     id: 'FREE',
     name: 'Free',
-    pricePerSeat: 0,
-    tagline: 'Try the shared inbox with a small team.',
-    features: ['Up to 3 teammates', '1 shared inbox', 'AI triage & priority', 'Assignment & internal notes'],
-    limits: { members: 3, inboxes: 1, rules: 3, analyticsHistoryDays: 14, audit: false, automations: false },
+    priceMonthly: 0,
+    priceAnnual: 0,
+    tagline: 'For one person getting started.',
+    features: ['1 mailbox', 'AI triage & priority', '7-day history', 'Just you'],
+    limits: { members: 1, inboxes: 1, rules: 0, analyticsHistoryDays: 7, audit: false, automations: false, aiDrafts: false, digest: false, assistant: false },
+  },
+  PRO: {
+    id: 'PRO',
+    name: 'Pro',
+    priceMonthly: 12,
+    priceAnnual: 120,
+    tagline: 'For solo operators who live in their inbox.',
+    features: ['1 mailbox', 'AI drafts, summaries & assistant', 'Risk alerts & weekly digest', '90-day history'],
+    limits: { members: 1, inboxes: 1, rules: 0, analyticsHistoryDays: 90, audit: false, automations: false, aiDrafts: true, digest: true, assistant: true },
   },
   TEAM: {
     id: 'TEAM',
     name: 'Team',
-    pricePerSeat: 12,
+    priceMonthly: 40,
+    priceAnnual: 400,
     tagline: 'For growing teams running real volume.',
-    features: [
-      'Up to 15 teammates',
-      '3 shared inboxes',
-      'Routing rules & automations',
-      'Saved replies / templates',
-      'Risk alerts & weekly digest',
-      '90-day analytics history',
-    ],
-    limits: { members: 15, inboxes: 3, rules: 50, analyticsHistoryDays: 90, audit: false, automations: true },
+    features: ['Up to 5 teammates', '3 shared inboxes', 'Routing rules & automations', 'Saved replies / templates', 'All AI features', '90-day analytics history'],
+    limits: { members: 5, inboxes: 3, rules: 50, analyticsHistoryDays: 90, audit: false, automations: true, aiDrafts: true, digest: true, assistant: true },
   },
   BUSINESS: {
     id: 'BUSINESS',
     name: 'Business',
-    pricePerSeat: 24,
+    priceMonthly: 120,
+    priceAnnual: 1200,
     tagline: 'For larger orgs that need control & audit.',
-    features: [
-      'Unlimited teammates',
-      '10 shared inboxes',
-      'Audit log & activity history',
-      'Advanced team analytics',
-      'Priority support',
-    ],
-    limits: { members: Infinity, inboxes: 10, rules: 500, analyticsHistoryDays: 365, audit: true, automations: true },
+    features: ['Up to 20 teammates', '10 shared inboxes', 'Audit log & activity history', 'Advanced team analytics', 'Priority support'],
+    limits: { members: 20, inboxes: 10, rules: 500, analyticsHistoryDays: 365, audit: true, automations: true, aiDrafts: true, digest: true, assistant: true },
   },
   ENTERPRISE: {
     id: 'ENTERPRISE',
     name: 'Enterprise',
-    pricePerSeat: null,
+    priceMonthly: null,
+    priceAnnual: null,
     tagline: 'For companies with security & scale needs.',
-    features: [
-      'Everything in Business',
-      'Unlimited shared inboxes',
-      'SSO / SAML (on request)',
-      'Dedicated onboarding & SLA',
-      'Custom data retention',
-    ],
-    limits: { members: Infinity, inboxes: Infinity, rules: Infinity, analyticsHistoryDays: 730, audit: true, automations: true },
+    features: ['Everything in Business', 'Unlimited teammates & inboxes', 'SSO / SAML (on request)', 'Dedicated onboarding & SLA', 'Custom data retention'],
+    limits: { members: Infinity, inboxes: Infinity, rules: Infinity, analyticsHistoryDays: 730, audit: true, automations: true, aiDrafts: true, digest: true, assistant: true },
   },
 }
 
-export const PLAN_ORDER: BillingPlan[] = ['FREE', 'TEAM', 'BUSINESS', 'ENTERPRISE']
+export const PLAN_ORDER: BillingPlan[] = ['FREE', 'PRO', 'TEAM', 'BUSINESS', 'ENTERPRISE']
 
 export function planLimits(plan: BillingPlan): PlanLimits {
   return PLAN_CATALOG[plan].limits
@@ -110,12 +110,15 @@ export function canAddRule(plan: BillingPlan, currentRules: number): boolean {
   return l.automations && currentRules < l.rules
 }
 
-export function hasFeature(plan: BillingPlan, feature: 'audit' | 'automations'): boolean {
+export function hasFeature(
+  plan: BillingPlan,
+  feature: 'audit' | 'automations' | 'aiDrafts' | 'digest' | 'assistant',
+): boolean {
   return planLimits(plan)[feature]
 }
 
-/** Monthly total for `seats` on a plan; null for custom plans. */
-export function monthlyTotal(plan: BillingPlan, seats: number): number | null {
-  const price = PLAN_CATALOG[plan].pricePerSeat
-  return price === null ? null : price * Math.max(1, seats)
+/** Flat price for a plan at a billing period; null for custom plans. */
+export function planPrice(plan: BillingPlan, period: BillingPeriod): number | null {
+  const info = PLAN_CATALOG[plan]
+  return period === 'annual' ? info.priceAnnual : info.priceMonthly
 }

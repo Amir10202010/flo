@@ -20,10 +20,10 @@ const CHECKOUT_URL = process.env.NEXT_PUBLIC_CHECKOUT_URL || '/signup'
 const POPULAR: BillingPlan = 'TEAM'
 
 function priceParts(plan: BillingPlan): { price: string; period: string | null } {
-  const p = PLAN_CATALOG[plan].pricePerSeat
+  const p = PLAN_CATALOG[plan].priceMonthly
   if (p === null) return { price: 'Custom', period: null }
   if (p === 0) return { price: 'Free', period: null }
-  return { price: `$${p}`, period: '/ seat / mo' }
+  return { price: `$${p}`, period: '/ mo' }
 }
 
 function cta(plan: BillingPlan): { label: string; href: string } {
