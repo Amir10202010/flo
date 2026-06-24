@@ -6,7 +6,7 @@ import { motion, type Variants, MotionConfig } from 'framer-motion'
 import { ArrowRight, Check, Search, Bot, Mail, LayoutDashboard, type LucideIcon } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
-import { SearchDemo, BotSetupDemo, GmailConnectDemo, DashboardDemo } from '@/components/marketing/FeatureDemos'
+import { SearchDemo, RoutingRulesDemo, GmailConnectDemo, DashboardDemo } from '@/components/marketing/FeatureDemos'
 
 const fadeUp: Variants = {
   hidden:  { opacity: 0, y: 22 },
@@ -54,7 +54,7 @@ const ROWS: Row[] = [
     title: 'Route every message automatically',
     desc: 'Set rules that auto-assign and tag incoming mail by inbox, sender, domain or subject — so the right person picks it up without anyone triaging by hand.',
     points: ['Auto-assign by inbox or sender', 'Auto-tag and set priority', 'Roles, permissions & a full audit log'],
-    demo: <BotSetupDemo />,
+    demo: <RoutingRulesDemo />,
   },
 ]
 

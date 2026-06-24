@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence, useReducedMotion, animate } from 'framer-motion'
-import { Search, Sparkles, Check, Bot, Zap, PartyPopper, ShieldCheck, ShieldAlert, MessagesSquare, Flame, Gauge, TrendingUp } from 'lucide-react'
+import { Search, Sparkles, Check, Zap, PartyPopper, ShieldCheck, ShieldAlert, MessagesSquare, Flame, Gauge, TrendingUp, UserRound, Tag } from 'lucide-react'
 import { HealthRing } from '@/components/dashboard/HealthRing'
 import { SPRING, EASE_OUT, bubbleIn, sceneStagger, sceneItem } from './demo-motion'
 
@@ -50,12 +50,29 @@ function SceneBody({ children, style }: { children: React.ReactNode; style?: Rea
   )
 }
 
+/* Email-style message card — a compact visual copy of the real .msg-card, so
+ * the demos render the same thread chrome as the redesigned inbox. */
+function DemoEmailCard({ out, sender, ini, text }: { out: boolean; sender: string; ini?: string; text: string }) {
+  return (
+    <article className={`msg-card ${out ? 'out' : 'in'}`} style={{ marginTop: 0 }}>
+      <header className="msg-card-head" style={{ padding: '9px 13px 0' }}>
+        <span className={`msg-avatar ${out ? 'out' : 'in'}`} style={{ width: 26, height: 26, fontSize: 10 }} aria-hidden>
+          {out ? <UserRound size={13} /> : ini}
+        </span>
+        <span className="msg-sender" style={{ fontSize: 12 }}>{sender}</span>
+        <time className="msg-time" style={{ fontSize: 10.5 }}>just now</time>
+      </header>
+      <div className="msg-body" style={{ padding: '5px 13px 11px', fontSize: 12 }}>{text}</div>
+    </article>
+  )
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
    1 · AI chat search → deal closes
    ════════════════════════════════════════════════════════════════════════════ */
-const SEARCH_QUERY = 'who asked about the premium plan?'
+const SEARCH_QUERY = 'who asked about the enterprise plan?'
 const SEARCH_RESULTS = [
-  { ini: 'MR', bg: 'rgba(220,43,85,0.1)', col: '#DC2B55', name: 'Maria Rossi', snippet: 'Is the premium plan worth it for a small team?', match: true },
+  { ini: 'MR', bg: 'rgba(220,43,85,0.1)', col: '#DC2B55', name: 'Maria Rossi', snippet: 'Is the Enterprise plan right for a growing team?', match: true },
   { ini: 'TK', bg: 'rgba(79,92,244,0.1)', col: '#4F5CF4', name: 'Tom Keller', snippet: 'Can you send over the contract draft?', match: false },
   { ini: 'JD', bg: 'rgba(194,98,10,0.1)', col: '#C2620A', name: 'Jana Diehl', snippet: 'Thanks, talk next week!', match: false },
 ]
@@ -90,7 +107,7 @@ export function SearchDemo() {
 
   return (
     <div className="scene" style={{ minHeight: 420 }}>
-      <Chrome url="velnox.app/inbox" />
+      <Chrome url="usevelnox.com/inbox" />
       <SceneBody style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14, minHeight: 376 }}>
         {/* Search bar — lifts slightly while it has focus, like a real input */}
         <motion.div variants={sceneItem}>
@@ -187,23 +204,23 @@ export function SearchDemo() {
                       <motion.span initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ ...SPRING.snap, delay: 0.08 }} style={{ display: 'inline-flex' }}>
                         <PartyPopper size={15} style={{ color: '#16A34A' }} />
                       </motion.span>
-                      <span style={{ fontSize: 12.5, fontWeight: 700, color: '#16A34A' }}>Maria upgraded to Premium — deal won 🎉</span>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: '#16A34A' }}>Maria upgraded to Enterprise — deal won 🎉</span>
                     </div>
                   ) : analyzing ? (
                     <div className="ai-shimmer" style={{ padding: '8px 11px', borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                       <Sparkles size={13} style={{ color: 'var(--accent)' }} />
-                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>AI is drafting the perfect reply…</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>AI is drafting the reply — review before send…</span>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {sent && (
-                        <motion.div {...bubbleIn} transition={SPRING.pop} style={{ alignSelf: 'flex-end', maxWidth: '85%' }}>
-                          <div className="msg-bubble msg-bubble-out" style={{ fontSize: 12.5 }}>Great choice! Premium is perfect for small teams — I’ll upgrade you now and send the invoice. 🚀</div>
+                        <motion.div {...bubbleIn} transition={SPRING.pop}>
+                          <DemoEmailCard out sender="You" text="Great choice! Enterprise is built for teams as you scale — I’ll set you up now and send the invoice. 🚀" />
                         </motion.div>
                       )}
                       {replied && (
-                        <motion.div {...bubbleIn} transition={SPRING.pop} style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
-                          <div className="msg-bubble msg-bubble-in" style={{ fontSize: 12.5 }}>Perfect, let’s do it! 🙌</div>
+                        <motion.div {...bubbleIn} transition={SPRING.pop}>
+                          <DemoEmailCard out={false} sender="Maria Rossi" ini="MR" text="Perfect, let’s do it! 🙌" />
                         </motion.div>
                       )}
                     </div>
@@ -219,73 +236,43 @@ export function SearchDemo() {
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   2 · Configure an auto-reply bot from your own content
+   2 · Route every message automatically (real team routing rules)
    ════════════════════════════════════════════════════════════════════════════ */
-const BOT_DUR = [1500, 1200, 1500, 1600, 2600]
+const RULE_DUR = [1500, 1300, 1500, 1500, 3000]
+//               idle  toggle incoming match  routed
 
-export function BotSetupDemo() {
-  const { step, reduce } = useTimeline(BOT_DUR, 4)
+export function RoutingRulesDemo() {
+  const { step, reduce } = useTimeline(RULE_DUR, 4)
   const on = step >= 1
   const incoming = step >= 2
-  const generating = step === 3
-  const answered = step >= 4
+  const routing = step === 3
+  const routed = step >= 4
 
   return (
     <div className="scene" style={{ minHeight: 420 }}>
-      <Chrome url="velnox.app/bot" />
+      <Chrome url="usevelnox.com/settings" />
       <SceneBody style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14, minHeight: 376 }}>
-        {/* Knowledge card — the bot visibly "reads" it while drafting */}
+        {/* Rule card — mirrors the real RulesPanel row: name + summary + on/off */}
         <motion.div
           variants={sceneItem}
           style={{
-            position: 'relative', overflow: 'hidden', padding: 14, borderRadius: 12,
-            border: `1px solid ${generating ? 'rgba(79,92,244,0.35)' : 'var(--border)'}`,
-            boxShadow: generating ? '0 0 0 3px rgba(79,92,244,0.07)' : 'none',
-            background: 'var(--bg-subtle)', transition: 'border-color 0.35s, box-shadow 0.35s',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9, position: 'relative', zIndex: 1 }}>
-            <Bot size={14} style={{ color: 'var(--accent)' }} />
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent)' }}>Bot knowledge</span>
-            <AnimatePresence>
-              {generating && (
-                <motion.span
-                  initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
-                  style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent)', marginLeft: 'auto' }}
-                >
-                  reading…
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </div>
-          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, position: 'relative', zIndex: 1 }}>
-            “We’re open 9–6 Mon–Sat. Same-day delivery in the city for orders before 3pm. Free returns within 14 days.”
-          </p>
-          {generating && !reduce && (
-            <motion.div
-              initial={{ left: '-35%' }}
-              animate={{ left: '110%' }}
-              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-              style={{ position: 'absolute', top: 0, bottom: 0, width: '30%', background: 'linear-gradient(90deg, transparent, rgba(79,92,244,0.12), transparent)', pointerEvents: 'none' }}
-            />
-          )}
-        </motion.div>
-
-        {/* Auto-reply toggle */}
-        <motion.div
-          variants={sceneItem}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 12,
+            display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12,
             border: `1px solid ${on ? 'rgba(79,92,244,0.3)' : 'var(--border)'}`,
             boxShadow: on ? '0 0 0 3px rgba(79,92,244,0.06)' : 'none',
             background: '#FFFFFF', transition: 'border-color 0.3s, box-shadow 0.3s',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <Zap size={15} style={{ color: on ? 'var(--accent)' : 'var(--text-muted)', transition: 'color 0.3s' }} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Auto-reply</span>
+          <span style={{ width: 34, height: 34, borderRadius: 9, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: on ? 'var(--accent-dim)' : 'var(--bg-subtle)', color: on ? 'var(--accent)' : 'var(--text-muted)', flexShrink: 0, transition: 'background 0.3s, color 0.3s' }}>
+            <Zap size={16} />
+          </span>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Route Acme invoices</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              When domain acme.com &amp; subject ~ “invoice” → assign Finance, priority high
+            </div>
           </div>
-          <div style={{ position: 'relative', display: 'flex' }}>
+          {/* on/off toggle — flips on at step 1 with a ripple */}
+          <div style={{ position: 'relative', display: 'flex', flexShrink: 0 }}>
             <AnimatePresence>
               {step === 1 && (
                 <motion.span
@@ -304,33 +291,81 @@ export function BotSetupDemo() {
           </div>
         </motion.div>
 
-        {/* Live thread */}
-        <motion.div variants={sceneItem} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 9, justifyContent: 'flex-end' }}>
+        {/* Live: an incoming thread flows through the rule and lands routed */}
+        <motion.div variants={sceneItem} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 11, justifyContent: 'flex-end' }}>
           <AnimatePresence>
             {incoming && (
-              <motion.div key="in" {...bubbleIn} transition={SPRING.pop} style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
-                <div className="msg-bubble msg-bubble-in" style={{ fontSize: 12.5 }}>Hi! Do you offer same-day delivery?</div>
+              <motion.div
+                key="incoming"
+                initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+                transition={SPRING.pop}
+                style={{
+                  position: 'relative', overflow: 'hidden', padding: '11px 13px', borderRadius: 12, background: '#FFFFFF',
+                  border: `1px solid ${routed ? 'rgba(40,170,90,0.4)' : 'var(--border)'}`,
+                  boxShadow: 'var(--shadow-xs)', transition: 'border-color 0.4s',
+                }}
+              >
+                <div style={{ display: 'flex', gap: 11, alignItems: 'center' }}>
+                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(194,98,10,0.1)', color: '#C2620A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 700, flexShrink: 0 }}>AC</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>billing@acme.com</span>
+                      <AnimatePresence>
+                        {routed && (
+                          <motion.span
+                            initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={SPRING.snap}
+                            className="priority-badge priority-hot" style={{ fontSize: 9, flexShrink: 0 }}
+                          >
+                            <span className="priority-dot" aria-hidden />High
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                    <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Invoice #5821 is overdue — please advise</p>
+                    <AnimatePresence>
+                      {routed && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                          transition={{ duration: 0.3 }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 7, overflow: 'hidden' }}
+                        >
+                          <span className="cat-tag" style={{ color: 'var(--text-secondary)', background: 'var(--bg-subtle)' }}><UserRound size={10} /> Finance</span>
+                          <span className="cat-tag" style={{ color: '#C2620A', background: 'rgba(194,98,10,0.1)' }}><Tag size={10} /> Billing</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+
+                {/* routing shimmer sweeps the row while the rule matches */}
+                {routing && !reduce && (
+                  <motion.div
+                    initial={{ left: '-35%' }} animate={{ left: '110%' }}
+                    transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
+                    style={{ position: 'absolute', top: 0, bottom: 0, width: '30%', background: 'linear-gradient(90deg, transparent, rgba(79,92,244,0.12), transparent)', pointerEvents: 'none' }}
+                  />
+                )}
               </motion.div>
             )}
           </AnimatePresence>
 
-          <AnimatePresence mode="popLayout">
-            {generating && (
-              <motion.div key="gen" layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.16 } }} transition={SPRING.pop} style={{ alignSelf: 'flex-end' }}>
-                <div style={{ display: 'inline-flex', gap: 4, padding: '11px 14px', borderRadius: '13px 13px 3px 13px', background: 'var(--accent)' }}>
-                  <span className="typing-dot" style={{ background: '#fff' }} /><span className="typing-dot" style={{ background: '#fff', animationDelay: '0.15s' }} /><span className="typing-dot" style={{ background: '#fff', animationDelay: '0.3s' }} />
-                </div>
+          <AnimatePresence mode="wait">
+            {routing && (
+              <motion.div
+                key="routing-label"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: 'var(--accent)', fontWeight: 600 }}
+              >
+                <Sparkles size={12} /> Rule matched — routing to the right person…
               </motion.div>
             )}
-            {answered && (
-              <motion.div key="out" layout {...bubbleIn} transition={SPRING.pop} style={{ alignSelf: 'flex-end', maxWidth: '85%', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                <div className="msg-bubble msg-bubble-out" style={{ fontSize: 12.5 }}>Yes! Same-day delivery in the city for orders placed before 3pm. 🚚</div>
-                <motion.span
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.35 }}
-                  style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                >
-                  <Bot size={11} style={{ color: 'var(--accent)' }} /> Sent by bot · from your knowledge
-                </motion.span>
+            {routed && (
+              <motion.div
+                key="routed-label"
+                initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: '#16A34A', fontWeight: 600 }}
+              >
+                <Check size={13} /> Auto-assigned to Finance — no manual triage
               </motion.div>
             )}
           </AnimatePresence>
@@ -346,9 +381,9 @@ export function BotSetupDemo() {
 const GMAIL_DUR = [1400, 1400, 1700, 1900, 3000]
 
 const SYNCED_ROWS = [
-  { ini: 'MR', bg: 'rgba(220,43,85,0.1)', col: '#DC2B55', name: 'Maria Rossi', snippet: 'Is the premium plan worth it?', badge: 'Urgent', cls: 'priority-hot' },
-  { ini: 'TK', bg: 'rgba(194,98,10,0.1)', col: '#C2620A', name: 'Tom Keller', snippet: 'Can you send the contract draft?', badge: 'High', cls: 'priority-attention' },
-  { ini: 'JD', bg: 'rgba(79,92,244,0.1)', col: '#4F5CF4', name: 'Jana Diehl', snippet: 'Thanks, talk next week!', badge: 'Normal', cls: 'priority-cold' },
+  { ini: 'MR', bg: 'rgba(220,43,85,0.1)', col: '#DC2B55', name: 'Maria Rossi', snippet: 'Is the Enterprise plan worth it?', badge: 'Urgent', cls: 'priority-hot', assignee: 'You' },
+  { ini: 'TK', bg: 'rgba(194,98,10,0.1)', col: '#C2620A', name: 'Tom Keller', snippet: 'Can you send the contract draft?', badge: 'High', cls: 'priority-attention', assignee: 'Priya' },
+  { ini: 'JD', bg: 'rgba(79,92,244,0.1)', col: '#4F5CF4', name: 'Jana Diehl', snippet: 'Thanks, talk next week!', badge: 'Normal', cls: 'priority-cold', assignee: 'Sam' },
 ]
 
 export function GmailConnectDemo() {
@@ -361,7 +396,7 @@ export function GmailConnectDemo() {
 
   return (
     <div className="scene" style={{ minHeight: 420 }}>
-      <Chrome url="velnox.app/integrations" />
+      <Chrome url="usevelnox.com/integrations" />
       <SceneBody style={{ padding: 18, position: 'relative', minHeight: 376 }}>
         <motion.p variants={sceneItem} style={{ margin: '0 0 14px', fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Integrations</motion.p>
 
@@ -455,8 +490,9 @@ export function GmailConnectDemo() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{r.name}</div>
                         <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.snippet}</p>
+                        <span className="cat-tag" style={{ marginTop: 4, color: 'var(--text-secondary)', background: 'var(--bg-subtle)' }}><UserRound size={10} /> {r.assignee}</span>
                       </div>
-                      <span className={`priority-badge ${r.cls}`} style={{ fontSize: 8.5, flexShrink: 0 }}>{r.badge}</span>
+                      <span className={`priority-badge ${r.cls}`} style={{ fontSize: 8.5, flexShrink: 0, alignSelf: 'flex-start' }}>{r.badge}</span>
                     </motion.div>
                   ))}
                 </AnimatePresence>
@@ -540,13 +576,13 @@ export function DashboardDemo() {
 
   return (
     <div className="scene" style={{ minHeight: 420, background: 'var(--bg-subtle)' }}>
-      <Chrome url="velnox.app/dashboard" />
+      <Chrome url="usevelnox.com/dashboard" />
       <SceneBody style={{ padding: 16, minHeight: 376, display: 'flex', flexDirection: 'column', gap: 11, background: 'var(--bg-subtle)' }}>
         {/* Header — paints first, like the real dashboard shell */}
         <motion.div variants={sceneItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <div>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 400, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Good to see you, Amir</div>
-            <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 2 }}>Thursday, June 11</div>
+            <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 2 }}>Thursday, June 11 · 3 teammates online</div>
           </div>
           <AnimatePresence>
             {statsIn && (
@@ -634,6 +670,7 @@ export function DashboardDemo() {
                       <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Alex Peterson</div>
                       <div style={{ fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Project kickoff — full package</div>
                     </div>
+                    <span className="cat-tag" style={{ flexShrink: 0, color: 'var(--text-secondary)', background: 'var(--bg-subtle)' }}><UserRound size={10} /> Unassigned</span>
                     <span className="priority-badge priority-hot" style={{ fontSize: 8.5, flexShrink: 0 }}><span className="priority-dot" aria-hidden />Urgent</span>
                   </div>
                   <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>

@@ -23,7 +23,7 @@ export default function HeroMockup() {
             {['#FF5F57','#FEBC2E','#28C840'].map((c,i) => <div key={i} style={{ width: 10, height: 10, borderRadius: '50%', background: c }} />)}
           </div>
           <div style={{ flex: 1, height: 22, borderRadius: 5, background: '#EEF0F9', display: 'flex', alignItems: 'center', paddingLeft: 10 }}>
-            <span style={{ fontSize: 10, color: '#8D93BE', fontFamily: 'monospace' }}>velnox.app/inbox</span>
+            <span style={{ fontSize: 10, color: '#8D93BE', fontFamily: 'monospace' }}>usevelnox.com/inbox</span>
           </div>
         </div>
 

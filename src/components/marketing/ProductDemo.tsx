@@ -6,76 +6,65 @@ import {
   useMotionValue, useSpring, useTransform,
 } from 'framer-motion'
 import {
-  Sparkles, Check, PartyPopper, Send, Search,
+  Sparkles, Check, Send, Search, UserRound, ChevronDown, RotateCcw, PencilLine,
   LayoutDashboard, Inbox as InboxIcon, Users, Lightbulb, ShieldAlert, ChartColumn,
-  Bot, Plug, Settings, ArrowDownWideNarrow, ChevronDown, type LucideIcon,
+  Bot, ArrowDownWideNarrow, type LucideIcon,
 } from 'lucide-react'
 import Cursor from './Cursor'
-import { SPRING, EASE_OUT, bubbleIn, lineStagger, lineIn } from './demo-motion'
+import { SPRING, bubbleIn, lineStagger, lineIn } from './demo-motion'
 
-/* ── Static data — mirrors the real /inbox page structures ────────────────── */
+/* ── Static data — mirrors the real shared-inbox /inbox page ───────────────── */
+const ALEX_GRAD = 'linear-gradient(135deg,#DC2B55,#F2709C)'
+
 const CONVS = [
   {
-    grad: 'linear-gradient(135deg,#DC2B55,#F2709C)', ini: 'AP', name: 'Alex Peterson',
-    subject: 'Project kickoff — full package', preview: 'Sounds good, the price works. When could we start?',
-    time: '2m', badge: 'Urgent', cls: 'priority-hot', unread: 3,
+    grad: ALEX_GRAD, ini: 'AP', name: 'Alex Peterson',
+    subject: 'Project kickoff — full package', preview: 'Is the full package $3,800? And when could we start?',
+    time: '2m', badge: 'Urgent', cls: 'priority-hot', unread: 2,
   },
   {
     grad: 'linear-gradient(135deg,#C2620A,#F6A23B)', ini: 'KL', name: 'Karina Lee',
-    subject: 'Proposal follow-up', preview: 'Still thinking it over, need to check with my team…',
-    time: '3h', badge: 'High', cls: 'priority-attention', unread: 1,
+    subject: 'Proposal follow-up', preview: 'Still checking with my team…',
+    time: '3h', badge: 'High', cls: 'priority-attention', unread: 0, assignee: 'Priya',
   },
   {
     grad: 'linear-gradient(135deg,#4F5CF4,#7C4DFF)', ini: 'MJ', name: 'Mark Johnson',
-    subject: 'Invoice #214', preview: "Thanks, I'll follow up later. Busy right now.",
-    time: '1d', badge: null, cls: '', unread: 0, // Normal rows stay quiet, like the real list
+    subject: 'Invoice #214', preview: "Thanks, I'll follow up later.",
+    time: '1d', badge: null, cls: '', unread: 0, assignee: 'You',
   },
 ]
 
-const NAV_MAIN = [
-  { label: 'Dashboard', icon: LayoutDashboard, active: false },
-  { label: 'Inbox', icon: InboxIcon, active: true },
-]
-const NAV_INTEL = [
-  { label: 'Clients', icon: Users },
-  { label: 'Insights', icon: Lightbulb },
-  { label: 'Risk Monitor', icon: ShieldAlert },
-  { label: 'Analytics', icon: ChartColumn },
-]
-const NAV_SYSTEM = [
-  { label: 'Integrations', icon: Plug },
-  { label: 'Settings', icon: Settings },
+/* Icon-only platform nav — the real shell's sidebar, collapsed for the scene. */
+const NAV_ICONS: { icon: LucideIcon; active?: boolean }[] = [
+  { icon: LayoutDashboard },
+  { icon: InboxIcon, active: true },
+  { icon: Users },
+  { icon: Lightbulb },
+  { icon: ShieldAlert },
+  { icon: ChartColumn },
+  { icon: Bot },
 ]
 
 const BASE_MESSAGES = [
-  { out: false, text: 'Hi! Saw your proposal — is the full package $3,800?', time: '24m ago' },
-  { out: true,  text: 'Yes — that covers full setup and a 2-year warranty.', time: '19m ago' },
-  { out: false, text: 'Sounds good, the price works. When could we start?', time: '2m ago' },
+  { out: false, text: 'Thanks for the proposal — it looks great.', time: '9:18 AM' },
+  { out: false, text: 'Quick one: is the full package $3,800? And when could we start?', time: '9:24 AM', cont: true },
 ]
 
-const SUGGESTED = 'Perfect — we can start this Monday. I’ll send the onboarding details now. Welcome aboard! 🎉'
-const CLIENT_REPLY = 'Amazing, Monday works for us. Let’s do it! 🙌'
+const SUGGESTED =
+  "Hi Alex — yes, the full package is $3,800 (full setup + a 2-year warranty). We can kick off this Monday; I'll send the onboarding details today. Excited to get started! 🎉"
+const CLIENT_REPLY = "Perfect — Monday works for us. Let's do it! 🙌"
 
-/* Timeline: cumulative step machine. Each entry = ms the step is held. */
-const DURATIONS = [1500, 1100, 1700, 2100, 950, 520, 950, 1100, 1300, 2600]
-//                idle  hover analyz draft  move click sent  typing reply  won/hold
-
-/* Camera rig: where the demo "looks" at each step. Subtle dolly moves toward
- * the active zone — AI panel while analyzing, composer while drafting, the
- * thread while messages land — then pulls back out for the win. */
-function cameraFor(s: number) {
-  if (s >= 1 && s <= 2) return { scale: 1.05, x: -14, y: 18 }   // AI panel (right pane, top)
-  if (s >= 3 && s <= 5) return { scale: 1.05, x: -16, y: -22 }  // composer (right pane, bottom)
-  if (s >= 6 && s <= 8) return { scale: 1.03, x: -12, y: -6 }   // message thread
-  return { scale: 1, x: 0, y: 0 }
-}
+/* Timeline: cumulative step machine. Each entry = ms the step is held.
+ * 0 idle · 1 analyzing · 2 insight · 3 assign · 4 note · 5 draft · 6 send ·
+ * 7 client typing · 8 reply · 9 resolved */
+const DURATIONS = [1600, 1300, 1900, 1350, 1900, 2400, 950, 1100, 1800, 2900]
 
 export default function ProductDemo() {
   const reduce = useReducedMotion()
   const [step, setStep] = useState(0)
 
   const sceneRef = useRef<HTMLDivElement>(null)
-  const chatRef = useRef<HTMLDivElement>(null)
+  const aiToolRef = useRef<HTMLButtonElement>(null)
   const sendRef = useRef<HTMLButtonElement>(null)
 
   const [cursor, setCursor] = useState({ x: 0, y: 0, visible: false })
@@ -104,56 +93,52 @@ export default function ProductDemo() {
   // When the user prefers reduced motion, render the resolved final frame.
   const s = reduce ? 9 : step
 
-  /* The AI "drafts" the suggested reply character by character during step 3.
-   * The counter resets via rAF (not synchronously in the effect body); the one
-   * stale frame is invisible because the suggestion chip mounts at opacity 0. */
+  /* The AI "drafts" the reply character by character during step 5. The counter
+   * resets via rAF (not synchronously in the effect body); the one stale frame
+   * is invisible because the composer text mounts from the placeholder. */
   const [draftChars, setDraftChars] = useState(0)
   useEffect(() => {
-    if (reduce || step !== 3) return
+    if (reduce || step !== 5) return
     let c = 0
     const raf = requestAnimationFrame(() => setDraftChars(0))
     const id = setInterval(() => {
-      c += 2
+      c += 3
       setDraftChars(Math.min(c, SUGGESTED.length))
       if (c >= SUGGESTED.length) clearInterval(id)
-    }, 26)
+    }, 22)
     return () => { cancelAnimationFrame(raf); clearInterval(id) }
   }, [step, reduce])
 
-  const hoveringChat = s >= 1 && s <= 3
-  const analyzing = s === 2
-  const showSuggestion = s >= 3 && s <= 5
-  const clicking = s === 5
+  const analyzing = s === 1
+  const insightShown = s >= 2
+  const assigned = s >= 3
+  const noteShown = s >= 4
+  const draftInComposer = s === 5
   const sentVisible = s >= 6
   const clientTyping = s === 7
-  const clientReplyVisible = s >= 8
-  const won = s >= 9
+  const replyVisible = s >= 8
+  const resolved = s >= 9
 
-  const typedDone = reduce || s > 3 || draftChars >= SUGGESTED.length
-  const draft = showSuggestion ? (s > 3 || reduce ? SUGGESTED : SUGGESTED.slice(0, draftChars)) : ''
+  const typedDone = reduce || draftChars >= SUGGESTED.length
+  const draftText = draftInComposer ? (reduce ? SUGGESTED : SUGGESTED.slice(0, draftChars)) : ''
 
-  /* Drive the cursor toward the relevant element for the current step.
-   * Measured twice: immediately, and again once the camera spring has mostly
-   * settled (rects move while the camera glides). */
+  /* Drive the cursor toward the relevant control for the current step. Measured
+   * twice more after the camera spring settles (rects move while it glides). */
   useLayoutEffect(() => {
     if (reduce) return
     const measure = () => {
       const scene = sceneRef.current
       if (!scene) return
       const sr = scene.getBoundingClientRect()
-
       const center = (el: HTMLElement | null, fallback: { x: number; y: number }) => {
         if (!el) return fallback
         const r = el.getBoundingClientRect()
         return { x: r.left - sr.left + r.width / 2, y: r.top - sr.top + r.height / 2 }
       }
-      const parked = { x: sr.width * 0.78, y: sr.height * 0.84 }
-
+      const parked = { x: sr.width * 0.74, y: sr.height * 0.86 }
       let target = parked
-      if (step >= 1 && step <= 3) target = center(chatRef.current, parked)
-      else if (step >= 4 && step <= 5) target = center(sendRef.current, parked)
-      else if (step >= 6) target = parked
-
+      if (step === 5) target = center(aiToolRef.current, parked)
+      else if (step === 6) target = center(sendRef.current, parked)
       setCursor({ x: target.x, y: target.y, visible: true })
     }
     measure()
@@ -162,17 +147,15 @@ export default function ProductDemo() {
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [step, reduce])
 
-  /* Spotlight: while the AI works the chat pane, the nav chrome falls back. */
-  const focusMode = s >= 2 && s <= 8
-
-  /* List row for Alex mirrors what really happens in the app: once the reply
-   * is sent the preview flips to "You: …", time resets and unread clears. */
-  const alexPreview = clientReplyVisible ? CLIENT_REPLY : sentVisible ? `You: ${SUGGESTED}` : CONVS[0].preview
+  /* Alex's list row mirrors the app: assignee flips to You, the preview/time
+   * update once the reply is sent, unread clears, Urgent → Won on resolve. */
+  const alexAssignee = assigned ? 'You' : null
+  const alexPreview = replyVisible ? CLIENT_REPLY : sentVisible ? `You: ${SUGGESTED.replace(' 🎉', '')}` : CONVS[0].preview
   const alexTime = sentVisible ? 'now' : CONVS[0].time
 
   return (
     <div style={{ position: 'relative', width: '100%', perspective: 1400 }} onPointerMove={onTilt} onPointerLeave={resetTilt}>
-      <motion.div ref={sceneRef} className="scene" style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}>
+      <motion.div ref={sceneRef} className="scene" style={{ rotateX, rotateY }}>
         {/* Browser chrome */}
         <div style={{ padding: '10px 16px', background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 10, position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'flex', gap: 6 }}>
@@ -180,64 +163,37 @@ export default function ProductDemo() {
           </div>
           <div style={{ flex: 1, maxWidth: 240, height: 26, borderRadius: 6, background: 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'rgba(79,92,244,0.4)' }} />
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>velnox.app/inbox</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>usevelnox.com/inbox</span>
           </div>
         </div>
 
-        {/* App layout — wrapped in the camera rig */}
-        <motion.div
-          className="demo-app-layout demo-camera"
-          animate={cameraFor(s)}
-          transition={SPRING.camera}
-          style={{ display: 'flex' }}
-        >
-          {/* Sidebar — compact copy of the real platform nav */}
-          <motion.div
-            className="demo-sidebar"
-            animate={{ opacity: focusMode ? 0.45 : 1 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            style={{ width: 200, borderRight: '1px solid var(--border)', padding: '14px 10px', display: 'flex', flexDirection: 'column', gap: 3, flexShrink: 0, background: 'var(--bg-subtle)', overflow: 'hidden' }}
+        {/* App layout — full static frame (no camera dolly) */}
+        <div className="demo-app-layout" style={{ display: 'flex' }}>
+          {/* Icon nav — the real platform sidebar, collapsed */}
+          <div
+            className="demo-icon-nav"
+            style={{ width: 54, borderRight: '1px solid var(--border)', background: 'var(--bg-subtle)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '14px 0', flexShrink: 0 }}
           >
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', marginBottom: 6 }}>
-              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1 }}>velnox</span>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', marginBottom: 7, display: 'inline-block' }} />
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '6px 9px', borderRadius: 9, border: '1px solid var(--border)', background: '#FFFFFF', color: 'var(--text-muted)', fontSize: 11.5 }}>
-              <Search size={12} />
-              <span>Search</span>
-              <span className="cmdk-kbd" style={{ marginLeft: 'auto', fontSize: 9 }}>⌘ K</span>
-            </div>
-
-            <div style={{ height: 4 }} />
-            {NAV_MAIN.map(item => <DemoNavItem key={item.label} {...item} />)}
-
-            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-muted)', padding: '10px 9px 3px' }}>Intelligence</div>
-            {NAV_INTEL.map(item => <DemoNavItem key={item.label} {...item} />)}
-
-            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-muted)', padding: '10px 9px 3px' }}>Assistant</div>
-            <DemoNavItem label="AI Assistant" icon={Bot} pill="Beta" />
-
+            <span style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--accent)', marginBottom: 12 }} />
+            {NAV_ICONS.map((n, i) => (
+              <span
+                key={i}
+                style={{
+                  width: 32, height: 32, borderRadius: 9, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  background: n.active ? 'var(--accent-dim)' : 'transparent',
+                  color: n.active ? 'var(--accent)' : 'var(--text-muted)',
+                }}
+              >
+                <n.icon size={15} />
+              </span>
+            ))}
             <div style={{ flex: 1 }} />
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 6, borderBottom: '1px solid var(--border-light)', marginBottom: 6 }}>
-              {NAV_SYSTEM.map(item => <DemoNavItem key={item.label} {...item} />)}
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', background: '#FFFFFF', borderRadius: 9, border: '1px solid var(--border)', boxShadow: 'var(--shadow-xs)' }}>
-              <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg,#4b6bff,#9b6bff)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff', flexShrink: 0 }}>AM</div>
-              <div style={{ overflow: 'hidden' }}>
-                <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Amir</div>
-                <div style={{ fontSize: 9.5, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>amir@company.com</div>
-              </div>
-            </div>
-          </motion.div>
+            <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg,#4b6bff,#9b6bff)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9.5, fontWeight: 700, color: '#fff' }}>A</div>
+          </div>
 
           {/* Conversation list — search, filter chips, mailbox group, rows */}
-          <motion.div
+          <div
             className="demo-conv-list"
-            animate={{ opacity: focusMode ? 0.55 : 1 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
             style={{ borderRight: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', background: '#FFFFFF', overflow: 'hidden' }}
           >
             <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid var(--border-light)', flexShrink: 0 }}>
@@ -255,7 +211,6 @@ export default function ProductDemo() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span className="fchip active" style={{ fontSize: 10.5, padding: '3px 9px' }}>All <span className="fchip-count">3</span></span>
                 <span className="fchip" style={{ fontSize: 10.5, padding: '3px 9px' }}><span className="fchip-dot" style={{ background: 'var(--hot)' }} />Urgent <span className="fchip-count">1</span></span>
-                <span className="fchip" style={{ fontSize: 10.5, padding: '3px 9px' }}><span className="fchip-dot" style={{ background: 'var(--attention)' }} />High <span className="fchip-count">1</span></span>
                 <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)' }}>
                   <ArrowDownWideNarrow size={11} /> Priority
                 </span>
@@ -264,26 +219,23 @@ export default function ProductDemo() {
 
             <div className="inbox-group-head" style={{ padding: '9px 14px', cursor: 'default' }}>
               <span className="inbox-group-dot" style={{ background: '#EA4335' }} />
-              <span className="inbox-group-label" style={{ fontSize: 11 }}>amir@company.com</span>
+              <span className="inbox-group-label" style={{ fontSize: 11 }}>support@acme.co</span>
               <span className="inbox-group-count">3</span>
               <ChevronDown size={13} className="inbox-group-chevron" />
             </div>
 
             {CONVS.map((c, i) => {
-              const selected = i === 0
               const isHot = i === 0
+              const selected = isHot
               const preview = isHot ? alexPreview : c.preview
               const time = isHot ? alexTime : c.time
+              const assignee = isHot ? alexAssignee : c.assignee
               const unreadGone = isHot && sentVisible
               return (
                 <div
                   key={i}
-                  ref={isHot ? chatRef : undefined}
                   className={`conv-item${selected ? ' selected' : ''}`}
-                  style={{
-                    padding: '10px 12px', gap: 9, cursor: 'default',
-                    background: selected ? undefined : (isHot && hoveringChat ? 'var(--bg-hover)' : undefined),
-                  }}
+                  style={{ padding: '10px 12px', gap: 9, cursor: 'default' }}
                 >
                   <div className="avatar" style={{ background: c.grad, color: '#fff', width: 32, height: 32, fontSize: 10.5 }}>{c.ini}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -296,14 +248,30 @@ export default function ProductDemo() {
                       </AnimatePresence>
                     </div>
                     <p style={{ margin: '1px 0 0', color: 'var(--text-secondary)', fontWeight: 500, fontSize: 11.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.45 }}>{c.subject}</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
+
+                    {assignee && (
+                      <AnimatePresence mode="popLayout" initial={false}>
+                        <motion.span
+                          key={assignee}
+                          initial={isHot ? { opacity: 0, scale: 0.7 } : false}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={SPRING.snap}
+                          className="cat-tag"
+                          style={{ marginTop: 4, color: 'var(--text-secondary)', background: 'var(--bg-subtle)' }}
+                        >
+                          <UserRound size={10} /> {assignee}
+                        </motion.span>
+                      </AnimatePresence>
+                    )}
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
                       <AnimatePresence mode="popLayout" initial={false}>
                         <motion.p key={preview} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} style={{ flex: 1, margin: 0, color: 'var(--text-muted)', fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.5, minWidth: 0 }}>
                           {preview}
                         </motion.p>
                       </AnimatePresence>
                       {isHot ? (
-                        <FlipBadge won={won} fontSize={9} />
+                        <FlipBadge won={resolved} fontSize={9} />
                       ) : c.badge ? (
                         <span className={`priority-badge ${c.cls}`} style={{ fontSize: 9, flexShrink: 0 }}><span className="priority-dot" aria-hidden />{c.badge}</span>
                       ) : null}
@@ -323,62 +291,37 @@ export default function ProductDemo() {
                 </div>
               )
             })}
-          </motion.div>
+          </div>
 
-          {/* Thread pane — chat header + AI insight + messages + composer */}
+          {/* Thread pane — slim header + email-style message cards + composer */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--bg-subtle)' }}>
-            {/* Chat header */}
+            {/* Slim identity header — no priority badge, no AI banner (those live in the rail) */}
             <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border)', background: '#FFFFFF', flexShrink: 0 }}>
-              <div className="chat-head-row" style={{ gap: 10 }}>
-                <div className="chat-avatar" style={{ width: 36, height: 36, fontSize: 12, background: CONVS[0].grad }}>AP</div>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Alex Peterson</div>
+              <div className="chat-id">
+                <div className="chat-avatar" style={{ width: 36, height: 36, fontSize: 12, background: ALEX_GRAD }}>AP</div>
+                <div className="chat-id-text">
+                  <h2 className="chat-name" style={{ fontSize: 14 }}>Alex Peterson</h2>
                   <div className="chat-sub" style={{ marginTop: 3 }}>
                     <span className="chat-chip" style={{ fontSize: 10, padding: '1px 7px' }}>Gmail</span>
                     <span className="chat-email" style={{ fontSize: 11 }}>alex@peterson.co</span>
+                    <span className="chat-subject" style={{ fontSize: 11 }}>Project kickoff</span>
                   </div>
                 </div>
-                <FlipBadge won={won} />
               </div>
-
-              {/* AI insight panel — slight push-in + crossfade as the AI works */}
-              <motion.div
-                animate={{ scale: analyzing ? 1.02 : 1 }}
-                transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-                style={{ transformOrigin: 'center top' }}
-              >
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={won ? 'won' : analyzing ? 'analyzing' : 'risk'}
-                    initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                    exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-                    transition={{ duration: 0.32, ease: EASE_OUT }}
-                  >
-                    <AIPanel analyzing={analyzing} won={won} />
-                  </motion.div>
-                </AnimatePresence>
-              </motion.div>
             </div>
 
-            {/* Messages — pinned to the bottom like a scrolled chat */}
-            <div style={{ flex: 1, padding: '12px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 0, overflow: 'hidden', position: 'relative' }}>
-              <div className="chat-day-sep" style={{ marginBottom: 4 }}><span>Today</span></div>
+            {/* Messages — pinned to the bottom like a scrolled thread */}
+            <div style={{ flex: 1, padding: '14px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden', position: 'relative' }}>
+              <div className="chat-day-sep" style={{ marginBottom: 2, flexShrink: 0 }}><span>Today</span></div>
 
               {BASE_MESSAGES.map((m, i) => (
-                <motion.div key={i} layout="position" transition={SPRING.pop} className={`chat-row ${m.out ? 'out' : 'in'}`} style={{ marginTop: 10 }}>
-                  <div className={`msg-bubble ${m.out ? 'msg-bubble-out' : 'msg-bubble-in'}`} style={{ maxWidth: '80%', fontSize: 12.5, padding: '8px 12px' }}>{m.text}</div>
-                  <span className="chat-time">{m.time}</span>
-                </motion.div>
+                <DemoCard key={i} out={m.out} cont={!!m.cont} sender="Alex Peterson" ini="AP" text={m.text} time={m.time} />
               ))}
 
               <AnimatePresence>
                 {sentVisible && (
-                  <motion.div key="sent" layout="position" {...bubbleIn} transition={SPRING.pop} className="chat-row out" style={{ marginTop: 10 }}>
-                    <div className="msg-bubble msg-bubble-out" style={{ maxWidth: '80%', fontSize: 12.5, padding: '8px 12px' }}>{SUGGESTED}</div>
-                    <span className="chat-time" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                      just now <Check size={11} style={{ color: 'var(--accent)' }} />
-                    </span>
+                  <motion.div key="sent" layout="position" {...bubbleIn} transition={SPRING.pop} style={{ flexShrink: 0 }}>
+                    <DemoCard out sender="You" text={SUGGESTED} time="just now" sending />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -392,94 +335,236 @@ export default function ProductDemo() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.16 } }}
                     transition={SPRING.pop}
-                    className="chat-row in" style={{ marginTop: 10 }}
+                    style={{ display: 'inline-flex', gap: 4, marginTop: 12, padding: '11px 14px', borderRadius: 12, background: '#FFFFFF', border: '1px solid var(--border)', boxShadow: 'var(--shadow-xs)', alignSelf: 'flex-start', flexShrink: 0 }}
                   >
-                    <div style={{ display: 'inline-flex', gap: 4, padding: '10px 13px', borderRadius: '13px 13px 13px 3px', background: '#FFFFFF', border: '1px solid var(--border)', boxShadow: 'var(--shadow-xs)' }}>
-                      <span className="typing-dot" /><span className="typing-dot" style={{ animationDelay: '0.15s' }} /><span className="typing-dot" style={{ animationDelay: '0.3s' }} />
-                    </div>
+                    <span className="typing-dot" /><span className="typing-dot" style={{ animationDelay: '0.15s' }} /><span className="typing-dot" style={{ animationDelay: '0.3s' }} />
                   </motion.div>
                 )}
-                {clientReplyVisible && (
-                  <motion.div key="reply" layout="position" {...bubbleIn} transition={SPRING.pop} className="chat-row in" style={{ marginTop: 10 }}>
-                    <div className="msg-bubble msg-bubble-in" style={{ maxWidth: '80%', fontSize: 12.5, padding: '8px 12px' }}>{CLIENT_REPLY}</div>
-                    <span className="chat-time">just now</span>
+                {replyVisible && (
+                  <motion.div key="reply" layout="position" {...bubbleIn} transition={SPRING.pop} style={{ flexShrink: 0 }}>
+                    <DemoCard out={false} sender="Alex Peterson" ini="AP" text={CLIENT_REPLY} time="just now" />
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {won && <Confetti />}
+              {resolved && <Confetti />}
             </div>
 
-            {/* Composer — always present like the real app; the AI fills it in */}
-            <div className="composer" style={{ padding: '9px 14px 11px', flexShrink: 0 }}>
-              <AnimatePresence>
-                {showSuggestion && (
-                  <motion.div
-                    key="ai-chip"
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 6, transition: { duration: 0.18 } }}
-                    transition={SPRING.panel}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7 }}
-                  >
-                    <Sparkles size={11} style={{ color: 'var(--accent)' }} />
-                    <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)' }}>
-                      {typedDone ? 'AI suggested reply — ready to send' : 'AI is drafting…'}
-                    </span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+            {/* Composer — redesigned single block; the AI fills it in (review before send) */}
+            <div className="composer" style={{ padding: '10px 14px 12px', flexShrink: 0 }}>
               <div
-                className="composer-row"
+                className="composer-block"
                 style={{
-                  padding: '5px 5px 5px 12px',
-                  borderColor: showSuggestion ? 'var(--accent)' : undefined,
-                  boxShadow: showSuggestion ? '0 0 0 3px rgba(79,92,244,0.1)' : undefined,
+                  padding: '7px 7px 7px 12px',
+                  borderColor: draftInComposer ? 'var(--accent)' : undefined,
+                  boxShadow: draftInComposer ? '0 0 0 3px rgba(79,92,244,0.1)' : undefined,
                 }}
               >
-                <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, lineHeight: 1.5, padding: '4px 0', minHeight: 21, color: draft ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                  {draft || 'Write a reply…'}
-                  {showSuggestion && !typedDone && <span className="animate-blink" style={{ color: 'var(--accent)' }}>|</span>}
+                <div className="composer-row" style={{ alignItems: 'flex-end' }}>
+                  <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, lineHeight: 1.5, padding: '4px 0', minHeight: 21, color: draftText ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                    {draftText || 'Write a reply…'}
+                    {draftInComposer && !typedDone && <span className="animate-blink" style={{ color: 'var(--accent)' }}>|</span>}
+                  </div>
+                  <motion.button
+                    ref={sendRef}
+                    className="composer-send"
+                    animate={{
+                      scale: s === 6 ? 0.86 : 1,
+                      opacity: draftText ? 1 : 0.45,
+                      boxShadow: s === 6 ? '0 0 0 4px rgba(79,92,244,0.18)' : '0 0 0 0px rgba(79,92,244,0)',
+                    }}
+                    transition={{ scale: SPRING.snap, opacity: { duration: 0.25 } }}
+                    style={{ width: 30, height: 30 }}
+                  >
+                    <Send size={13} />
+                  </motion.button>
                 </div>
-                <motion.button
-                  ref={sendRef}
-                  className="composer-send"
-                  animate={{
-                    scale: clicking ? 0.86 : 1,
-                    opacity: draft ? 1 : 0.45,
-                    boxShadow: clicking ? '0 0 0 4px rgba(79,92,244,0.18)' : '0 0 0 0px rgba(79,92,244,0)',
-                  }}
-                  transition={{ scale: SPRING.snap, opacity: { duration: 0.25 } }}
-                  style={{ width: 30, height: 30 }}
-                >
-                  <Send size={13} />
-                </motion.button>
+
+                <div className="composer-tools" style={{ marginTop: 7, paddingTop: 7 }}>
+                  <motion.button
+                    ref={aiToolRef}
+                    type="button"
+                    className="composer-tool composer-tool-ai"
+                    animate={{ scale: s === 5 ? 0.95 : 1 }}
+                    transition={SPRING.snap}
+                    style={{ fontSize: 10.5, padding: '4px 9px' }}
+                  >
+                    {draftInComposer && !typedDone ? (
+                      <>
+                        <Sparkles size={11} className="animate-pulse-s" /> Drafting…
+                      </>
+                    ) : sentVisible ? (
+                      <><RotateCcw size={11} /> Regenerate</>
+                    ) : (
+                      <><Sparkles size={11} /> AI draft</>
+                    )}
+                  </motion.button>
+                  <span className="composer-tone-btn" style={{ fontSize: 10.5, padding: '4px 9px' }}>
+                    Warm <ChevronDown size={11} />
+                  </span>
+                  <span className="composer-tool" style={{ fontSize: 10.5, padding: '4px 9px' }}>
+                    <PencilLine size={11} /> Steer
+                  </span>
+                  <AnimatePresence>
+                    {draftInComposer && (
+                      <motion.span
+                        initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+                        className="composer-ai-label" style={{ marginLeft: 'auto', color: 'var(--accent)', fontStyle: 'normal', fontWeight: 600 }}
+                      >
+                        Review before send
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
           </div>
-        </motion.div>
 
-        {!reduce && <Cursor x={cursor.x} y={cursor.y} visible={cursor.visible} clicking={clicking} />}
+          {/* Context rail — the single AI surface + thread properties + team notes */}
+          <div
+            style={{ width: 232, flexShrink: 0, borderLeft: '1px solid var(--border)', background: '#FFFFFF', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+          >
+            {/* AI insight */}
+            <section className="rail-section" style={{ padding: '13px 14px' }}>
+              <div className="rail-ai-head" style={{ marginBottom: 8 }}>
+                <span className="rail-ai-icon" style={{ width: 20, height: 20 }}><Sparkles size={12} /></span>
+                <span className="rail-ai-title" style={{ fontSize: 11.5 }}>AI insight</span>
+                <AnimatePresence>
+                  {insightShown && (
+                    <motion.span
+                      initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }}
+                      transition={SPRING.snap}
+                      className="rail-risk" style={{ color: 'var(--hot)', fontSize: 10.5 }}
+                    >
+                      <span className="rail-risk-dot" style={{ background: 'var(--hot)' }} />
+                      High risk
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <AnimatePresence mode="wait">
+                {analyzing ? (
+                  <motion.div
+                    key="analyzing"
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="ai-shimmer" style={{ borderRadius: 8, padding: '9px 11px', display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                  >
+                    <Sparkles size={12} style={{ color: 'var(--accent)' }} />
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)' }}>Analyzing…</span>
+                  </motion.div>
+                ) : insightShown ? (
+                  <motion.div key="insight" initial="hidden" animate="visible" variants={lineStagger}>
+                    <motion.p variants={lineIn} className="rail-ai-summary" style={{ fontSize: 12 }}>Client is ready to buy — confirm the price and a start date.</motion.p>
+                    <motion.p variants={lineIn} className="rail-ai-action" style={{ fontSize: 12, margin: 0 }}>→ Reply with a concrete start date</motion.p>
+                  </motion.div>
+                ) : (
+                  <motion.p key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ margin: 0, fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                    Not analyzed yet. Insight appears after the next sync.
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </section>
+
+            {/* Properties */}
+            <section className="rail-section" style={{ padding: '13px 14px' }}>
+              <h3 className="rail-label" style={{ marginBottom: 9 }}>Properties</h3>
+
+              <div className="rail-prop" style={{ marginBottom: 8 }}>
+                <span className="rail-prop-k" style={{ width: 48, fontSize: 11 }}>Assignee</span>
+                <div className="rail-prop-v">
+                  <div className="rail-select" style={{ padding: '5px 9px', fontSize: 11.5 }}>
+                    <UserRound size={12} />
+                    <span className="rail-select-label">
+                      <AnimatePresence mode="popLayout" initial={false}>
+                        <motion.span
+                          key={assigned ? 'you' : 'unassigned'}
+                          initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
+                          transition={SPRING.snap}
+                          style={{ display: 'inline-block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: assigned ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                        >
+                          {assigned ? 'You' : 'Unassigned'}
+                        </motion.span>
+                      </AnimatePresence>
+                    </span>
+                    <ChevronDown size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rail-prop" style={{ marginBottom: 8 }}>
+                <span className="rail-prop-k" style={{ width: 48, fontSize: 11 }}>Status</span>
+                <div className="rail-seg">
+                  {(['Open', 'Snoozed', 'Closed'] as const).map(label => {
+                    const active = resolved ? label === 'Closed' : label === 'Open'
+                    return (
+                      <span key={label} className="rail-seg-btn" data-active={active} style={{ fontSize: 10, padding: '5px 0', textAlign: 'center' }}>{label}</span>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="rail-prop" style={{ marginBottom: 0 }}>
+                <span className="rail-prop-k" style={{ width: 48, fontSize: 11 }}>Tags</span>
+                <div className="rail-prop-v">
+                  <span className="rail-tag-chip" style={{ color: '#DC2B55', background: '#DC2B551a', borderColor: '#DC2B5555', fontSize: 10.5 }}>Hot lead</span>
+                </div>
+              </div>
+            </section>
+
+            {/* Internal notes — team only */}
+            <section className="rail-section" style={{ padding: '13px 14px', borderBottom: 'none' }}>
+              <h3 className="rail-label" style={{ marginBottom: 9 }}>Internal notes <span className="rail-label-hint">· only your team</span></h3>
+              <AnimatePresence>
+                {noteShown ? (
+                  <motion.div
+                    key="note"
+                    initial={{ opacity: 0, y: 8, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={SPRING.pop}
+                    className="rail-note" style={{ padding: '7px 9px' }}
+                  >
+                    <div className="rail-note-head">
+                      <span className="rail-note-author" style={{ fontSize: 11 }}>Priya</span>
+                      <span className="rail-note-time" style={{ fontSize: 10 }}>just now</span>
+                    </div>
+                    <p className="rail-note-body" style={{ fontSize: 11.5 }}>Pricing approved ✅ — green light to close.</p>
+                  </motion.div>
+                ) : (
+                  <motion.p key="note-empty" exit={{ opacity: 0 }} style={{ margin: 0, fontSize: 11.5, color: 'var(--text-muted)' }}>
+                    Add an internal note…
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </section>
+          </div>
+        </div>
+
+        {!reduce && <Cursor x={cursor.x} y={cursor.y} visible={cursor.visible} clicking={s === 6} />}
       </motion.div>
     </div>
   )
 }
 
-/* ── Compact sidebar nav row (visual copy of the real .nav-item) ──────────── */
-function DemoNavItem({ label, icon: Icon, active, pill }: { label: string; icon: LucideIcon; active?: boolean; pill?: string }) {
+/* ── Email-style message card (visual copy of the real .msg-card) ─────────── */
+function DemoCard({
+  out, cont, sender, ini, text, time, sending,
+}: {
+  out: boolean; cont?: boolean; sender: string; ini?: string; text: string; time: string; sending?: boolean
+}) {
   return (
-    <div
-      style={{
-        display: 'flex', alignItems: 'center', gap: 8, padding: '6px 9px', borderRadius: 8,
-        background: active ? 'var(--accent-dim)' : 'transparent',
-        color: active ? 'var(--accent)' : 'var(--text-secondary)',
-        fontSize: 12, fontWeight: active ? 600 : 500, whiteSpace: 'nowrap',
-      }}
-    >
-      <Icon size={13} style={{ flexShrink: 0 }} />
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
-      {pill && <span className="nav-pill" style={{ fontSize: 8 }}>{pill}</span>}
-    </div>
+    <article className={`msg-card ${out ? 'out' : 'in'}${cont ? ' cont' : ''}`} style={{ marginTop: cont ? 6 : 12, flexShrink: 0 }}>
+      <header className="msg-card-head" style={{ padding: '9px 13px 0' }}>
+        <span className={`msg-avatar ${out ? 'out' : 'in'}`} style={{ width: 26, height: 26, fontSize: 10 }} aria-hidden>
+          {out ? <UserRound size={13} /> : ini}
+        </span>
+        <span className="msg-sender" style={{ fontSize: 12 }}>{sender}</span>
+        <time className="msg-time" style={{ fontSize: 10.5, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+          {time}
+          {sending && <Check size={11} style={{ color: 'var(--accent)' }} />}
+        </time>
+      </header>
+      <div className="msg-body" style={{ padding: '5px 13px 11px', fontSize: 12 }}>{text}</div>
+    </article>
   )
 }
 
@@ -502,60 +587,6 @@ function FlipBadge({ won, fontSize }: { won: boolean; fontSize?: number }) {
         </motion.span>
       </AnimatePresence>
     </span>
-  )
-}
-
-/* ── AI panel (analyzing → risk → won), real .chat-ai styling ─────────────── */
-function AIPanel({ analyzing, won }: { analyzing: boolean; won: boolean }) {
-  if (won) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
-        transition={SPRING.pop}
-        className="chat-ai" style={{ marginTop: 11, padding: '10px 13px', background: 'rgba(40,200,100,0.08)', borderColor: 'rgba(40,170,90,0.25)' }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <motion.span initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ ...SPRING.snap, delay: 0.1 }} style={{ display: 'inline-flex' }}>
-            <PartyPopper size={14} style={{ color: '#16A34A' }} />
-          </motion.span>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#16A34A', letterSpacing: '0.04em' }}>Deal won — client confirmed</span>
-        </div>
-      </motion.div>
-    )
-  }
-  if (analyzing) {
-    return (
-      <div className="ai-shimmer chat-ai" style={{ marginTop: 11, padding: '10px 13px', borderColor: 'rgba(79,92,244,0.2)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <motion.span
-            animate={{ rotate: [0, 14, -10, 0], scale: [1, 1.18, 1, 1] }}
-            transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-            style={{ display: 'inline-flex' }}
-          >
-            <Sparkles size={13} style={{ color: 'var(--accent)' }} />
-          </motion.span>
-          <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--accent)' }}>AI is analyzing this conversation</span>
-          <span style={{ display: 'inline-flex', gap: 3, marginLeft: 2 }}>
-            <span className="typing-dot" style={{ background: 'var(--accent)' }} />
-            <span className="typing-dot" style={{ background: 'var(--accent)', animationDelay: '0.15s' }} />
-            <span className="typing-dot" style={{ background: 'var(--accent)', animationDelay: '0.3s' }} />
-          </span>
-        </div>
-      </div>
-    )
-  }
-  return (
-    <motion.div
-      initial="hidden" animate="visible" variants={lineStagger}
-      className="chat-ai" style={{ marginTop: 11, padding: '10px 13px', background: 'var(--hot-dim)', borderColor: 'var(--hot-border)' }}
-    >
-      <motion.div variants={lineIn} className="chat-ai-head" style={{ marginBottom: 5 }}>
-        <Sparkles size={12} style={{ color: 'var(--hot)' }} />
-        <span style={{ color: 'var(--hot)' }}>AI insight · High risk</span>
-      </motion.div>
-      <motion.p variants={lineIn} className="chat-ai-summary" style={{ fontSize: 12, marginBottom: 5 }}>Client is ready to buy. A delay over 2h will reduce conversion.</motion.p>
-      <motion.p variants={lineIn} className="chat-ai-action" style={{ fontSize: 12 }}>→ Reply with a concrete start date</motion.p>
-    </motion.div>
   )
 }
 
