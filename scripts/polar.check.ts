@@ -7,6 +7,7 @@
  */
 import assert from 'node:assert/strict'
 import { planToProduct, productToPlan } from '@/lib/polar-plans'
+import { subscriptionUpdateFromEvent } from '@/services/billing.webhook'
 
 process.env.POLAR_PRODUCT_PRO_MONTHLY = 'prod_pro_m'
 process.env.POLAR_PRODUCT_PRO_ANNUAL = 'prod_pro_a'
@@ -45,6 +46,71 @@ check('round-trips', () => {
       assert.deepEqual(productToPlan(id), { plan, period })
     }
   }
+})
+
+const lookup = (id: string) => productToPlan(id)
+const baseEvent = {
+  productId: 'prod_team_m',
+  status: 'active',
+  currentPeriodEnd: '2026-07-24T00:00:00.000Z',
+  recurringInterval: 'month',
+  customerExternalId: 'org_123',
+  customerId: 'cus_1',
+  subscriptionId: 'sub_1',
+  metadataOrganizationId: null,
+}
+
+console.log('billing.webhook — subscriptionUpdateFromEvent:')
+check('active subscription → plan from product, status active', () => {
+  const p = subscriptionUpdateFromEvent({ ...baseEvent, type: 'subscription.active' }, lookup)
+  assert.ok(!('ignore' in p))
+  if (!('ignore' in p)) {
+    assert.equal(p.organizationId, 'org_123')
+    assert.equal(p.plan, 'TEAM')
+    assert.equal(p.status, 'active')
+    assert.equal(p.interval, 'month')
+    assert.equal(p.cancelAtPeriodEnd, false)
+    assert.equal(p.externalSubscriptionId, 'sub_1')
+    assert.equal(p.externalCustomerId, 'cus_1')
+    assert.ok(p.currentPeriodEnd instanceof Date)
+  }
+})
+check('canceled → keeps plan, sets cancelAtPeriodEnd', () => {
+  const p = subscriptionUpdateFromEvent({ ...baseEvent, type: 'subscription.canceled' }, lookup)
+  if (!('ignore' in p)) {
+    assert.equal(p.plan, 'TEAM')
+    assert.equal(p.cancelAtPeriodEnd, true)
+  } else assert.fail('should not ignore')
+})
+check('revoked → plan FREE, status canceled', () => {
+  const p = subscriptionUpdateFromEvent({ ...baseEvent, type: 'subscription.revoked' }, lookup)
+  if (!('ignore' in p)) {
+    assert.equal(p.plan, 'FREE')
+    assert.equal(p.status, 'canceled')
+  } else assert.fail('should not ignore')
+})
+check('resolves org from metadata when externalId missing', () => {
+  const p = subscriptionUpdateFromEvent(
+    { ...baseEvent, type: 'subscription.active', customerExternalId: null, metadataOrganizationId: 'org_meta' },
+    lookup,
+  )
+  if (!('ignore' in p)) assert.equal(p.organizationId, 'org_meta')
+  else assert.fail('should not ignore')
+})
+check('ignores non-subscription events', () => {
+  const p = subscriptionUpdateFromEvent({ ...baseEvent, type: 'order.created' }, lookup)
+  assert.deepEqual(p, { ignore: true, reason: 'unhandled_event' })
+})
+check('ignores unknown product (non-revoke)', () => {
+  const p = subscriptionUpdateFromEvent({ ...baseEvent, type: 'subscription.active', productId: 'nope' }, lookup)
+  assert.deepEqual(p, { ignore: true, reason: 'unknown_product' })
+})
+check('ignores when no org can be resolved', () => {
+  const p = subscriptionUpdateFromEvent(
+    { ...baseEvent, type: 'subscription.active', customerExternalId: null, metadataOrganizationId: null },
+    lookup,
+  )
+  assert.deepEqual(p, { ignore: true, reason: 'no_org' })
 })
 
 console.log(`\n${passed} checks passed.`)
