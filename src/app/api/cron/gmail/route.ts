@@ -79,11 +79,24 @@ async function handle(req: NextRequest) {
     errors.push(`enqueue-maintenance: ${String(e)}`)
   }
 
+  // Billing reconcile (backstop for missed webhooks): any subscription set to
+  // cancel-at-period-end whose period has lapsed drops to FREE.
+  let downgraded = 0
+  try {
+    const res = await prisma.subscription.updateMany({
+      where: { cancelAtPeriodEnd: true, currentPeriodEnd: { lt: new Date() }, plan: { not: 'FREE' } },
+      data: { plan: 'FREE', status: 'canceled', cancelAtPeriodEnd: false },
+    })
+    downgraded = res.count
+  } catch (e) {
+    errors.push(`billing-reconcile: ${String(e)}`)
+  }
+
   // Start draining immediately (post-response); the worker / jobs-process cron
   // mop up the rest. Safe to overlap — claimNext uses FOR UPDATE SKIP LOCKED.
   kickJobQueue()
 
-  return NextResponse.json({ integrations, maintenanceQueued, prunedJobs, errors })
+  return NextResponse.json({ integrations, maintenanceQueued, prunedJobs, downgraded, errors })
 }
 
 export async function GET(req: NextRequest) {
