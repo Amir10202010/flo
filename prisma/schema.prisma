@@ -327,6 +327,9 @@ model Subscription {
   status             String       @default("active")
   seats              Int          @default(1)
   externalCustomerId String?
+  externalSubscriptionId String?
+  interval               String?    // "month" | "year"
+  cancelAtPeriodEnd      Boolean  @default(false)
   currentPeriodEnd   DateTime?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
@@ -634,6 +637,7 @@ enum InviteStatus {
 }
 enum BillingPlan {
   FREE
+  PRO
   TEAM
   BUSINESS
   ENTERPRISE
