@@ -4,7 +4,7 @@ import Sidebar from '@/components/layout/Sidebar'
 import Brand from '@/components/layout/Brand'
 import CommandPalette from '@/components/CommandPalette'
 import ComposeModal from '@/components/ComposeModal'
-import AssistantWidget from '@/components/dashboard/AssistantWidget'
+import AssistantModal from '@/components/dashboard/AssistantModal'
 import OnboardingTour from '@/components/onboarding/OnboardingTour'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -35,8 +35,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <CommandPalette />
       <ComposeModal />
 
-      {/* Floating AI assistant — bottom-right launcher + chat panel on every page */}
-      <AssistantWidget />
+      {/* Ask Velnox AI — summonable overlay (sidebar "Ask AI" + ⌘K), not a bubble */}
+      <AssistantModal />
 
       {/* First-run onboarding spotlight tour (auto-runs once, replayable) */}
       <OnboardingTour />

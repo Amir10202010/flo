@@ -3,18 +3,7 @@
 import { useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  Bot,
-  ChartColumn,
-  Inbox,
-  LayoutDashboard,
-  Lightbulb,
-  Plug,
-  Search,
-  Settings,
-  ShieldAlert,
-  Users,
-} from 'lucide-react'
+import { Inbox, LayoutDashboard, Plug, Search, Settings, Sparkles, Users } from 'lucide-react'
 import { useUiStore } from '@/stores/ui.store'
 import OrgSwitcher from '@/components/org/OrgSwitcher'
 import Brand from './Brand'
@@ -28,26 +17,17 @@ interface NavEntry {
   tour?: string
 }
 
+// Four destinations, period. Risk/Insights/Analytics live inside the dashboard;
+// the assistant is the "Ask AI" overlay below; connecting a mailbox lives in
+// Integrations → (folding into Settings). Everything else is reachable via ⌘K.
 const SECTIONS: { label: string | null; items: NavEntry[] }[] = [
   {
     label: null,
     items: [
       { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
       { href: '/inbox', icon: Inbox, label: 'Inbox', tour: 'inbox' },
-    ],
-  },
-  {
-    label: 'Intelligence',
-    items: [
       { href: '/clients', icon: Users, label: 'Clients', tour: 'clients' },
-      { href: '/insights', icon: Lightbulb, label: 'Insights', tour: 'insights' },
-      { href: '/risk', icon: ShieldAlert, label: 'Risk Monitor', tour: 'risk' },
-      { href: '/analytics', icon: ChartColumn, label: 'Analytics', tour: 'analytics' },
     ],
-  },
-  {
-    label: 'Assistant',
-    items: [{ href: '/assistant', icon: Bot, label: 'AI Assistant', pill: 'Beta', tour: 'assistant' }],
   },
 ]
 
@@ -83,6 +63,7 @@ const serverIsApple = () => false
 export default function Sidebar({ userName, userEmail }: { userName?: string | null; userEmail?: string | null }) {
   const pathname = usePathname()
   const togglePalette = useUiStore((s) => s.togglePalette)
+  const openAssistant = useUiStore((s) => s.setAssistantOpen)
   const metaKey = useSyncExternalStore(emptySubscribe, isApplePlatform, serverIsApple) ? '⌘' : 'Ctrl'
 
   const initials = userName
@@ -118,6 +99,12 @@ export default function Sidebar({ userName, userEmail }: { userName?: string | n
         <Search size={14} />
         <span className="sidebar-nav-label">Search</span>
         <span className="cmdk-kbd">{metaKey} K</span>
+      </button>
+
+      {/* Ask Velnox AI — opens the assistant overlay (replaces the floating bubble) */}
+      <button type="button" className="sidebar-search-btn" onClick={() => openAssistant(true)} title="Ask Velnox AI">
+        <Sparkles size={14} />
+        <span className="sidebar-nav-label">Ask AI</span>
       </button>
 
       {/* Navigation */}
