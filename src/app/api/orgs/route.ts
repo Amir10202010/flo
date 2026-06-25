@@ -48,13 +48,22 @@ export async function POST(req: NextRequest) {
   if (!name) return err('Organization name is required', 400)
   if (name.length > 80) return err('Organization name is too long (max 80 chars)', 400)
 
-  // Supabase auth is separate from the Prisma User table — ensure the row exists
-  // before we attach a membership to it.
-  await prisma.user.upsert({
-    where: { id: user.id },
-    create: { id: user.id, email: user.email ?? `${user.id}@placeholder.velnox` },
-    update: {},
-  })
+  // Supabase auth is separate from the Prisma User table — ensure a row exists
+  // for this auth id before attaching a membership. Match on the auth id; but if
+  // this email is already held by a stale row under a *different* (old) auth id
+  // — e.g. the Supabase auth user was deleted and recreated with the same email
+  // — adopt that row by re-pointing it to the current id (FK relations cascade
+  // on update), instead of colliding on the unique email.
+  const email = user.email ?? `${user.id}@placeholder.velnox`
+  const byId = await prisma.user.findUnique({ where: { id: user.id }, select: { id: true } })
+  if (!byId) {
+    const byEmail = await prisma.user.findUnique({ where: { email }, select: { id: true } })
+    if (byEmail) {
+      await prisma.user.update({ where: { id: byEmail.id }, data: { id: user.id } })
+    } else {
+      await prisma.user.create({ data: { id: user.id, email } })
+    }
+  }
 
   const org = await createOrganization(user.id, name)
   const res = ok({ organization: { id: org.id, name: org.name, slug: org.slug } }, 201)
