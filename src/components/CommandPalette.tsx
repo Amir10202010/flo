@@ -39,7 +39,6 @@ const PAGES: { href: string; label: string; icon: React.ReactNode; keywords: str
   { href: '/inbox', label: 'Inbox', icon: <Inbox size={15} />, keywords: 'mail conversations threads' },
   { href: '/clients', label: 'Clients', icon: <Users size={15} />, keywords: 'contacts directory crm' },
   { href: '/analytics', label: 'Analytics', icon: <ChartColumn size={15} />, keywords: 'charts metrics response time' },
-  { href: '/integrations', label: 'Integrations', icon: <Plug size={15} />, keywords: 'gmail connect channels' },
   { href: '/settings', label: 'Settings', icon: <Settings size={15} />, keywords: 'account profile plan' },
 ]
 
@@ -263,7 +262,7 @@ function PaletteDialog({
         label: 'Connect a channel',
         icon: <Plug size={15} />,
         keywords: 'gmail integration add account',
-        run: () => go('/integrations'),
+        run: () => go('/settings?tab=connections'),
       },
       {
         id: 'action-tour',

@@ -37,7 +37,7 @@ export default function DashboardEmpty({ hasIntegration }: { hasIntegration: boo
             ? 'Threads are being imported and analyzed. The command center, risk monitor and analytics fill in as data arrives.'
             : 'Velnox triages your team’s shared inbox, ranks what needs attention, and watches for at-risk accounts. Everything below starts working the moment an inbox is connected.'}
         </p>
-        <Link href={hasIntegration ? '/integrations' : '/settings'} className="btn-primary" style={{ fontSize: 14 }}>
+        <Link href="/settings?tab=connections" className="btn-primary" style={{ fontSize: 14 }}>
           {hasIntegration ? 'View sync status' : 'Connect a shared inbox'}
           <ArrowRight size={15} />
         </Link>

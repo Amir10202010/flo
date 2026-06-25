@@ -145,7 +145,7 @@ const STATIC_SOURCES: { href: string; label: string }[] = [
   { href: '/inbox', label: 'Inbox' },
   { href: '/analytics', label: 'Analytics' },
   { href: '/clients', label: 'Clients' },
-  { href: '/integrations', label: 'Integrations' },
+  { href: '/settings', label: 'Settings' },
 ]
 
 /** Build the href → label whitelist the model is allowed to cite. */
@@ -397,8 +397,8 @@ export async function answerWorkspaceQuestion(organizationId: string, question: 
   if (!data.hasIntegration) {
     return {
       answer:
-        'No mailbox is connected yet, so I have nothing to answer from. Connect your Gmail in Integrations and run a sync — then I can answer questions about your clients, threads and pipeline.',
-      sources: [{ href: '/integrations', label: 'Connect Gmail' }],
+        'No mailbox is connected yet, so I have nothing to answer from. Connect your Gmail in Settings → Connections and run a sync — then I can answer questions about your clients, threads and pipeline.',
+      sources: [{ href: '/settings?tab=connections', label: 'Connect Gmail' }],
       followUps: DEFAULT_FOLLOWUPS,
       mode: 'local',
       degraded: true,

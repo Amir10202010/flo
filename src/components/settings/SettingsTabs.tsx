@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Bell, Building2, CalendarClock, Compass, Crown, FileText, History, Mail, ShieldCheck, Tag as TagIcon, Users, Zap } from 'lucide-react'
 import type { OrgRole, BillingPlan } from '@prisma/client'
 import { can, ROLE_LABEL } from '@/lib/permissions'
@@ -45,14 +46,27 @@ export default function SettingsTabs({
   const tabs = [
     { id: 'workspace', label: 'Workspace', icon: Building2, show: true },
     { id: 'members', label: 'Members', icon: Users, show: can(role, 'members:manage') },
-    { id: 'inboxes', label: 'Inboxes', icon: Mail, show: can(role, 'inbox:read') },
+    { id: 'connections', label: 'Connections', icon: Mail, show: can(role, 'inbox:read') },
     { id: 'tags', label: 'Tags', icon: TagIcon, show: can(role, 'inbox:read') },
     { id: 'templates', label: 'Templates', icon: FileText, show: can(role, 'inbox:read') },
     { id: 'rules', label: 'Rules', icon: Zap, show: can(role, 'rules:manage') },
     { id: 'audit', label: 'Audit log', icon: History, show: can(role, 'audit:read') },
   ].filter((t) => t.show)
 
-  const [active, setActive] = useState('workspace')
+  // Deep-link a tab via ?tab=; the OAuth callback lands on ?connected / ?error,
+  // which forces the Connections tab so its banner is visible.
+  const searchParams = useSearchParams()
+  const validIds = new Set(tabs.map((t) => t.id))
+  const connectFlow = searchParams.get('connected') || searchParams.get('error')
+  const tabParam = searchParams.get('tab')
+  const initialTab =
+    connectFlow && validIds.has('connections')
+      ? 'connections'
+      : tabParam && validIds.has(tabParam)
+        ? tabParam
+        : 'workspace'
+
+  const [active, setActive] = useState(initialTab)
   const display = userName ?? userEmail ?? 'User'
 
   return (
@@ -158,7 +172,7 @@ export default function SettingsTabs({
       )}
 
       {active === 'members' && <MembersPanel myRole={role} />}
-      {active === 'inboxes' && <InboxesPanel canManage={can(role, 'inbox:manage')} />}
+      {active === 'connections' && <InboxesPanel canManage={can(role, 'inbox:manage')} />}
       {active === 'tags' && <TagsPanel canManage={can(role, 'tags:manage')} />}
       {active === 'templates' && <TemplatesPanel />}
       {active === 'rules' && <RulesPanel role={role} />}

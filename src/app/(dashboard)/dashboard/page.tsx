@@ -23,7 +23,7 @@ function SyncChip({ connected, lastSyncAgo }: { connected: boolean; lastSyncAgo:
   if (!connected) {
     return (
       <Link
-        href="/integrations"
+        href="/settings?tab=connections"
         style={{
           display: 'inline-flex',
           alignItems: 'center',
