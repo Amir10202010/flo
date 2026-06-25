@@ -117,6 +117,7 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
           hint={query ? 'Try a different name or email.' : 'Contacts appear automatically as conversations sync.'}
         />
       ) : (
+        <>
         <div className="clients-table-wrap">
           <table className="clients-table">
             <thead>
@@ -202,6 +203,42 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile: the 8-column table can't fit a phone, so each client is a card. */}
+        <div className="clients-cards">
+          {visible.map((r) => {
+            const sentiment = r.sentiment ? SENTIMENT_DOT[r.sentiment] : null
+            return (
+              <button key={r.id} type="button" className="client-card" onClick={() => r.href && router.push(r.href)}>
+                <ContactAvatar name={r.name} size={40} />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                    {r.isNew && <span className="client-card-new">NEW</span>}
+                    {r.awaitingReply && <span title="Awaiting your reply" style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--attention)', flexShrink: 0 }} />}
+                  </div>
+                  {r.email && (
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>{r.email}</div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7, fontSize: 12, color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 600 }}>{r.threads} threads</span>
+                    <span style={{ color: 'var(--text-muted)' }}>· {r.lastActivityAgo ?? 'no activity'}</span>
+                    {sentiment && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        ·<span style={{ width: 7, height: 7, borderRadius: '50%', background: sentiment.color }} />{sentiment.label}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 7, flexShrink: 0 }}>
+                  {r.risk ? <RiskBadge level={r.risk} /> : null}
+                  <span style={{ fontSize: 12, fontWeight: 700, color: engagementColor(r.engagement) }}>{r.engagement}</span>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+        </>
       )}
     </WidgetShell>
   )

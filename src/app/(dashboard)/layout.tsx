@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
 import Sidebar from '@/components/layout/Sidebar'
+import MobileTabBar from '@/components/layout/MobileTabBar'
+import MobileTopActions from '@/components/layout/MobileTopActions'
 import Brand from '@/components/layout/Brand'
 import CommandPalette from '@/components/CommandPalette'
 import ComposeModal from '@/components/ComposeModal'
@@ -23,6 +25,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Mobile-only top bar — the sidebar collapses to an icon rail and hides its logo below 768px */}
       <header className="dashboard-topbar">
         <Brand size={22} />
+        <MobileTopActions />
       </header>
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
@@ -31,6 +34,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {children}
         </main>
       </div>
+
+      {/* Mobile primary nav — sits below the content (a flex row), not over it */}
+      <MobileTabBar />
 
       {/* Global ⌘K / Ctrl+K command palette + Smart Compose modal (client islands) */}
       <CommandPalette />
