@@ -7,7 +7,7 @@ import { sendWeeklyDigest } from '@/services/digest.service'
 export const maxDuration = 60
 
 /**
- * Manual "send me the digest now" (the button on /insights). Sends a preview
+ * Manual "send me the digest now" (the button in Settings → Weekly digest). Sends a preview
  * copy immediately — it does NOT claim the weekly period, so the scheduled
  * Monday email still goes out. Recipient is the organization owner's mailbox.
  */

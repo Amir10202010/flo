@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Bell, Building2, Compass, Crown, FileText, History, Mail, ShieldCheck, Tag as TagIcon, Users, Zap } from 'lucide-react'
+import { Bell, Building2, CalendarClock, Compass, Crown, FileText, History, Mail, ShieldCheck, Tag as TagIcon, Users, Zap } from 'lucide-react'
 import type { OrgRole, BillingPlan } from '@prisma/client'
 import { can, ROLE_LABEL } from '@/lib/permissions'
 import { planLimits } from '@/lib/billing'
@@ -9,6 +9,7 @@ import WidgetShell from '@/components/dashboard/WidgetShell'
 import SignOutButton from '@/components/ui/SignOutButton'
 import ReplayTourButton from '@/components/onboarding/ReplayTourButton'
 import AlertEmailToggle from '@/components/settings/AlertEmailToggle'
+import SendDigestButton from '@/components/dashboard/SendDigestButton'
 import MembersPanel from '@/components/settings/MembersPanel'
 import InboxesPanel from '@/components/settings/InboxesPanel'
 import TagsPanel from '@/components/settings/TagsPanel'
@@ -126,6 +127,17 @@ export default function SettingsTabs({
                 <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>Sent to the owner when a client hits critical/high risk — throttled.</div>
               </div>
               <AlertEmailToggle />
+            </div>
+          </WidgetShell>
+
+          <WidgetShell icon={<CalendarClock size={14} />} title="Weekly digest" sub="A Monday-morning summary, sent from your connected Gmail" status="live" bodyStyle={{ padding: '16px 18px 18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.9 }}>
+                <li>Response-time and volume trends vs last week</li>
+                <li>Clients who went quiet and threads to push</li>
+                <li>Your top recommended actions for the week</li>
+              </ul>
+              <SendDigestButton />
             </div>
           </WidgetShell>
 

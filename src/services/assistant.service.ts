@@ -145,7 +145,6 @@ const STATIC_SOURCES: { href: string; label: string }[] = [
   { href: '/inbox', label: 'Inbox' },
   { href: '/analytics', label: 'Analytics' },
   { href: '/clients', label: 'Clients' },
-  { href: '/insights', label: 'Insights' },
   { href: '/integrations', label: 'Integrations' },
 ]
 
@@ -370,7 +369,7 @@ function localAnswer(question: string, data: DashboardData): { answer: string; s
     lines.push(`- ${s.unanswered.value} awaiting your reply (${s.unanswered.overdue24h} overdue 24h+).`)
     lines.push(`- ${s.clientsAtRisk.value} of ${s.clientsAtRisk.totalClients} clients flagged at risk.`)
     if (s.health.score !== null) lines.push(`- Inbox health is ${s.health.score}/100${s.health.topFactor ? ` (biggest drag: ${s.health.topFactor})` : ''}.`)
-    push('/insights', 'Insights')
+    push('/dashboard', 'Dashboard')
   } else {
     // General status overview.
     lines.push(`Here's where your workspace stands:`)
