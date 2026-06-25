@@ -112,7 +112,41 @@ export async function reapStuckJobs(staleAfterMs = 5 * 60_000): Promise<number> 
       AND attempts >= "maxAttempts";
   `)
 
-  // Still has attempts left → requeue.
+  // Superseded → terminal FAILED. A stuck job that still has attempts left but
+  // shares its dedupeKey with another live job — an existing PENDING sibling, or
+  // an earlier stuck-RUNNING sibling — must NOT be requeued: flipping it to
+  // PENDING would collide on the partial unique index (WHERE status = 'PENDING')
+  // and abort the whole requeue. That sibling already covers the work, so retire
+  // this one. The single earliest stuck job per dedupeKey survives to be requeued.
+  await prisma.$executeRaw(Prisma.sql`
+    UPDATE "Job" j
+    SET status = 'FAILED'::"JobStatus",
+        error = 'superseded — another job with the same dedupeKey is already queued',
+        "finishedAt" = now(),
+        "updatedAt" = now()
+    WHERE j.status = 'RUNNING'::"JobStatus"
+      AND j."startedAt" < ${cutoff}
+      AND j.attempts < j."maxAttempts"
+      AND j."dedupeKey" IS NOT NULL
+      AND EXISTS (
+        SELECT 1 FROM "Job" k
+        WHERE k."dedupeKey" = j."dedupeKey"
+          AND k.id <> j.id
+          AND (
+            k.status = 'PENDING'::"JobStatus"
+            OR (
+              k.status = 'RUNNING'::"JobStatus"
+              AND k."startedAt" < ${cutoff}
+              AND k.attempts < k."maxAttempts"
+              AND (k."createdAt" < j."createdAt" OR (k."createdAt" = j."createdAt" AND k.id < j.id))
+            )
+          )
+      );
+  `)
+
+  // Survivors (no conflicting sibling) → requeue. After the step above, the only
+  // stuck RUNNING rows left are NULL-dedupeKey jobs and the single earliest job
+  // per dedupeKey, so flipping them to PENDING can't violate the unique index.
   const requeued = await prisma.$executeRaw(Prisma.sql`
     UPDATE "Job"
     SET status = 'PENDING'::"JobStatus",
