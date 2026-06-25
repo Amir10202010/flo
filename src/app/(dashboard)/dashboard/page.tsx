@@ -2,20 +2,17 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Flame, Inbox, Mail, MessagesSquare, ShieldAlert, Target } from 'lucide-react'
+import { Flame, Inbox, Mail, ShieldAlert } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
 import { getOrgContext } from '@/lib/org'
 import { getDashboardData, type DashboardData } from '@/services/dashboard.service'
 import { longDate } from '@/lib/time'
 import { Reveal } from '@/components/dashboard/Motion'
 import StatCard from '@/components/dashboard/StatCard'
-import HealthScoreCard from '@/components/dashboard/HealthRing'
 import CommandCenter from '@/components/dashboard/CommandCenter'
 import RiskMonitor from '@/components/dashboard/RiskMonitor'
 import SmartInsights from '@/components/dashboard/SmartInsights'
-import ActivityTimeline from '@/components/dashboard/ActivityTimeline'
 import RemindersCard from '@/components/dashboard/RemindersCard'
-import RelationshipHealth from '@/components/dashboard/RelationshipHealth'
 import DashboardEmpty from '@/components/dashboard/DashboardEmpty'
 import MetricsUnavailable from '@/components/dashboard/MetricsUnavailable'
 import { DashboardBodySkeleton } from '@/components/dashboard/Skeletons'
@@ -100,29 +97,11 @@ async function DashboardBody({ organizationId }: { organizationId: string }) {
         </div>
       </Reveal>
 
-      {/* Executive overview */}
-      <div className="exec-grid" style={{ marginBottom: 14 }}>
-        <HealthScoreCard score={s.health.score} topFactor={s.health.topFactor} delay={0} />
-        <StatCard
-          label="Conversations"
-          icon={<MessagesSquare size={12} />}
-          value={String(s.conversations.value)}
-          sub={`${s.conversations.activeThisWeek} active this week`}
-          trend={{ deltaPct: s.conversations.trend.deltaPct, upIsGood: s.conversations.trend.upIsGood }}
-          spark={s.conversations.spark}
-          delay={0.04}
-        />
-        <StatCard
-          label="High Priority"
-          icon={<Flame size={12} />}
-          value={String(s.highPriority.value)}
-          sub={`${s.highPriority.hot} urgent · ${s.highPriority.attention} high`}
-          tone={s.highPriority.hot > 0 ? 'critical' : s.highPriority.value > 0 ? 'warning' : 'default'}
-          delay={0.08}
-        />
+      {/* Triage KPIs — three numbers that matter, each a button into the filtered inbox */}
+      <div className="dash-kpi3" style={{ marginBottom: 14 }}>
         <StatCard
           label="Unanswered"
-          icon={<Mail size={12} />}
+          icon={<Mail size={13} />}
           value={String(s.unanswered.value)}
           sub={
             s.unanswered.value === 0
@@ -132,50 +111,50 @@ async function DashboardBody({ organizationId }: { organizationId: string }) {
                 : `${s.unanswered.overdue24h} overdue 24h+`
           }
           tone={s.unanswered.overdue24h > 0 ? 'warning' : 'default'}
-          delay={0.12}
+          href="/inbox?f=AWAITING"
+          delay={0}
         />
         <StatCard
-          label="Clients at Risk"
-          icon={<ShieldAlert size={12} />}
+          label="Clients at risk"
+          icon={<ShieldAlert size={13} />}
           value={String(s.clientsAtRisk.value)}
           sub={`of ${s.clientsAtRisk.totalClients} tracked clients`}
           tone={s.clientsAtRisk.value > 0 ? 'critical' : 'success'}
-          delay={0.16}
+          href="/inbox?risk=HIGH"
+          delay={0.05}
         />
         <StatCard
-          label="Follow-ups"
-          icon={<Target size={12} />}
-          value={String(s.followUps.value)}
-          sub={`${s.followUps.fromAi} AI next-steps · ${s.followUps.goneQuiet} gone quiet`}
-          delay={0.2}
+          label="Urgent"
+          icon={<Flame size={13} />}
+          value={String(s.highPriority.hot)}
+          sub={
+            s.highPriority.attention > 0
+              ? `${s.highPriority.attention} more high priority`
+              : 'Top-priority threads'
+          }
+          tone={s.highPriority.hot > 0 ? 'critical' : 'default'}
+          href="/inbox?f=HOT"
+          delay={0.1}
         />
       </div>
 
-      {/* Command center + right rail */}
-      <div className="dash-main-grid" style={{ marginBottom: 14 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
-          <Reveal delay={0.1}>
+      {/* The act-now queue takes the floor; awareness widgets sit in the rail */}
+      <div className="dash-main-grid">
+        <div style={{ minWidth: 0 }}>
+          <Reveal delay={0.12}>
             <CommandCenter hero={data.nextBestAction} items={data.commandCenter} />
-          </Reveal>
-          <Reveal delay={0.18}>
-            <RiskMonitor items={data.riskClients} />
           </Reveal>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
-          <Reveal delay={0.14}>
+          <Reveal delay={0.16}>
+            <RiskMonitor items={data.riskClients} />
+          </Reveal>
+          <Reveal delay={0.2}>
             <SmartInsights insights={data.insights} />
           </Reveal>
           <RemindersCard />
-          <Reveal delay={0.22}>
-            <ActivityTimeline events={data.timeline} />
-          </Reveal>
         </div>
       </div>
-
-      {/* Relationship health */}
-      <Reveal delay={0.26}>
-        <RelationshipHealth data={data.relationships} />
-      </Reveal>
     </>
   )
 }

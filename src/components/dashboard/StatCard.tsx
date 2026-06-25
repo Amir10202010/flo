@@ -1,7 +1,8 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { TrendingDown, TrendingUp } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowUpRight, TrendingDown, TrendingUp } from 'lucide-react'
 import { Reveal } from './Motion'
 import Sparkline from './Sparkline'
 
@@ -54,6 +55,7 @@ export default function StatCard({
   tone = 'default',
   trend,
   spark,
+  href,
   delay = 0,
 }: {
   label: string
@@ -63,53 +65,69 @@ export default function StatCard({
   tone?: StatTone
   trend?: { deltaPct: number | null; upIsGood: boolean | null }
   spark?: number[]
+  /** When set, the whole card becomes a link (e.g. a KPI → filtered inbox). */
+  href?: string
   delay?: number
 }) {
+  const card = (
+    <div
+      className="widget"
+      style={{ padding: '17px 19px', height: '100%', gap: 0, justifyContent: 'space-between' }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 11.5,
+            fontWeight: 700,
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            color: 'var(--text-muted)',
+            minWidth: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {icon}
+          {label}
+        </span>
+        {trend ? (
+          <TrendChip deltaPct={trend.deltaPct} upIsGood={trend.upIsGood} />
+        ) : href ? (
+          <ArrowUpRight size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+        ) : null}
+      </div>
+
+      <div style={{ marginTop: 12, fontSize: 32, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, color: VALUE_COLOR[tone], fontVariantNumeric: 'tabular-nums' }}>
+        {value}
+      </div>
+
+      {sub && (
+        <div style={{ marginTop: 8, fontSize: 12.5, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {sub}
+        </div>
+      )}
+
+      {spark && spark.length > 1 && (
+        <div style={{ marginTop: 10, marginBottom: -2 }}>
+          <Sparkline data={spark} height={30} />
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <Reveal delay={delay} style={{ minWidth: 0 }}>
-      <div
-        className="widget"
-        style={{ padding: '14px 16px', height: '100%', gap: 0, justifyContent: 'space-between' }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              fontSize: 10.5,
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              color: 'var(--text-muted)',
-              minWidth: 0,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {icon}
-            {label}
-          </span>
-          {trend && <TrendChip deltaPct={trend.deltaPct} upIsGood={trend.upIsGood} />}
-        </div>
-
-        <div style={{ marginTop: 10, fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, color: VALUE_COLOR[tone], fontVariantNumeric: 'tabular-nums' }}>
-          {value}
-        </div>
-
-        {sub && (
-          <div style={{ marginTop: 7, fontSize: 11.5, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {sub}
-          </div>
-        )}
-
-        {spark && spark.length > 1 && (
-          <div style={{ marginTop: 10, marginBottom: -2 }}>
-            <Sparkline data={spark} height={30} />
-          </div>
-        )}
-      </div>
+      {href ? (
+        <Link href={href} className="stat-card-link">
+          {card}
+        </Link>
+      ) : (
+        card
+      )}
     </Reveal>
   )
 }

@@ -1880,6 +1880,15 @@
 
 .dash-header-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 
+/* ── Command-center KPI row (3-up, action-first dashboard) ─────────────────── */
+.dash-kpi3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 720px) { .dash-kpi3 { grid-template-columns: 1fr; gap: 10px; } }
+
+/* Clickable stat tile (KPI → filtered inbox). Lifts + accents on hover. */
+.stat-card-link { display: block; height: 100%; text-decoration: none; transition: transform .14s ease; }
+.stat-card-link:hover { transform: translateY(-2px); }
+.stat-card-link:hover .widget { border-color: var(--accent); box-shadow: var(--shadow-md); }
+
 /* ── Row hover (lists inside widgets) ──────────────────────────────────────── */
 .row-link {
   display: flex;
