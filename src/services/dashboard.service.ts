@@ -536,8 +536,8 @@ function buildInsights(facts: ConvFacts[], ws: Workspace, stats: ExecStats): Ins
       icon: 'risk',
       title: `${stats.clientsAtRisk.value} ${plural(stats.clientsAtRisk.value, 'client needs', 'clients need')} attention`,
       description: 'AI flagged elevated churn risk or replies overdue 48h+ across their threads.',
-      href: '/risk',
-      cta: 'Open Risk Monitor',
+      href: '/inbox?risk=HIGH',
+      cta: 'Review at-risk',
     })
   }
 
@@ -549,7 +549,7 @@ function buildInsights(facts: ConvFacts[], ws: Workspace, stats: ExecStats): Ins
       icon: 'risk',
       title: `${slippingDeals} ${plural(slippingDeals, 'deal')} may be slipping`,
       description: 'High-risk signals detected in the latest AI analysis of these threads.',
-      href: '/risk',
+      href: '/inbox?risk=HIGH',
       cta: 'Review threads',
     })
   }

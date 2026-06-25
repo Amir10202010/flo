@@ -77,7 +77,7 @@ const ANSWER_SCHEMA: AiJsonSchema = {
         type: 'object',
         properties: {
           label: { type: 'string', description: 'Short human label, e.g. the client name or page name.' },
-          href: { type: 'string', description: 'An href copied verbatim from the briefing (e.g. /inbox/abc or /risk).' },
+          href: { type: 'string', description: 'An href copied verbatim from the briefing (e.g. /inbox/abc or /clients).' },
         },
         required: ['label', 'href'],
       },
@@ -143,7 +143,6 @@ const ANSWER_SCHEMA: AiJsonSchema = {
 const STATIC_SOURCES: { href: string; label: string }[] = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/inbox', label: 'Inbox' },
-  { href: '/risk', label: 'Risk Monitor' },
   { href: '/analytics', label: 'Analytics' },
   { href: '/clients', label: 'Clients' },
   { href: '/insights', label: 'Insights' },

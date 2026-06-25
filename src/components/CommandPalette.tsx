@@ -40,7 +40,6 @@ const PAGES: { href: string; label: string; icon: React.ReactNode; keywords: str
   { href: '/inbox', label: 'Inbox', icon: <Inbox size={15} />, keywords: 'mail conversations threads' },
   { href: '/clients', label: 'Clients', icon: <Users size={15} />, keywords: 'contacts directory crm' },
   { href: '/insights', label: 'Insights', icon: <Lightbulb size={15} />, keywords: 'smart trends digest' },
-  { href: '/risk', label: 'Risk Monitor', icon: <ShieldAlert size={15} />, keywords: 'churn risk lost deals' },
   { href: '/analytics', label: 'Analytics', icon: <ChartColumn size={15} />, keywords: 'charts metrics response time' },
   { href: '/integrations', label: 'Integrations', icon: <Plug size={15} />, keywords: 'gmail connect channels' },
   { href: '/settings', label: 'Settings', icon: <Settings size={15} />, keywords: 'account profile plan' },
@@ -140,6 +139,7 @@ function PaletteDialog({
   const router = useRouter()
   const setComposeOpen = useUiStore((s) => s.setComposeOpen)
   const setAssistantOpen = useUiStore((s) => s.setAssistantOpen)
+  const setAlertsOpen = useUiStore((s) => s.setAlertsOpen)
   const startTour = useUiStore((s) => s.startTour)
   const [query, setQuery] = useState('')
   const [rawIndex, setRawIndex] = useState(0)
@@ -230,6 +230,17 @@ function PaletteDialog({
         },
       },
       {
+        id: 'action-alerts',
+        group: 'Actions',
+        label: 'View risk alerts',
+        icon: <ShieldAlert size={15} />,
+        keywords: 'alerts risk churn acknowledge resolve at risk monitor',
+        run: () => {
+          onClose()
+          setAlertsOpen(true)
+        },
+      },
+      {
         id: 'action-sync',
         group: 'Actions',
         label: syncLabel,
@@ -308,7 +319,7 @@ function PaletteDialog({
             }))
 
     return [...pages, ...actions, ...conversations]
-  }, [query, convs, aiResults, go, startSync, syncState, onClose, setComposeOpen, setAssistantOpen, startTour])
+  }, [query, convs, aiResults, go, startSync, syncState, onClose, setComposeOpen, setAssistantOpen, setAlertsOpen, startTour])
 
   // Clamp at render time instead of syncing state in an effect.
   const index = Math.min(rawIndex, Math.max(0, entries.length - 1))

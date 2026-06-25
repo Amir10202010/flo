@@ -10,6 +10,8 @@ interface UiState {
     setComposeOpen: (open: boolean) => void
     assistantOpen: boolean
     setAssistantOpen: (open: boolean) => void
+    alertsOpen: boolean
+    setAlertsOpen: (open: boolean) => void
     tourOpen: boolean
     setTourOpen: (open: boolean) => void
     startTour: () => void
@@ -28,6 +30,8 @@ export const useUiStore = create<UiState>((set) => ({
     setComposeOpen: (open) => set({ composeOpen: open }),
     assistantOpen: false,
     setAssistantOpen: (open) => set({ assistantOpen: open }),
+    alertsOpen: false,
+    setAlertsOpen: (open) => set({ alertsOpen: open }),
     tourOpen: false,
     setTourOpen: (open) => set({ tourOpen: open }),
     startTour: () => set({ tourOpen: true }),

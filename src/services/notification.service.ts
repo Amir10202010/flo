@@ -14,7 +14,7 @@ import type { RiskLevel } from '@/types'
  * digest) and the mail goes FROM that connected mailbox via the existing OAuth.
  *
  * Anti-spam, by design:
- *  - only CRITICAL/HIGH alerts trigger mail (MEDIUM lives in-app on /risk);
+ *  - only CRITICAL/HIGH alerts trigger mail (MEDIUM lives in-app on the dashboard);
  *  - each alert is notified exactly once — `RiskAlert.notifiedAt` is the guard
  *    (a brand-new row, or a reopened one which clears it, qualifies);
  *  - a per-mailbox throttle (≥6h between alert emails) collapses a sync storm
@@ -154,7 +154,7 @@ export function buildAlertEmail(
       : `${reminders.length} reminder${reminders.length === 1 ? '' : 's'} you set ${reminders.length === 1 ? 'has' : 'have'} come due.`
 
   const cta = items.length
-    ? { href: `${base}/risk`, label: 'Open Risk Monitor' }
+    ? { href: `${base}/dashboard`, label: 'Review at-risk clients' }
     : { href: `${base}/dashboard`, label: 'Open dashboard' }
 
   const html = `<!DOCTYPE html>

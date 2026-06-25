@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowUpRight, ShieldAlert, ShieldCheck } from 'lucide-react'
 import type { RiskClientItem } from '@/services/dashboard.service'
+import { useUiStore } from '@/stores/ui.store'
 import WidgetShell from './WidgetShell'
 import ContactAvatar from './ContactAvatar'
 import RiskBadge from './RiskBadge'
@@ -29,6 +30,7 @@ function EngagementBar({ value, delay }: { value: number; delay: number }) {
 
 /** Client Risk Monitor — contacts AI flagged, or whose replies are 48h+ overdue. */
 export default function RiskMonitor({ items }: { items: RiskClientItem[] }) {
+  const openAlerts = useUiStore((s) => s.setAlertsOpen)
   return (
     <WidgetShell
       icon={<ShieldAlert size={14} />}
@@ -36,13 +38,14 @@ export default function RiskMonitor({ items }: { items: RiskClientItem[] }) {
       sub="From AI risk analysis and reply-time signals"
       status="live"
       action={
-        <Link
-          href="/risk"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', flexShrink: 0 }}
+        <button
+          type="button"
+          onClick={() => openAlerts(true)}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--accent)', background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' }}
         >
-          Open monitor
+          View alerts
           <ArrowUpRight size={13} />
-        </Link>
+        </button>
       }
     >
       {items.length === 0 ? (
