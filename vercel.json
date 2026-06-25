@@ -1,5 +1,5 @@
 {
-  "regions": ["hnd1"],
+  "regions": ["fra1"],
   "crons": [
     {
       "path": "/api/jobs/process",
