@@ -330,6 +330,9 @@ model Subscription {
   externalSubscriptionId String?
   interval               String?    // "month" | "year"
   cancelAtPeriodEnd      Boolean  @default(false)
+  /// Polar subscription `modifiedAt` of the last applied webhook event. Guards
+  /// against out-of-order / redelivered events: an event older than this is skipped.
+  lastEventAt            DateTime?
   currentPeriodEnd   DateTime?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt

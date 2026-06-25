@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { validateEvent, WebhookVerificationError } from '@polar-sh/sdk/webhooks'
 import { prisma } from '@/lib/prisma'
 import { productToPlan } from '@/lib/polar-plans'
-import { subscriptionUpdateFromEvent, type PolarSubInput } from '@/services/billing.webhook'
+import { subscriptionUpdateFromEvent, isStaleEvent, type PolarSubInput } from '@/services/billing.webhook'
 import { recordAudit } from '@/services/audit.service'
 
 export const dynamic = 'force-dynamic'
@@ -20,6 +20,8 @@ interface PolarEventLike {
     customerId?: string | null
     customer?: { id?: string | null; externalId?: string | null } | null
     metadata?: Record<string, unknown> | null
+    modifiedAt?: string | Date | null
+    createdAt?: string | Date | null
   }
 }
 
@@ -59,6 +61,7 @@ export async function POST(req: NextRequest) {
   }
 
   const d = event.data ?? {}
+  const evtTime = d.modifiedAt ?? d.createdAt ?? null
   const input: PolarSubInput = {
     type,
     productId: d.productId ?? null,
@@ -69,13 +72,22 @@ export async function POST(req: NextRequest) {
     customerId: d.customerId ?? d.customer?.id ?? null,
     subscriptionId: d.id ?? null,
     metadataOrganizationId: typeof d.metadata?.organizationId === 'string' ? d.metadata.organizationId : null,
+    modifiedAt: evtTime ? new Date(evtTime).toISOString() : null,
   }
 
   const patch = subscriptionUpdateFromEvent(input, productToPlan)
   if ('ignore' in patch) return NextResponse.json({ ok: true, ignored: patch.reason })
 
-  const org = await prisma.organization.findUnique({ where: { id: patch.organizationId }, select: { id: true } })
+  const org = await prisma.organization.findUnique({
+    where: { id: patch.organizationId },
+    select: { id: true, subscription: { select: { lastEventAt: true } } },
+  })
   if (!org) return NextResponse.json({ ok: true, ignored: 'unknown_org' })
+
+  // Drop stale / out-of-order / redelivered events (older than the last applied).
+  if (isStaleEvent(patch.lastEventAt, org.subscription?.lastEventAt ?? null)) {
+    return NextResponse.json({ ok: true, ignored: 'stale_event' })
+  }
 
   const data = {
     plan: patch.plan,
@@ -85,6 +97,7 @@ export async function POST(req: NextRequest) {
     currentPeriodEnd: patch.currentPeriodEnd,
     externalCustomerId: patch.externalCustomerId,
     externalSubscriptionId: patch.externalSubscriptionId,
+    lastEventAt: patch.lastEventAt,
   }
   await prisma.subscription.upsert({
     where: { organizationId: patch.organizationId },

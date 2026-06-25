@@ -7,7 +7,7 @@
  */
 import assert from 'node:assert/strict'
 import { planToProduct, productToPlan } from '@/lib/polar-plans'
-import { subscriptionUpdateFromEvent } from '@/services/billing.webhook'
+import { subscriptionUpdateFromEvent, isStaleEvent } from '@/services/billing.webhook'
 
 process.env.POLAR_PRODUCT_PRO_MONTHLY = 'prod_pro_m'
 process.env.POLAR_PRODUCT_PRO_ANNUAL = 'prod_pro_a'
@@ -58,6 +58,7 @@ const baseEvent = {
   customerId: 'cus_1',
   subscriptionId: 'sub_1',
   metadataOrganizationId: null,
+  modifiedAt: '2026-06-25T08:00:00.000Z',
 }
 
 console.log('billing.webhook — subscriptionUpdateFromEvent:')
@@ -73,6 +74,7 @@ check('active subscription → plan from product, status active', () => {
     assert.equal(p.externalSubscriptionId, 'sub_1')
     assert.equal(p.externalCustomerId, 'cus_1')
     assert.ok(p.currentPeriodEnd instanceof Date)
+    assert.ok(p.lastEventAt instanceof Date)
   }
 })
 check('canceled → keeps plan, sets cancelAtPeriodEnd', () => {
@@ -111,6 +113,21 @@ check('ignores when no org can be resolved', () => {
     lookup,
   )
   assert.deepEqual(p, { ignore: true, reason: 'no_org' })
+})
+
+console.log('billing.webhook — isStaleEvent:')
+check('older incoming than prior → stale (skip)', () => {
+  assert.equal(isStaleEvent(new Date('2026-06-01T00:00:00Z'), new Date('2026-06-10T00:00:00Z')), true)
+})
+check('equal timestamps → stale (idempotent redelivery skip)', () => {
+  assert.equal(isStaleEvent(new Date('2026-06-10T00:00:00Z'), new Date('2026-06-10T00:00:00Z')), true)
+})
+check('newer incoming than prior → not stale (apply)', () => {
+  assert.equal(isStaleEvent(new Date('2026-06-20T00:00:00Z'), new Date('2026-06-10T00:00:00Z')), false)
+})
+check('missing either timestamp → not stale (apply)', () => {
+  assert.equal(isStaleEvent(null, new Date('2026-06-10T00:00:00Z')), false)
+  assert.equal(isStaleEvent(new Date('2026-06-10T00:00:00Z'), null), false)
 })
 
 console.log(`\n${passed} checks passed.`)

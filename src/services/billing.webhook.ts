@@ -17,6 +17,8 @@ export interface PolarSubInput {
   customerId: string | null
   subscriptionId: string | null
   metadataOrganizationId: string | null
+  /** Polar subscription `modifiedAt` (or `createdAt`) — orders events. */
+  modifiedAt: string | null
 }
 
 export type SubPatch =
@@ -29,6 +31,7 @@ export type SubPatch =
       currentPeriodEnd: Date | null
       externalCustomerId: string | null
       externalSubscriptionId: string | null
+      lastEventAt: Date | null
     }
   | { ignore: true; reason: string }
 
@@ -48,6 +51,7 @@ export function subscriptionUpdateFromEvent(e: PolarSubInput, lookup: Lookup): S
     currentPeriodEnd,
     externalCustomerId: e.customerId,
     externalSubscriptionId: e.subscriptionId,
+    lastEventAt: e.modifiedAt ? new Date(e.modifiedAt) : null,
   }
 
   if (e.type === 'subscription.revoked') {
@@ -63,4 +67,13 @@ export function subscriptionUpdateFromEvent(e: PolarSubInput, lookup: Lookup): S
 
   // subscription.created | updated | active | uncanceled
   return { ...base, plan: resolved.plan, status: e.status || 'active', cancelAtPeriodEnd: false }
+}
+
+/**
+ * True when an incoming event is older than (or equal to) the last applied one,
+ * so the webhook can skip a stale/redelivered/out-of-order event. False when
+ * either timestamp is missing (can't order → apply).
+ */
+export function isStaleEvent(incoming: Date | null, prior: Date | null): boolean {
+  return !!(incoming && prior && incoming.getTime() <= prior.getTime())
 }
