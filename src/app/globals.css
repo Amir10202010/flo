@@ -1889,6 +1889,12 @@
 .stat-card-link:hover { transform: translateY(-2px); }
 .stat-card-link:hover .widget { border-color: var(--accent); box-shadow: var(--shadow-md); }
 
+/* ── Dashboard Today | Trends tabs ────────────────────────────────────────── */
+.dash-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.dash-tab { padding: 9px 2px; margin-right: 24px; font-size: 14px; font-weight: 600; color: var(--text-muted); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .13s, border-color .13s; }
+.dash-tab:hover { color: var(--text-secondary); }
+.dash-tab[data-active="true"] { color: var(--text-primary); border-bottom-color: var(--accent); }
+
 /* ── Row hover (lists inside widgets) ──────────────────────────────────────── */
 .row-link {
   display: flex;

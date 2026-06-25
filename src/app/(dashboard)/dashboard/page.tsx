@@ -16,6 +16,7 @@ import RemindersCard from '@/components/dashboard/RemindersCard'
 import DashboardEmpty from '@/components/dashboard/DashboardEmpty'
 import MetricsUnavailable from '@/components/dashboard/MetricsUnavailable'
 import { DashboardBodySkeleton } from '@/components/dashboard/Skeletons'
+import TrendsBody from './TrendsBody'
 
 export const metadata: Metadata = { title: 'Dashboard — Velnox' }
 
@@ -159,13 +160,17 @@ async function DashboardBody({ organizationId }: { organizationId: string }) {
   )
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   // Header data comes from middleware-forwarded headers (no DB round-trip),
-  // so the shell renders instantly while DashboardBody streams in.
+  // so the shell renders instantly while the body streams in.
   const user = await getCurrentUser()
   if (!user) redirect('/login')
   const ctx = await getOrgContext()
   if (!ctx) redirect('/onboarding')
+
+  // URL-driven tabs so each tab fetches only its own read-model (the connection
+  // pool is small — see CLAUDE.md — so we never load both Today + Trends at once).
+  const tab = (await searchParams).tab === 'trends' ? 'trends' : 'today'
 
   const firstName =
     (user.user_metadata?.full_name as string | undefined)?.split(' ')[0] ??
@@ -190,8 +195,17 @@ export default async function DashboardPage() {
         </div>
       </Reveal>
 
+      <div className="dash-tabs">
+        <Link href="/dashboard" className="dash-tab" data-active={tab === 'today'}>Today</Link>
+        <Link href="/dashboard?tab=trends" className="dash-tab" data-active={tab === 'trends'}>Trends</Link>
+      </div>
+
       <Suspense fallback={<DashboardBodySkeleton />}>
-        <DashboardBody organizationId={ctx.organization.id} />
+        {tab === 'trends' ? (
+          <TrendsBody organizationId={ctx.organization.id} />
+        ) : (
+          <DashboardBody organizationId={ctx.organization.id} />
+        )}
       </Suspense>
     </div>
   )

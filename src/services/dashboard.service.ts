@@ -603,8 +603,8 @@ function buildInsights(facts: ConvFacts[], ws: Workspace, stats: ExecStats): Ins
         icon: improved ? 'trend-up' : 'trend-down',
         title: `Response time ${improved ? 'improved' : 'slowed'} ${Math.abs(delta)}% this week`,
         description: `Average reply time is ${formatHours(cur)}, vs ${formatHours(prev)} last week.`,
-        href: '/analytics',
-        cta: 'See analytics',
+        href: '/dashboard?tab=trends',
+        cta: 'See trends',
       })
     }
   }

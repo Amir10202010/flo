@@ -143,7 +143,7 @@ const ANSWER_SCHEMA: AiJsonSchema = {
 const STATIC_SOURCES: { href: string; label: string }[] = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/inbox', label: 'Inbox' },
-  { href: '/analytics', label: 'Analytics' },
+  { href: '/dashboard?tab=trends', label: 'Trends' },
   { href: '/clients', label: 'Clients' },
   { href: '/settings', label: 'Settings' },
 ]
