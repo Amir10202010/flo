@@ -13,6 +13,8 @@
     "test:agentic": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/agentic.check.ts",
     "test:access": "tsx scripts/access-request.check.ts",
     "test:email": "tsx scripts/email-render.check.ts",
+    "test:email-inline": "tsx scripts/email-inline.check.ts",
+    "cleanup:inline-images": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/strip-inline-images.ts",
     "test:permissions": "tsx scripts/permissions.check.ts",
     "test:billing": "tsx scripts/billing.check.ts",
     "test:polar": "tsx scripts/polar.check.ts",

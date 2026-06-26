@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { decryptSecret, encryptSecret } from '@/lib/crypto'
 import { mergeIntegrationMetadata } from '@/lib/integration-metadata'
 import { htmlToText } from '@/lib/html'
+import { stripInlineDataImages, rewriteCidImages, normalizeCid, type CidMap } from '@/lib/email-inline'
 import { classifyEmail, type ClassifierRule } from '@/services/email.classifier'
 import { markDraftSent } from '@/services/draft.service'
 import type { SyncResult } from '@/types'
@@ -51,6 +52,23 @@ function gmailFor(integration: Integration): GmailClient {
   return google.gmail({ version: 'v1', auth: buildOAuth2Client(integration) })
 }
 
+/**
+ * Fetch a single Gmail attachment's bytes on demand — backs the inline-image
+ * proxy (`/api/attachments`). Returns the raw bytes, or null when Gmail has no
+ * such attachment. Network only; nothing is persisted, so inline images never
+ * grow the DB.
+ */
+export async function fetchGmailAttachment(
+  integration: Integration,
+  messageId: string,
+  attachmentId: string,
+): Promise<Buffer | null> {
+  const gmail = gmailFor(integration)
+  const res = await gmail.users.messages.attachments.get({ userId: 'me', messageId, id: attachmentId })
+  const data = res.data.data
+  return data ? Buffer.from(data, 'base64url') : null
+}
+
 /** Run `fn` over `items` with bounded concurrency. */
 async function mapPool<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
   const results: R[] = new Array(items.length)
@@ -71,8 +89,14 @@ async function mapPool<T, R>(items: T[], limit: number, fn: (item: T) => Promise
  * text/html part (rendered richly in the inbox, stored separately so HTML never
  * pollutes the text pipelines).
  */
-function extractBody(payload: gmail_v1.Schema$MessagePart | undefined): { content: string; html: string | null } {
+function extractBody(payload: gmail_v1.Schema$MessagePart | undefined): {
+  content: string
+  html: string | null
+  /** Inline attachments (Content-ID → attachmentId) referenced by `cid:` images. */
+  inlineAttachments: CidMap
+} {
   const found = { text: '', html: '' }
+  const inlineAttachments: CidMap = new Map()
 
   function walk(part: gmail_v1.Schema$MessagePart | undefined) {
     if (!part) return
@@ -88,13 +112,23 @@ function extractBody(payload: gmail_v1.Schema$MessagePart | undefined): { conten
       if (mime === 'text/plain' && !found.text) found.text = decoded
       if (mime === 'text/html' && !found.html) found.html = decoded
     }
+    // An inline image carried as a separate MIME part: map its Content-ID to the
+    // Gmail attachmentId so `cid:` refs can be rewritten to the on-demand proxy.
+    const attachmentId = part.body?.attachmentId
+    if (attachmentId) {
+      const cid = headerValue(part.headers, 'Content-ID')
+      if (cid) {
+        const key = normalizeCid(cid)
+        if (key && !inlineAttachments.has(key)) inlineAttachments.set(key, attachmentId)
+      }
+    }
     part.parts?.forEach(walk)
   }
 
   walk(payload)
   const html = found.html.trim() ? found.html : null
   const content = found.text.trim() ? found.text : html ? htmlToText(html) : ''
-  return { content, html }
+  return { content, html, inlineAttachments }
 }
 
 function headerValue(headers: gmail_v1.Schema$MessagePartHeader[] | undefined, name: string): string {
@@ -192,11 +226,20 @@ function parseThread(
     const msgFrom = headerValue(msg.payload?.headers, 'from').toLowerCase()
     const isOutbound = accountEmail ? msgFrom.includes(accountEmail) : false
     const body = extractBody(msg.payload)
+    // Keep base64 blobs out of the DB and point inline `cid:` images at the
+    // on-demand proxy — BEFORE the 200 KB cap, so we keep real markup instead of
+    // a truncated base64 string.
+    let html = body.html
+    if (html) {
+      html = stripInlineDataImages(html).html
+      html = rewriteCidImages(html, msg.id, body.inlineAttachments)
+      html = html.slice(0, 200_000)
+    }
     parsedMessages.push({
       externalId: msg.id,
       direction: isOutbound ? 'OUTBOUND' : 'INBOUND',
       content: body.content.slice(0, 5000) || '(no text content)',
-      html: body.html ? body.html.slice(0, 200_000) : null,
+      html: html || null,
       sentAt: new Date(parseInt(msg.internalDate ?? '0')),
     })
   }

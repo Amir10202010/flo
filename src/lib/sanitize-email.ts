@@ -251,7 +251,10 @@ for (const p of [
   'border', 'border-top', 'border-right', 'border-bottom', 'border-left', 'border-color',
 ]) STYLE_RULES[p] = [SAFE, RGB]
 
-const SAFE_IMG_SRC = /^(https?:|data:image\/|cid:)/i
+// Remote (https), data-image (legacy/already-stored rows), and our own inline
+// attachment proxy. `cid:` is intentionally NOT here — those are rewritten to
+// the proxy path at ingestion, so a bare `cid:` would never resolve anyway.
+const SAFE_IMG_SRC = /^(https?:|data:image\/|\/api\/attachments\/)/i
 
 export function sanitizeEmailRich(input: string): { html: string; hasImages: boolean } {
   if (!input) return { html: '', hasImages: false }

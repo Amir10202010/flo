@@ -55,7 +55,7 @@ export default function MessageCard({
       </header>
       <div className={`msg-body${isEmail ? ' msg-body-email' : ''}`}>
         {isEmail ? (
-          <EmailFrame html={rich!.html} hasImages={rich!.hasImages} />
+          <EmailFrame html={rich!.html} />
         ) : (
           <div className="msg-html" dangerouslySetInnerHTML={{ __html: sanitizeMessageHtml(msg.content) }} />
         )}
