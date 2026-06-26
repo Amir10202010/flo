@@ -1530,20 +1530,6 @@
   box-shadow: var(--shadow-xs);
 }
 .email-frame { width: 100%; border: 0; background: #fff; display: block; }
-.email-img-bar {
-  display: block;
-  width: 100%;
-  text-align: left;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--accent);
-  background: var(--accent-dim);
-  border: none;
-  border-bottom: 1px solid var(--border);
-  padding: 8px 14px;
-  cursor: pointer;
-}
-.email-img-bar:hover { background: rgba(79, 92, 244, 0.14); }
 
 /* Folded quoted history (<details> emitted by sanitizeMessageHtml) */
 .msg-quote { margin-top: 8px; }

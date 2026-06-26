@@ -11,13 +11,15 @@ import { useEffect, useRef, useState } from 'react'
  * `allow-same-origin` is safe *because* scripts are disallowed, and only lets the
  * parent read the document height to size the frame.
  *
- * Images arrive defused as `data-src` (nothing loads). "Show images" swaps them
- * back to `src` — safe, since the markup was already sanitised.
+ * Images render immediately: remote `https` images cost nothing in our DB (only
+ * the URL is stored) and inline images come through our same-origin attachment
+ * proxy (`/api/attachments/…`, allowed by `img-src 'self'`). Base64 `data:`
+ * blobs are stripped at ingestion so they never reach the DB in the first place.
  */
 function buildDoc(body: string): string {
   return `<!DOCTYPE html><html><head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; font-src https: data:">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' https: data:; style-src 'unsafe-inline'; font-src https: data:">
 <base target="_blank">
 <style>
   html,body{margin:0;padding:0;background:#fff;color:#0C0E1D;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:14px;line-height:1.5;word-break:break-word;}
@@ -28,20 +30,26 @@ function buildDoc(body: string): string {
 </head><body>${body}</body></html>`
 }
 
-export default function EmailFrame({ html, hasImages }: { html: string; hasImages: boolean }) {
+export default function EmailFrame({ html }: { html: string }) {
   const ref = useRef<HTMLIFrameElement>(null)
-  const [showImages, setShowImages] = useState(false)
   const [height, setHeight] = useState(120)
 
-  const body = showImages ? html.split('data-src=').join('src=') : html
-  const doc = buildDoc(body)
+  // The sanitiser parks image sources in `data-src`; restore them so images load.
+  const doc = buildDoc(html.split('data-src=').join('src='))
 
   function resize() {
     const frame = ref.current
     if (!frame) return
     try {
-      const h = frame.contentDocument?.body?.scrollHeight
-      if (h && h > 0) setHeight(h + 8)
+      const doc = frame.contentDocument
+      if (!doc) return
+      // Use offsetHeight, NOT scrollHeight. Some marketing emails (table-heavy
+      // layouts) report a wildly inflated scrollHeight — ~2x the real content
+      // with nothing actually extending that far — which left a tall blank gap
+      // under the message. offsetHeight of <html>/<body> matches the true
+      // rendered box height; max() guards the rare case where one wraps tighter.
+      const h = Math.max(doc.documentElement.offsetHeight, doc.body.offsetHeight)
+      if (h > 0) setHeight(h + 8)
     } catch {
       /* opaque-origin guard — leave the default height */
     }
@@ -55,11 +63,6 @@ export default function EmailFrame({ html, hasImages }: { html: string; hasImage
 
   return (
     <div className="email-frame-wrap">
-      {hasImages && !showImages && (
-        <button type="button" className="email-img-bar" onClick={() => setShowImages(true)}>
-          🛡️ Images blocked for your privacy · Show images
-        </button>
-      )}
       <iframe
         ref={ref}
         className="email-frame"
