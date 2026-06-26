@@ -8,7 +8,6 @@ import CommandPalette from '@/components/CommandPalette'
 import ComposeModal from '@/components/ComposeModal'
 import AssistantModal from '@/components/dashboard/AssistantModal'
 import AlertsDrawer from '@/components/dashboard/AlertsDrawer'
-import OnboardingTour from '@/components/onboarding/OnboardingTour'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // getCurrentUser() is request-scoped and cached via React.cache().
@@ -47,9 +46,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
       {/* Risk-alerts slide-over (RiskMonitor "View alerts" + ⌘K) — replaces /risk */}
       <AlertsDrawer />
-
-      {/* First-run onboarding spotlight tour (auto-runs once, replayable) */}
-      <OnboardingTour />
     </div>
   )
 }

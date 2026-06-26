@@ -2,13 +2,12 @@
 
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Bell, Building2, CalendarClock, Compass, Crown, FileText, History, Mail, ShieldCheck, Tag as TagIcon, Users, Zap } from 'lucide-react'
+import { Bell, Building2, CalendarClock, Crown, FileText, History, Mail, ShieldCheck, Tag as TagIcon, Users, Zap } from 'lucide-react'
 import type { OrgRole, BillingPlan } from '@prisma/client'
 import { can, ROLE_LABEL } from '@/lib/permissions'
 import { planLimits } from '@/lib/billing'
 import WidgetShell from '@/components/dashboard/WidgetShell'
 import SignOutButton from '@/components/ui/SignOutButton'
-import ReplayTourButton from '@/components/onboarding/ReplayTourButton'
 import AlertEmailToggle from '@/components/settings/AlertEmailToggle'
 import SendDigestButton from '@/components/dashboard/SendDigestButton'
 import MembersPanel from '@/components/settings/MembersPanel'
@@ -47,9 +46,8 @@ export default function SettingsTabs({
     { id: 'workspace', label: 'Workspace', icon: Building2, show: true },
     { id: 'members', label: 'Members', icon: Users, show: can(role, 'members:manage') },
     { id: 'connections', label: 'Connections', icon: Mail, show: can(role, 'inbox:read') },
-    { id: 'tags', label: 'Tags', icon: TagIcon, show: can(role, 'inbox:read') },
-    { id: 'templates', label: 'Templates', icon: FileText, show: can(role, 'inbox:read') },
-    { id: 'rules', label: 'Rules', icon: Zap, show: can(role, 'rules:manage') },
+    { id: 'library', label: 'Library', icon: FileText, show: can(role, 'inbox:read') },
+    { id: 'automations', label: 'Automations', icon: Zap, show: can(role, 'rules:manage') },
     { id: 'audit', label: 'Audit log', icon: History, show: can(role, 'audit:read') },
   ].filter((t) => t.show)
 
@@ -155,13 +153,6 @@ export default function SettingsTabs({
             </div>
           </WidgetShell>
 
-          <WidgetShell icon={<Compass size={14} />} title="Getting started" sub="Replay the guided product tour" bodyStyle={{ padding: '16px 20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
-              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted)', maxWidth: 440 }}>Highlights Inbox, Clients, Insights, Risk, Analytics and the AI Assistant.</p>
-              <ReplayTourButton />
-            </div>
-          </WidgetShell>
-
           <WidgetShell icon={<ShieldCheck size={14} />} title="Account" sub={userEmail ? `Signed in as ${userEmail}` : 'Session'} bodyStyle={{ padding: '6px 8px' }}>
             <div style={{ padding: '8px 4px 4px' }}>
               <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--text-secondary)', paddingLeft: 8 }}>{display}</p>
@@ -173,9 +164,23 @@ export default function SettingsTabs({
 
       {active === 'members' && <MembersPanel myRole={role} />}
       {active === 'connections' && <InboxesPanel canManage={can(role, 'inbox:manage')} />}
-      {active === 'tags' && <TagsPanel canManage={can(role, 'tags:manage')} />}
-      {active === 'templates' && <TemplatesPanel />}
-      {active === 'rules' && <RulesPanel role={role} />}
+      {active === 'library' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
+          <div>
+            <h3 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 7 }}>
+              <FileText size={14} /> Templates
+            </h3>
+            <TemplatesPanel />
+          </div>
+          <div>
+            <h3 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 7 }}>
+              <TagIcon size={14} /> Tags
+            </h3>
+            <TagsPanel canManage={can(role, 'tags:manage')} />
+          </div>
+        </div>
+      )}
+      {active === 'automations' && <RulesPanel role={role} />}
       {active === 'audit' && <AuditPanel />}
     </div>
   )

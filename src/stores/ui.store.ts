@@ -12,16 +12,11 @@ interface UiState {
     setAssistantOpen: (open: boolean) => void
     alertsOpen: boolean
     setAlertsOpen: (open: boolean) => void
-    tourOpen: boolean
-    setTourOpen: (open: boolean) => void
-    startTour: () => void
 }
 
 /** Cross-component UI state: the ⌘K command palette (sidebar button + global
- *  shortcut), the Smart Compose modal (inbox header + palette action), the Ask
- *  Velnox AI assistant overlay (sidebar button + palette action) and the
- *  onboarding spotlight tour (auto-run on first visit + replay from Settings /
- *  the palette). */
+ *  shortcut), the Smart Compose modal (inbox header + palette action) and the
+ *  Ask Velnox AI assistant overlay (sidebar button + palette action). */
 export const useUiStore = create<UiState>((set) => ({
     paletteOpen: false,
     setPaletteOpen: (open) => set({ paletteOpen: open }),
@@ -32,7 +27,4 @@ export const useUiStore = create<UiState>((set) => ({
     setAssistantOpen: (open) => set({ assistantOpen: open }),
     alertsOpen: false,
     setAlertsOpen: (open) => set({ alertsOpen: open }),
-    tourOpen: false,
-    setTourOpen: (open) => set({ tourOpen: open }),
-    startTour: () => set({ tourOpen: true }),
 }))

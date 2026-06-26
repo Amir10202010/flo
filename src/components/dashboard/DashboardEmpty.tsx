@@ -1,11 +1,11 @@
 import Link from 'next/link'
-import { ArrowRight, ChartColumn, Mail, ShieldAlert, Sparkles } from 'lucide-react'
+import { ArrowRight, Mail } from 'lucide-react'
 import { Reveal } from './Motion'
 
-const MODULES = [
-  { icon: <Sparkles size={15} />, title: 'Team Command Center', desc: 'Your team’s ranked queue — who to answer first and why.' },
-  { icon: <ShieldAlert size={15} />, title: 'Risk Monitor', desc: 'At-risk accounts and overdue replies, flagged automatically.' },
-  { icon: <ChartColumn size={15} />, title: 'Team Analytics', desc: 'Response times, volume and workload across the team.' },
+const STEPS = [
+  { n: 1, title: 'Connect your shared inbox', desc: 'Link a Gmail mailbox your team works out of — about 30 seconds.' },
+  { n: 2, title: 'Velnox reads & prioritizes', desc: 'Threads are imported, analyzed and ranked by urgency and churn risk.' },
+  { n: 3, title: 'Act on what matters', desc: 'Work the command center, reply with AI drafts, watch at-risk clients.' },
 ]
 
 /** First-run state: the platform is real, it just needs a connected inbox. */
@@ -52,9 +52,9 @@ export default function DashboardEmpty({ hasIntegration }: { hasIntegration: boo
             maxWidth: 720,
           }}
         >
-          {MODULES.map((m) => (
+          {STEPS.map((s) => (
             <div
-              key={m.title}
+              key={s.n}
               style={{
                 padding: '16px 16px',
                 borderRadius: 13,
@@ -63,11 +63,11 @@ export default function DashboardEmpty({ hasIntegration }: { hasIntegration: boo
                 textAlign: 'left',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 }}>
-                <span style={{ color: 'var(--accent)' }}>{m.icon}</span>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>{m.title}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 7 }}>
+                <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{s.n}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>{s.title}</span>
               </div>
-              <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>{m.desc}</p>
+              <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>{s.desc}</p>
             </div>
           ))}
         </div>
