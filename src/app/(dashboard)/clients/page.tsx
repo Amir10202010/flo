@@ -1,14 +1,47 @@
 import type { Metadata } from 'next'
 import { Activity, ShieldAlert, UserPlus, Users } from 'lucide-react'
 import { requireOrgPage } from '@/lib/org'
-import { getClientDirectory } from '@/services/clients.service'
+import { getClientDirectory, type ClientRow } from '@/services/clients.service'
+import type { RelationshipHealth as RelData, RelationshipItem } from '@/services/dashboard.service'
 import { Reveal } from '@/components/dashboard/Motion'
 import StatCard from '@/components/dashboard/StatCard'
 import ModulePill from '@/components/dashboard/ModulePill'
 import ClientsTable from '@/components/dashboard/ClientsTable'
+import RelationshipHealth from '@/components/dashboard/RelationshipHealth'
 import DashboardEmpty from '@/components/dashboard/DashboardEmpty'
 
 export const metadata: Metadata = { title: 'Clients — Velnox' }
+
+/** The 3-bucket Relationship Health read, derived from the directory rows we
+ * already load (no extra query) — relocated here from the dashboard. */
+function buildRelationships(rows: ClientRow[]): RelData {
+  const item = (r: ClientRow, note: string): RelationshipItem => ({
+    contactId: r.id,
+    name: r.name,
+    email: r.email,
+    note,
+    href: r.href ?? '/clients',
+    metric: r.engagement,
+  })
+  const withThreads = rows.filter((r) => r.threads > 0)
+  // rows arrive sorted by engagement desc, so the top slice is the strongest.
+  const strongest = withThreads
+    .filter((r) => r.risk !== 'HIGH' && r.risk !== 'CRITICAL')
+    .slice(0, 4)
+    .map((r) => item(r, `${r.threads} thread${r.threads === 1 ? '' : 's'} · active ${r.lastActivityAgo ?? 'recently'}`))
+  const weakening = [...withThreads]
+    .filter((r) => r.engagement < 45 || r.risk === 'HIGH' || r.risk === 'CRITICAL')
+    .sort((a, b) => a.engagement - b.engagement)
+    .slice(0, 4)
+    .map((r) =>
+      item(r, r.risk === 'HIGH' || r.risk === 'CRITICAL' ? 'flagged at risk · reach out' : `cooling off · last seen ${r.lastActivityAgo ?? 'a while ago'}`),
+    )
+  const opportunities = rows
+    .filter((r) => r.isNew)
+    .slice(0, 4)
+    .map((r) => item(r, r.sentiment === 'POSITIVE' ? 'new contact · positive tone' : 'new contact · worth a hello'))
+  return { strongest, weakening, opportunities }
+}
 
 export default async function ClientsPage() {
   const ctx = await requireOrgPage()
@@ -63,7 +96,13 @@ export default async function ClientsPage() {
             />
           </div>
 
-          <Reveal delay={0.12}>
+          <div style={{ marginBottom: 14 }}>
+            <Reveal delay={0.1}>
+              <RelationshipHealth data={buildRelationships(data.rows)} />
+            </Reveal>
+          </div>
+
+          <Reveal delay={0.16}>
             <ClientsTable rows={data.rows} />
           </Reveal>
         </>
