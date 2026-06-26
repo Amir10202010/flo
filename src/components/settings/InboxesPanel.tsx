@@ -1,15 +1,37 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Mail, Plus, Plug } from 'lucide-react'
+import { Suspense, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { CheckCircle2, Lock, Mail, Plug, Plus, TriangleAlert } from 'lucide-react'
+import RequestAccessForm from '@/components/integrations/RequestAccessForm'
 
 type Integration = { type: string; isActive: boolean; syncedAt: string | null; email: string | null }
 
-/** Connected shared inboxes for the org (admin view). Connect starts the Gmail
- * OAuth flow; disconnect deactivates the integration. */
-export default function InboxesPanel({ canManage }: { canManage: boolean }) {
+function Banner({ tone, icon, children }: { tone: 'info' | 'error'; icon: React.ReactNode; children: React.ReactNode }) {
+  const styles =
+    tone === 'error'
+      ? { background: 'var(--hot-dim)', border: '1px solid var(--hot-border)', color: 'var(--hot)' }
+      : { background: 'var(--accent-dim)', border: '1px solid rgba(79,92,244,0.2)', color: 'var(--accent)' }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderRadius: 11, background: styles.background, border: styles.border }}>
+      <span style={{ flexShrink: 0, display: 'flex', color: styles.color }}>{icon}</span>
+      <span style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5 }}>{children}</span>
+    </div>
+  )
+}
+
+/** Connected shared inboxes for the org + the invite-only request-access flow.
+ * Connect starts the Gmail OAuth flow; disconnect deactivates the integration.
+ * Replaces the standalone /integrations page (the OAuth callback redirects here
+ * with ?connected / ?error). */
+function InboxesPanelInner({ canManage }: { canManage: boolean }) {
+  const searchParams = useSearchParams()
+  const justConnected = searchParams.get('connected')
+  const connectError = searchParams.get('error')
+
   const [items, setItems] = useState<Integration[]>([])
   const [loaded, setLoaded] = useState(false)
+  const [showRequest, setShowRequest] = useState(false)
 
   async function load() {
     const r = await fetch('/api/integrations').then((x) => (x.ok ? x.json() : null)).catch(() => null)
@@ -28,11 +50,19 @@ export default function InboxesPanel({ canManage }: { canManage: boolean }) {
   }
 
   const active = items.filter((i) => i.isActive)
+  const hasActive = active.length > 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {justConnected && (
+        <Banner tone="info" icon={<CheckCircle2 size={16} />}>Gmail connected — importing your conversations…</Banner>
+      )}
+      {connectError && (
+        <Banner tone="error" icon={<TriangleAlert size={16} />}>Connection error: {connectError}. Please try again.</Banner>
+      )}
+
       <div className="card" style={{ padding: '6px 8px' }}>
-        {loaded && active.length === 0 && (
+        {loaded && !hasActive && (
           <div style={{ padding: '22px 14px', textAlign: 'center' }}>
             <p style={{ margin: '0 0 4px', fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>No shared inbox connected</p>
             <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted)' }}>Connect a Gmail mailbox your team works out of.</p>
@@ -56,16 +86,50 @@ export default function InboxesPanel({ canManage }: { canManage: boolean }) {
         ))}
       </div>
 
-      {canManage && (
+      {/* Already connected + can manage → straight to connecting another mailbox. */}
+      {canManage && hasActive && (
         <a href="/api/auth/gmail" className="btn-primary" style={{ alignSelf: 'flex-start', gap: 7, fontSize: 13.5, padding: '10px 16px' }}>
-          <Plus size={15} /> Connect a shared inbox
+          <Plus size={15} /> Connect another inbox
         </a>
       )}
+
+      {/* Nothing connected yet → invite-only request flow (with an approved escape hatch). */}
+      {canManage && loaded && !hasActive && (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <button type="button" className="btn-primary" onClick={() => setShowRequest((v) => !v)} style={{ alignSelf: 'flex-start', gap: 7, fontSize: 13.5, padding: '10px 16px' }}>
+            <Plus size={15} /> Request access
+          </button>
+          <p style={{ margin: '10px 2px 0', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55, maxWidth: 540 }}>
+            Velnox is invite-only while we finish Google verification. Request access with the Gmail you want to connect — or{' '}
+            <a href="/api/auth/gmail" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
+              connect if you&apos;re already approved
+            </a>
+            .
+          </p>
+          {showRequest && <RequestAccessForm />}
+        </div>
+      )}
+
       {!canManage && (
         <p style={{ fontSize: 12, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <Plug size={13} /> Only admins can connect or disconnect inboxes.
         </p>
       )}
+
+      <p style={{ display: 'flex', alignItems: 'center', gap: 7, margin: '2px 2px 0', fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+        <Lock size={12} style={{ flexShrink: 0 }} />
+        OAuth tokens are encrypted at rest. Disconnect any time — imported threads are hidden immediately.
+      </p>
     </div>
+  )
+}
+
+export default function InboxesPanel({ canManage }: { canManage: boolean }) {
+  // useSearchParams (for the ?connected / ?error connect-flow banners) needs a
+  // Suspense boundary — same pattern the old IntegrationsClient used.
+  return (
+    <Suspense>
+      <InboxesPanelInner canManage={canManage} />
+    </Suspense>
   )
 }

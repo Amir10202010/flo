@@ -16,13 +16,13 @@ export async function GET(req: NextRequest) {
   const state = req.nextUrl.searchParams.get('state')
 
   if (error || !code) {
-    return NextResponse.redirect(`${appUrl}/integrations?error=${error ?? 'no_code'}`)
+    return NextResponse.redirect(`${appUrl}/settings?tab=connections&error=${error ?? 'no_code'}`)
   }
 
   // CSRF: state from Google must match the cookie we set at the start of the flow.
   const expectedState = req.cookies.get('gmail_oauth_state')?.value
   if (!state || !expectedState || state !== expectedState) {
-    return NextResponse.redirect(`${appUrl}/integrations?error=invalid_state`)
+    return NextResponse.redirect(`${appUrl}/settings?tab=connections&error=invalid_state`)
   }
 
   const supabase = await getSupabaseServerClient()
@@ -163,6 +163,6 @@ export async function GET(req: NextRequest) {
     return res
   } catch (e) {
     console.error('[gmail/callback] token exchange failed:', e)
-    return NextResponse.redirect(`${appUrl}/integrations?error=token_exchange_failed`)
+    return NextResponse.redirect(`${appUrl}/settings?tab=connections&error=token_exchange_failed`)
   }
 }

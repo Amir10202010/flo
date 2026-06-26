@@ -7,7 +7,6 @@ import {
   Bot,
   ChartColumn,
   CircleCheck,
-  Compass,
   CornerDownLeft,
   Inbox,
   LayoutDashboard,
@@ -38,8 +37,7 @@ const PAGES: { href: string; label: string; icon: React.ReactNode; keywords: str
   { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={15} />, keywords: 'home overview command center' },
   { href: '/inbox', label: 'Inbox', icon: <Inbox size={15} />, keywords: 'mail conversations threads' },
   { href: '/clients', label: 'Clients', icon: <Users size={15} />, keywords: 'contacts directory crm' },
-  { href: '/analytics', label: 'Analytics', icon: <ChartColumn size={15} />, keywords: 'charts metrics response time' },
-  { href: '/integrations', label: 'Integrations', icon: <Plug size={15} />, keywords: 'gmail connect channels' },
+  { href: '/dashboard?tab=trends', label: 'Trends', icon: <ChartColumn size={15} />, keywords: 'analytics charts metrics response time volume' },
   { href: '/settings', label: 'Settings', icon: <Settings size={15} />, keywords: 'account profile plan' },
 ]
 
@@ -138,7 +136,6 @@ function PaletteDialog({
   const setComposeOpen = useUiStore((s) => s.setComposeOpen)
   const setAssistantOpen = useUiStore((s) => s.setAssistantOpen)
   const setAlertsOpen = useUiStore((s) => s.setAlertsOpen)
-  const startTour = useUiStore((s) => s.startTour)
   const [query, setQuery] = useState('')
   const [rawIndex, setRawIndex] = useState(0)
   const [syncState, setSyncState] = useState<'idle' | 'starting' | 'started' | 'failed'>('idle')
@@ -263,18 +260,7 @@ function PaletteDialog({
         label: 'Connect a channel',
         icon: <Plug size={15} />,
         keywords: 'gmail integration add account',
-        run: () => go('/integrations'),
-      },
-      {
-        id: 'action-tour',
-        group: 'Actions',
-        label: 'Take a tour',
-        icon: <Compass size={15} />,
-        keywords: 'onboarding guide help walkthrough product tour intro',
-        run: () => {
-          onClose()
-          startTour()
-        },
+        run: () => go('/settings?tab=connections'),
       },
     ]
     const actions = actionDefs.filter((a) => matches(q, a.label, a.keywords) > 0)
@@ -317,7 +303,7 @@ function PaletteDialog({
             }))
 
     return [...pages, ...actions, ...conversations]
-  }, [query, convs, aiResults, go, startSync, syncState, onClose, setComposeOpen, setAssistantOpen, setAlertsOpen, startTour])
+  }, [query, convs, aiResults, go, startSync, syncState, onClose, setComposeOpen, setAssistantOpen, setAlertsOpen])
 
   // Clamp at render time instead of syncing state in an effect.
   const index = Math.min(rawIndex, Math.max(0, entries.length - 1))

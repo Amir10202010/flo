@@ -16,8 +16,8 @@ const inputStyle: React.CSSProperties = {
 
 /**
  * Invite-gate request form. The user submits the Gmail they want to connect;
- * the owner is emailed and adds it to the Google Test users list. Shown on
- * /integrations while the OAuth app is in Testing mode.
+ * the owner is emailed and adds it to the Google Test users list. Shown in
+ * Settings → Connections while the OAuth app is in Testing mode.
  */
 export default function RequestAccessForm() {
   const [email, setEmail] = useState('')

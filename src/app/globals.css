@@ -610,6 +610,78 @@
   flex-shrink: 0;
 }
 
+/* ── Mobile bottom tab bar + top-bar icon buttons (phones) ────────────────── */
+/* The bar is a flex child of the layout column (revealed <768px), so it sits
+   below the content instead of floating over the inbox composer. */
+.mobile-tabbar {
+  display: none;
+  align-items: stretch;
+  border-top: 1px solid var(--border);
+  background: rgba(250,251,255,0.96);
+  backdrop-filter: blur(12px);
+  flex-shrink: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.mtab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 9px 0 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+.mtab[data-active="true"] { color: var(--accent); }
+.topbar-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color .13s, border-color .13s;
+}
+.topbar-icon-btn:hover { color: var(--text-primary); border-color: var(--accent); }
+
+/* ── Clients: full table on desktop, stacked cards on phones ──────────────── */
+.clients-cards { display: none; }
+.client-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 13px 14px;
+  border: none;
+  border-bottom: 1px solid var(--border-light);
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+.client-card:last-child { border-bottom: none; }
+.client-card:active { background: var(--bg-hover); }
+.client-card-new {
+  font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em;
+  color: var(--accent); background: var(--accent-dim);
+  border: 1px solid rgba(79,92,244,0.2); border-radius: 5px; padding: 1.5px 5px; flex-shrink: 0;
+}
+@media (max-width: 768px) {
+  .clients-table-wrap { display: none; }
+  .clients-cards      { display: flex; flex-direction: column; }
+}
+
 /* ── Skeleton loading ───────────────────────────────────────────────────── */
 @keyframes skeletonShimmer {
   0%   { background-position: -400px 0; }
@@ -694,15 +766,11 @@
 }
 
 @media (max-width: 768px) {
-  /* Dashboard sidebar: collapse to icon-only strip */
-  .sidebar-shell     { width: 52px !important; padding: 16px 6px !important; gap: 4px !important; }
-  .sidebar-logo-link { display: none !important; }
-  .sidebar-nav-label { display: none !important; }
-  .sidebar-user-card { display: none !important; }
-  .nav-item          { padding: 13px !important; justify-content: center !important; gap: 0 !important; }
-
-  /* The sidebar logo is hidden in its collapsed state — show the top-bar logo instead */
-  .dashboard-topbar  { display: flex !important; }
+  /* Mobile: hide the desktop sidebar entirely — primary nav moves to the bottom
+     tab bar, Search + Settings live in the top bar. */
+  .sidebar-shell    { display: none !important; }
+  .dashboard-topbar { display: flex !important; }
+  .mobile-tabbar    { display: flex !important; }
 }
 
 @media (max-width: 640px) {
@@ -1888,6 +1956,12 @@
 .stat-card-link { display: block; height: 100%; text-decoration: none; transition: transform .14s ease; }
 .stat-card-link:hover { transform: translateY(-2px); }
 .stat-card-link:hover .widget { border-color: var(--accent); box-shadow: var(--shadow-md); }
+
+/* ── Dashboard Today | Trends tabs ────────────────────────────────────────── */
+.dash-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.dash-tab { padding: 9px 2px; margin-right: 24px; font-size: 14px; font-weight: 600; color: var(--text-muted); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .13s, border-color .13s; }
+.dash-tab:hover { color: var(--text-secondary); }
+.dash-tab[data-active="true"] { color: var(--text-primary); border-bottom-color: var(--accent); }
 
 /* ── Row hover (lists inside widgets) ──────────────────────────────────────── */
 .row-link {

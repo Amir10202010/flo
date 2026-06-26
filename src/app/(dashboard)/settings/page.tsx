@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { getCurrentUser } from '@/lib/auth'
 import { requireOrgPage } from '@/lib/org'
 import { prisma } from '@/lib/prisma'
@@ -41,6 +42,7 @@ export default async function SettingsPage() {
       </Reveal>
 
       <Reveal delay={0.05}>
+        <Suspense>
         <SettingsTabs
           orgName={ctx.organization.name}
           role={ctx.role}
@@ -53,6 +55,7 @@ export default async function SettingsPage() {
           userName={userName}
           userEmail={userEmail}
         />
+        </Suspense>
       </Reveal>
     </div>
   )

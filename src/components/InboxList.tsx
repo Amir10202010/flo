@@ -426,7 +426,7 @@ function ConnectEmpty() {
           Connect Gmail to pull your conversations into Velnox and start prioritising them.
         </p>
       </div>
-      <Link href="/integrations" className="btn-primary" style={{ fontSize: 13.5, padding: '9px 18px', textDecoration: 'none' }}>
+      <Link href="/settings?tab=connections" className="btn-primary" style={{ fontSize: 13.5, padding: '9px 18px', textDecoration: 'none' }}>
         Connect a channel
       </Link>
     </div>

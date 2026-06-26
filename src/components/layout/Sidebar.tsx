@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Inbox, LayoutDashboard, Plug, Search, Settings, Sparkles, Users } from 'lucide-react'
+import { Inbox, LayoutDashboard, Search, Settings, Sparkles, Users } from 'lucide-react'
 import { useUiStore } from '@/stores/ui.store'
 import OrgSwitcher from '@/components/org/OrgSwitcher'
 import Brand from './Brand'
@@ -32,7 +32,6 @@ const SECTIONS: { label: string | null; items: NavEntry[] }[] = [
 ]
 
 const SYSTEM: NavEntry[] = [
-  { href: '/integrations', icon: Plug, label: 'Integrations' },
   { href: '/settings', icon: Settings, label: 'Settings' },
 ]
 
