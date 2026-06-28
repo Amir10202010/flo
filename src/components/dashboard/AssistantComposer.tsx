@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowUpRight, Check, CornerDownLeft, Loader2, Sparkles, TriangleAlert, User, Wand2, X } from 'lucide-react'
+import { handleUpgrade } from '@/lib/upgrade'
 import type { AssistantAction } from '@/services/assistant.actions'
 import type { DegradedReason } from '@/services/assistant.service'
 
@@ -84,11 +85,12 @@ export default function AssistantComposer() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: q }),
       })
+      const raw = await res.json().catch(() => null)
+      if (handleUpgrade(res, raw)) return
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as { error?: string } | null
-        throw new Error(data?.error || 'The assistant could not answer right now.')
+        throw new Error((raw as { error?: string } | null)?.error || 'The assistant could not answer right now.')
       }
-      const data = (await res.json()) as ApiAnswer
+      const data = raw as ApiAnswer
       setTurns((prev) => [
         ...prev,
         {
@@ -369,6 +371,10 @@ function ActionCard({ action }: { action: AssistantAction }) {
         body: JSON.stringify({ action }),
       })
       const data = (await res.json().catch(() => null)) as { ok?: boolean; message?: string; error?: string } | null
+      if (handleUpgrade(res, data)) {
+        setStatus('idle')
+        return
+      }
       if (!res.ok) {
         setMessage(data?.error || 'Could not complete that action.')
         setStatus('error')

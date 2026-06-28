@@ -53,7 +53,15 @@ export async function getClientDirectory(organizationId: string): Promise<Client
     lastMessageAt: Date | null
     topConvId: string | null
     topScore: number
+    /** True once any of this contact's threads is a real person (CLIENTS/PRIMARY)
+     *  rather than bulk mail — drives the "is this actually a client?" filter. */
+    isPerson: boolean
   }
+
+  // Bulk categories are never a "client": a newsletter / receipt / promo sender
+  // is mail you receive, not a customer you have a relationship with. A contact
+  // qualifies for the directory only if at least one thread is CLIENTS or PRIMARY.
+  const PERSON_CATEGORIES = new Set(['CLIENTS', 'PRIMARY'])
 
   const byContact = new Map<string, Agg>()
   for (const c of conversations) {
@@ -70,10 +78,12 @@ export async function getClientDirectory(organizationId: string): Promise<Client
         lastMessageAt: null,
         topConvId: null,
         topScore: -1,
+        isPerson: false,
       }
       byContact.set(c.contact.id, agg)
     }
     agg.threads++
+    if (PERSON_CATEGORIES.has(c.category)) agg.isPerson = true
     if (c.priorityScore > agg.topScore) {
       agg.topScore = c.priorityScore
       agg.topConvId = c.id
@@ -103,7 +113,7 @@ export async function getClientDirectory(organizationId: string): Promise<Client
   const weekAgo = now - 7 * DAY_MS
   const monthAgo = now - 30 * DAY_MS
 
-  const rows: ClientRow[] = [...byContact.values()].map((agg) => {
+  const rows: ClientRow[] = [...byContact.values()].filter((agg) => agg.isPerson).map((agg) => {
     const act = activity.get(agg.contact.id)
     const lastAt = act?.lastActivityAt ?? agg.lastMessageAt
     return {

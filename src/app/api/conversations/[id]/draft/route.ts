@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ok, err } from '@/lib/api'
+import { ok, err, upgradeRequired } from '@/lib/api'
 import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
 import { prisma } from '@/lib/prisma'
@@ -33,7 +33,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (conv.channel !== 'GMAIL') return err('Drafts are only supported for Gmail', 400)
 
   if (!(await orgHasFeature(ctx.organization.id, 'aiDrafts'))) {
-    return err('Upgrade to Pro to use AI drafts', 402)
+    return upgradeRequired('Upgrade to Pro to use AI drafts')
   }
 
   let parsed: z.infer<typeof BodySchema>

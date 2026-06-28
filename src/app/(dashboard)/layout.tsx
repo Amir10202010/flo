@@ -8,6 +8,7 @@ import CommandPalette from '@/components/CommandPalette'
 import ComposeModal from '@/components/ComposeModal'
 import AssistantModal from '@/components/dashboard/AssistantModal'
 import AlertsDrawer from '@/components/dashboard/AlertsDrawer'
+import UpgradeModal from '@/components/UpgradeModal'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // getCurrentUser() is request-scoped and cached via React.cache().
@@ -46,6 +47,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
       {/* Risk-alerts slide-over (RiskMonitor "View alerts" + ⌘K) — replaces /risk */}
       <AlertsDrawer />
+
+      {/* Upgrade-to-Pro modal — summoned whenever a Pro-gated action returns 402 */}
+      <UpgradeModal />
     </div>
   )
 }

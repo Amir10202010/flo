@@ -12,6 +12,14 @@ export function err(message: string, status: number): NextResponse {
   return NextResponse.json({ error: message }, { status })
 }
 
+/**
+ * 402 response signalling the caller's plan lacks a feature. The `code` lets the
+ * client intercept it (vs. a generic error) and show the Upgrade-to-Pro modal.
+ */
+export function upgradeRequired(message: string): NextResponse {
+  return NextResponse.json({ error: message, code: 'upgrade_required' }, { status: 402 })
+}
+
 type AuthResult =
   | { user: User; error: null }
   | { user: null; error: NextResponse }

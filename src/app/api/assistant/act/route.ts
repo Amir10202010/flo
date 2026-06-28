@@ -1,5 +1,5 @@
 import { type NextRequest } from 'next/server'
-import { ok, err } from '@/lib/api'
+import { ok, err, upgradeRequired } from '@/lib/api'
 import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
 import { orgHasFeature } from '@/services/billing.service'
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   if (limited) return limited
 
   if (!(await orgHasFeature(ctx.organization.id, 'assistant'))) {
-    return err('Upgrade to Pro to use the AI assistant', 402)
+    return upgradeRequired('Upgrade to Pro to use the AI assistant')
   }
 
   let body: unknown

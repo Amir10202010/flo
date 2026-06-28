@@ -22,7 +22,12 @@ function buildDoc(body: string): string {
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' https: data:; style-src 'unsafe-inline'; font-src https: data:">
 <base target="_blank">
 <style>
-  html,body{margin:0;padding:0;background:#fff;color:#0C0E1D;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:14px;line-height:1.5;word-break:break-word;}
+  /* overflow-x:auto on the ROOT (html) makes it the scroll container, so a
+     wider-than-phone email (fixed-width divs, etc.) can be panned horizontally
+     inside the frame instead of being clipped with no way to reach it. It must
+     be on html, not body: the iframe viewport scrolls the root element. */
+  html{overflow-x:auto;}
+  html,body{margin:0;padding:0;background:#fff;color:#0C0E1D;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;line-height:1.5;word-break:break-word;}
   img{max-width:100%;height:auto;}
   table{max-width:100%;}
   a{color:#2563EB;}

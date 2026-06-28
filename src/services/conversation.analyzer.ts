@@ -55,15 +55,23 @@ export async function analyzeConversation(
   )
 
   // AI category enhancement (never a single point of failure): only refine when
-  // a real AI model ran, the user hasn't manually set the category, AND the rule
-  // classifier was unsure (left it PRIMARY). Confident rule buckets and manual
-  // moves are preserved.
+  // a real AI model ran and the user hasn't manually set the category. The model
+  // corrects either an unsure PRIMARY OR a low-confidence rule bucket (a wording
+  // false-positive the heuristics were not sure about) — but never a confident
+  // rule bucket, a prior AI decision, or a manual move. Once AI sets it, the
+  // `ai` source makes the decision sticky (it won't fight itself next analysis).
+  const CATEGORY_CONFIDENCE_FLOOR = 0.6
+  const ruleWasUnsure =
+    conversation.category === 'PRIMARY' ||
+    (conversation.categorySource !== 'ai' &&
+      (conversation.categoryConfidence == null ||
+        conversation.categoryConfidence < CATEGORY_CONFIDENCE_FLOOR))
   const refineCategory =
     provider === 'gemini' &&
     analysis.category &&
     analysis.category !== conversation.category &&
     conversation.categorySource !== 'manual' &&
-    conversation.category === 'PRIMARY'
+    ruleWasUnsure
 
   await prisma.conversation.update({
     where: { id: conversationId },
@@ -71,7 +79,7 @@ export async function analyzeConversation(
       priority: priority.level,
       priorityScore: priority.score,
       lastAnalyzedAt: new Date(),
-      ...(refineCategory ? { category: analysis.category, categorySource: 'ai' } : {}),
+      ...(refineCategory ? { category: analysis.category, categorySource: 'ai', categoryConfidence: null } : {}),
     },
   })
 

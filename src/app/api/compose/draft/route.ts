@@ -1,7 +1,8 @@
 import { z } from 'zod'
-import { ok, err } from '@/lib/api'
+import { ok, err, upgradeRequired } from '@/lib/api'
 import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
+import { orgHasFeature } from '@/services/billing.service'
 import { generateReplyDraft } from '@/services/ai'
 import { collectStyleSamples } from '@/services/draft.service'
 
@@ -20,6 +21,10 @@ export async function POST(req: Request) {
   if (!ctx) return error
   const limited = await rateLimit(ctx.userId, 'composeDraft')
   if (limited) return limited
+
+  if (!(await orgHasFeature(ctx.organization.id, 'aiDrafts'))) {
+    return upgradeRequired('Upgrade to Pro to use Smart Compose')
+  }
 
   let parsed: z.infer<typeof BodySchema>
   try {

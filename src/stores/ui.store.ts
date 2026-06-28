@@ -12,6 +12,12 @@ interface UiState {
     setAssistantOpen: (open: boolean) => void
     alertsOpen: boolean
     setAlertsOpen: (open: boolean) => void
+    /** Upgrade-to-Pro modal: opened from anywhere a Pro feature is gated. The
+     *  message is the server's reason ("Upgrade to Pro to use AI drafts"). */
+    upgradeOpen: boolean
+    upgradeMessage: string | null
+    openUpgrade: (message?: string | null) => void
+    closeUpgrade: () => void
 }
 
 /** Cross-component UI state: the ⌘K command palette (sidebar button + global
@@ -27,4 +33,8 @@ export const useUiStore = create<UiState>((set) => ({
     setAssistantOpen: (open) => set({ assistantOpen: open }),
     alertsOpen: false,
     setAlertsOpen: (open) => set({ alertsOpen: open }),
+    upgradeOpen: false,
+    upgradeMessage: null,
+    openUpgrade: (message) => set({ upgradeOpen: true, upgradeMessage: message ?? null }),
+    closeUpgrade: () => set({ upgradeOpen: false }),
 }))

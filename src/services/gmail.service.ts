@@ -350,6 +350,7 @@ async function persistThreads(
             awaitingReply: t.messages[t.messages.length - 1]?.direction === 'INBOUND',
             category: verdict.category as EmailCategory,
             categorySource: verdict.source,
+            categoryConfidence: verdict.confidence,
           }
         }),
         skipDuplicates: true, // a concurrent sync may have created some meanwhile
@@ -563,6 +564,120 @@ export async function syncGmailForUser(userId: string): Promise<SyncResult> {
   }
 
   return result
+}
+
+export type ReclassifyResult = {
+  scanned: number
+  changed: number
+  moves: Record<string, number>
+  errors: string[]
+}
+
+/**
+ * Re-run the rule classifier over already-synced Gmail threads, RE-FETCHING each
+ * thread from Gmail so the full signal set (label ids + `List-Unsubscribe`) is
+ * available — those headers aren't persisted, so a DB-only pass can't see them
+ * and would wrongly demote newsletters/promos to Primary. This both applies the
+ * latest heuristics and repairs categories that depend on bulk-mail signals.
+ *
+ * Only `rules`/legacy(null) rows are touched: manual moves and AI-refined
+ * buckets are left intact. Idempotent — re-running re-derives the same verdict.
+ */
+export async function reclassifyGmailCategories(
+  userId: string,
+  onProgress?: (scanned: number, total: number, changed: number) => void,
+): Promise<ReclassifyResult> {
+  const out: ReclassifyResult = { scanned: 0, changed: 0, moves: {}, errors: [] }
+
+  const integration = await prisma.integration.findUnique({
+    where: { userId_type: { userId, type: 'GMAIL' } },
+  })
+  if (!integration || !integration.isActive) {
+    out.errors.push('Gmail integration not found or inactive')
+    return out
+  }
+
+  const rules: ClassifierRule[] = await prisma.categoryRule.findMany({
+    where: { userId },
+    select: { matchType: true, value: true, category: true },
+  })
+
+  // Only revisit rule/legacy rows — never clobber a manual move or an AI bucket.
+  const convs = await prisma.conversation.findMany({
+    where: {
+      integrationId: integration.id,
+      channel: 'GMAIL',
+      OR: [{ categorySource: null }, { categorySource: 'rules' }],
+    },
+    select: { id: true, externalId: true, category: true, categorySource: true, categoryConfidence: true },
+  })
+  const total = convs.length
+  if (!total) return out
+
+  const convByThread = new Map(convs.map((c) => [c.externalId, c]))
+  const gmail = gmailFor(integration)
+
+  // Fetch + reclassify in batches so a large mailbox doesn't hold every raw
+  // thread payload in memory at once (fetchThreads bounds network concurrency).
+  const BATCH = 100
+  const threadIds = convs.map((c) => c.externalId)
+  for (let i = 0; i < threadIds.length; i += BATCH) {
+    const fetched = await fetchThreads(gmail, threadIds.slice(i, i + BATCH))
+    for (const f of fetched) {
+      const conv = convByThread.get(f.threadId)
+      if (!conv) continue
+      out.scanned++
+      if (!f.thread) {
+        if (f.error) out.errors.push(f.error)
+        continue
+      }
+      let parsed: ParsedThread | null = null
+      try {
+        parsed = parseThread(integration, f.threadId, f.thread)
+      } catch (err) {
+        out.errors.push(`Thread ${f.threadId}: ${errMessage(err)}`)
+        continue
+      }
+      if (!parsed) continue
+
+      const firstInbound = parsed.messages.find((m) => m.direction === 'INBOUND') ?? parsed.messages[0]
+      const verdict = classifyEmail(
+        {
+          senderEmail: parsed.contactEmail,
+          senderName: parsed.contactName,
+          subject: parsed.subject,
+          body: firstInbound?.content ?? '',
+          gmailLabels: parsed.labels,
+          hasListUnsubscribe: parsed.hasListUnsubscribe,
+          hasUserReplied: parsed.messages.some((m) => m.direction === 'OUTBOUND'),
+        },
+        rules,
+      )
+      const nextSource = verdict.source === 'manual' ? 'manual' : 'rules'
+      const unchanged =
+        verdict.category === conv.category &&
+        nextSource === (conv.categorySource ?? null) &&
+        Math.abs((conv.categoryConfidence ?? -1) - verdict.confidence) < 0.001
+      if (unchanged) continue
+
+      if (verdict.category !== conv.category) {
+        const key = `${conv.category}→${verdict.category}`
+        out.moves[key] = (out.moves[key] ?? 0) + 1
+        out.changed++
+      }
+      await prisma.conversation.update({
+        where: { id: conv.id },
+        data: {
+          category: verdict.category as EmailCategory,
+          categorySource: nextSource,
+          categoryConfidence: verdict.confidence,
+        },
+      })
+    }
+    onProgress?.(out.scanned, total, out.changed)
+  }
+
+  return out
 }
 
 // ── Push notifications (Gmail watch → Pub/Sub) ──────────────────────────────

@@ -82,11 +82,16 @@ const SPAM_WORDS = [
   'million dollars', 'bitcoin doubler', 'hot singles', 'enlarge', 'cheap meds',
 ]
 
+// Deliberately narrow: only deal/engagement-specific wording. Generic business
+// words ("project", "meeting", "call", "follow up", "deadline") were removed —
+// they litter newsletters, promos and personal mail and were the single biggest
+// source of false CLIENTS. The relationship signal (a real two-way thread) does
+// the heavy lifting for client detection; keywords only nudge human-looking mail.
 const CLIENT_WORDS = [
-  'proposal', 'quote', 'quotation', 'contract', 'agreement', 'project', 'scope',
-  'kickoff', 'meeting', 'call', 'demo', 'onboarding', 'requirements', 'deadline',
-  'deliverable', 'invoice attached', 'follow up', 'following up', 'estimate',
-  'договор', 'предложение', 'смета', 'проект', 'встреча', 'созвон', 'сроки', 'бриф',
+  'proposal', 'quote', 'quotation', 'contract', 'agreement', 'scope of work',
+  'statement of work', 'kickoff', 'onboarding', 'deliverable', 'invoice attached',
+  'estimate', 'engagement', 'retainer', 'signed contract',
+  'договор', 'предложение', 'смета', 'бриф', 'техзадание', 'тз ', 'счёт на оплату',
 ]
 
 function hay(s: ClassificationSignals): string {
@@ -167,6 +172,17 @@ export function classifyEmail(
   }
   if (bulkSender) bump('SERVICES', 0.1, 'Automated sender address')
 
+  // Does this plausibly read as a real person writing to you (not bulk /
+  // marketing / social mail)? Computed BEFORE keyword scoring so that "client"
+  // wording only counts for human-looking senders — the same generic business
+  // words show up constantly in newsletters and promos.
+  const looksHuman =
+    !signals.hasListUnsubscribe &&
+    !bulkSender &&
+    !labels.has('CATEGORY_PROMOTIONS') &&
+    !labels.has('CATEGORY_SOCIAL') &&
+    !labels.has('CATEGORY_FORUMS')
+
   // 4. Content keywords.
   const text = hay(signals)
   const service = countHits(text, SERVICE_WORDS)
@@ -179,11 +195,12 @@ export function classifyEmail(
   if (promo.hits) bump('PROMOTIONS', Math.min(0.6, 0.25 + promo.hits * 0.12), `Mentions “${promo.first}”`)
   if (news.hits) bump('NEWSLETTERS', Math.min(0.55, 0.2 + news.hits * 0.12), `Reads like a newsletter (“${news.first}”)`)
   if (spam.hits) bump('SPAM', Math.min(0.95, 0.45 + spam.hits * 0.2), `Spam-like wording (“${spam.first}”)`)
-  if (client.hits) bump('CLIENTS', Math.min(0.5, 0.2 + client.hits * 0.12), `Business wording (“${client.first}”)`)
+  // CLIENTS keywords only count for human-looking mail — a bulk/marketing sender
+  // never becomes a "client" on wording alone (the #1 false-positive source).
+  if (client.hits && looksHuman) bump('CLIENTS', Math.min(0.5, 0.2 + client.hits * 0.12), `Business wording (“${client.first}”)`)
 
   // 5. Relationship signal — a real two-way human thread is a client/primary,
   //    never bulk. This is the strongest "this is a person" indicator we have.
-  const looksHuman = !signals.hasListUnsubscribe && !bulkSender && !labels.has('CATEGORY_PROMOTIONS')
   if (signals.hasUserReplied && looksHuman) {
     bump('CLIENTS', 0.65, 'You and this contact reply back and forth')
   } else if (looksHuman && signals.senderName && signals.senderName !== senderEmail) {

@@ -592,7 +592,7 @@
 .msg-avatar.out { background: var(--accent); }
 .msg-sender { font-size: 13px; font-weight: 700; color: var(--text-primary); }
 .msg-time { margin-left: auto; font-size: 11.5px; color: var(--text-muted); flex-shrink: 0; }
-.msg-body { padding: 8px 16px 14px; font-size: 13.5px; line-height: 1.6; color: var(--text-primary); }
+.msg-body { padding: 8px 16px 14px; font-size: 15px; line-height: 1.6; color: var(--text-primary); overflow-wrap: anywhere; word-break: break-word; }
 .msg-body-email { padding: 12px 16px 14px; }
 /* email frame sits flush inside the card (the card already supplies the chrome) */
 .msg-body-email .email-frame-wrap { border: none; border-radius: 8px; box-shadow: none; }
@@ -733,9 +733,10 @@
    single thread pane (the sidebar is already hidden ≤900). This matches the
    real one-pane mobile inbox and keeps the whole chat + composer visible. */
 @media (max-width: 640px) {
-  .demo-conv-list  { display: none !important; }
-  .demo-cursor     { display: none !important; }
-  .demo-app-layout { height: 470px !important; }
+  .demo-conv-list     { display: none !important; }
+  .demo-context-rail  { display: none !important; }   /* 232px rail crushes the thread on phones */
+  .demo-cursor        { display: none !important; }
+  .demo-app-layout    { height: 470px !important; }
 }
 @media (max-width: 420px) {
   .demo-app-layout { height: 430px !important; }
@@ -1429,6 +1430,57 @@
 .compose-send:hover:not(:disabled) { background: var(--accent-hover); }
 .compose-send:disabled { opacity: 0.5; cursor: default; }
 .compose-sent { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 40px; color: var(--cold); font-size: 15px; font-weight: 700; }
+
+/* ── Upgrade-to-Pro modal ───────────────────────────────────────────────── */
+.upgrade-modal {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-lg, 0 20px 60px rgba(0,0,0,0.2));
+  padding: 26px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.upgrade-x { position: absolute; top: 12px; right: 12px; }
+.upgrade-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 11px; border-radius: 100px;
+  background: var(--accent-dim, rgba(79,92,244,0.1));
+  color: var(--accent); font-size: 11.5px; font-weight: 700;
+  letter-spacing: 0.02em; margin-bottom: 14px;
+}
+.upgrade-title {
+  margin: 0 0 8px; font-size: 19px; font-weight: 700; line-height: 1.3;
+  color: var(--text-primary); letter-spacing: -0.01em;
+}
+.upgrade-sub { margin: 0 0 16px; font-size: 13.5px; line-height: 1.55; color: var(--text-secondary); }
+.upgrade-features {
+  list-style: none; margin: 0 0 20px; padding: 0;
+  display: flex; flex-direction: column; gap: 9px; width: 100%;
+}
+.upgrade-features li {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13.5px; color: var(--text-primary);
+}
+.upgrade-features li svg { color: var(--cold, #16A34A); flex-shrink: 0; }
+.upgrade-actions { display: flex; align-items: center; gap: 10px; width: 100%; }
+.upgrade-cta {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center;
+  padding: 11px 18px; border-radius: 11px; border: none;
+  background: var(--accent); color: #fff;
+  font-size: 14px; font-weight: 700; font-family: var(--font-sans);
+  text-decoration: none; cursor: pointer; transition: background 0.15s;
+}
+.upgrade-cta:hover { background: var(--accent-hover); }
+.upgrade-compare {
+  align-self: center; margin-top: 14px;
+  font-size: 12.5px; font-weight: 600; color: var(--text-muted); text-decoration: none;
+}
+.upgrade-compare:hover { color: var(--accent); text-decoration: underline; }
 
 /* .chat-row / .chat-time / .chat-ai* / .msg-bubble* are retained: the marketing
    ProductDemo + FeatureDemos reuse them. The thread view now uses .msg-card. */

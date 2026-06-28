@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertCircle, Check, ChevronDown, Loader, PencilLine, RotateCcw, Send, Sparkles } from 'lucide-react'
 import TemplateMenu from '@/components/TemplateMenu'
+import { handleUpgrade } from '@/lib/upgrade'
 import type { DraftTone } from '@/types'
 
 const TONES: { value: DraftTone; label: string }[] = [
@@ -56,6 +57,7 @@ export default function Composer({
         body: JSON.stringify({ tone, steer: steer.trim() || undefined }),
       })
       const data = await res.json().catch(() => ({}))
+      if (handleUpgrade(res, data)) return
       if (!res.ok) throw new Error(data.error ?? 'Failed to draft a reply')
       setBody(data.body ?? '')
       setAiProvider(data.provider ?? null)

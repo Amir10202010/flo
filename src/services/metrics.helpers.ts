@@ -54,6 +54,7 @@ export async function loadWorkspace(organizationId: string) {
       lastMessageAt: true,
       createdAt: true,
       channel: true,
+      category: true,
       contact: { select: { id: true, name: true, email: true, createdAt: true } },
       analysis: {
         select: {

@@ -420,8 +420,10 @@ export default function ProductDemo() {
             </div>
           </div>
 
-          {/* Context rail — the single AI surface + thread properties + team notes */}
+          {/* Context rail — the single AI surface + thread properties + team notes.
+              Hidden on phones (.demo-context-rail) so the thread pane isn't crushed. */}
           <div
+            className="demo-context-rail"
             style={{ width: 232, flexShrink: 0, borderLeft: '1px solid var(--border)', background: '#FFFFFF', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
           >
             {/* AI insight */}

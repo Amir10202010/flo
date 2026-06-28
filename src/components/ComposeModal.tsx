@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertCircle, Check, Loader, Send, Sparkles, X } from 'lucide-react'
 import { useUiStore } from '@/stores/ui.store'
+import { handleUpgrade } from '@/lib/upgrade'
 import type { DraftTone } from '@/types'
 
 const TONES: { value: DraftTone; label: string }[] = [
@@ -69,6 +70,7 @@ export default function ComposeModal() {
         body: JSON.stringify({ instruction: instruction.trim(), tone, to: to.trim() || undefined }),
       })
       const d = await res.json().catch(() => ({}))
+      if (handleUpgrade(res, d)) return
       if (!res.ok) throw new Error(d.error ?? 'Failed to draft')
       if (d.subject && !subject.trim()) setSubject(d.subject)
       setBody(d.body ?? '')

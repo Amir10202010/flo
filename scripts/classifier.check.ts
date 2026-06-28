@@ -130,6 +130,37 @@ check('named human, no reply, no signals → PRIMARY', () => {
   assert.equal(r.category, 'PRIMARY')
 })
 
+check('bulk promo mentioning "proposal" never becomes CLIENTS', () => {
+  const r = classifyEmail(
+    signals({
+      senderEmail: 'marketing@brand.com',
+      senderName: 'Brand Marketing',
+      subject: 'A special proposal just for you — 40% off',
+      body: 'Our proposal: limited-time offer, big discount inside. Shop now!',
+      hasListUnsubscribe: true,
+    }),
+  )
+  assert.notEqual(r.category, 'CLIENTS')
+})
+
+check('no-reply automated sender with client wording → not CLIENTS', () => {
+  const r = classifyEmail(
+    signals({
+      senderEmail: 'no-reply@app.com',
+      senderName: 'App',
+      subject: 'Your project kickoff is scheduled',
+      body: 'The onboarding deliverable is ready. Estimate attached.',
+    }),
+  )
+  assert.notEqual(r.category, 'CLIENTS')
+})
+
+check('classifier always returns a 0..1 confidence', () => {
+  const r = classifyEmail(signals({ subject: 'hi', body: 'hello there' }))
+  assert.equal(typeof r.confidence, 'number')
+  assert.equal(r.confidence >= 0 && r.confidence <= 1, true)
+})
+
 check('learned email rule overrides heuristics', () => {
   const rules: ClassifierRule[] = [{ matchType: 'email', value: 'deals@store.com', category: 'CLIENTS' }]
   const r = classifyEmail(

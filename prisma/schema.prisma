@@ -179,6 +179,9 @@ model Conversation {
   /// Provenance of `category`: 'rules' | 'ai' | 'manual'. Manual wins and is
   /// never overwritten by automatic (re)classification.
   categorySource String?
+  /// Rule-classifier confidence (0..1) for `category`. Lets AI refinement target
+  /// only the buckets the heuristics were unsure about. Null for legacy/AI rows.
+  categoryConfidence Float?
   lastMessageAt  DateTime?
   lastAnalyzedAt DateTime?
   /// Denormalized: the latest message is INBOUND (client is awaiting our reply).
