@@ -4,10 +4,24 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase'
 import Link from 'next/link'
-import { ArrowRight, Mail, TriangleAlert } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff, Mail, TriangleAlert } from 'lucide-react'
 
 type Method = 'password' | 'magic-link'
 type Status = 'idle' | 'loading' | 'sent' | 'error'
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+// Supabase surfaces terse, lowercase errors. Translate the common ones into
+// plain, actionable language; pass anything unrecognised through unchanged.
+function friendlyError(msg: string): string {
+  const m = msg.toLowerCase()
+  if (m.includes('invalid login')) return "That email or password doesn't match. Please try again."
+  if (m.includes('already registered') || m.includes('already been registered') || m.includes('user already')) return 'An account with this email already exists — try signing in instead.'
+  if (m.includes('email not confirmed')) return 'Please confirm your email first — check your inbox for the link we sent.'
+  if (m.includes('rate limit') || m.includes('too many')) return 'Too many attempts. Please wait a moment and try again.'
+  if (m.includes('should be at least') || m.includes('password')) return msg
+  return msg || 'Something went wrong. Please try again.'
+}
 
 function GoogleIcon() {
   return (
@@ -28,9 +42,14 @@ export default function AuthForm({ mode = 'login' }: { mode?: 'login' | 'signup'
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState<Status>('idle')
   const [errorMsg, setErrorMsg] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   async function handlePasswordSubmit(e: React.FormEvent) {
     e.preventDefault()
+    // Validate up-front so the user gets an instant, specific message instead of
+    // a round-trip and a cryptic provider error.
+    if (!EMAIL_RE.test(email.trim())) { setErrorMsg('Enter a valid email address.'); setStatus('error'); return }
+    if (mode === 'signup' && password.length < 8) { setErrorMsg('Password must be at least 8 characters.'); setStatus('error'); return }
     setStatus('loading')
     setErrorMsg('')
     try {
@@ -44,13 +63,13 @@ export default function AuthForm({ mode = 'login' }: { mode?: 'login' | 'signup'
             emailRedirectTo: `${window.location.origin}/callback`,
           },
         })
-        if (error) { setErrorMsg(error.message); setStatus('error'); return }
+        if (error) { setErrorMsg(friendlyError(error.message)); setStatus('error'); return }
         // Projects with email confirmation disabled get a session immediately;
         // otherwise the user needs to click the confirmation link we just sent.
         setStatus('sent')
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) { setErrorMsg(error.message); setStatus('error'); return }
+        if (error) { setErrorMsg(friendlyError(error.message)); setStatus('error'); return }
         router.push('/dashboard')
         router.refresh()
       }
@@ -62,6 +81,7 @@ export default function AuthForm({ mode = 'login' }: { mode?: 'login' | 'signup'
 
   async function handleMagicLinkSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!EMAIL_RE.test(email.trim())) { setErrorMsg('Enter a valid email address.'); setStatus('error'); return }
     setStatus('loading')
     setErrorMsg('')
     try {
@@ -70,7 +90,7 @@ export default function AuthForm({ mode = 'login' }: { mode?: 'login' | 'signup'
         email,
         options: { emailRedirectTo: `${window.location.origin}/callback` },
       })
-      if (error) { setErrorMsg(error.message); setStatus('error') }
+      if (error) { setErrorMsg(friendlyError(error.message)); setStatus('error') }
       else setStatus('sent')
     } catch {
       setErrorMsg('Something went wrong. Please try again.')
@@ -153,15 +173,27 @@ export default function AuthForm({ mode = 'login' }: { mode?: 'login' | 'signup'
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Password</label>
-            <input
-              type="password"
-              className="input-base"
-              placeholder={mode === 'signup' ? 'At least 8 characters' : '••••••••'}
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              minLength={8}
-              required
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                className="input-base"
+                placeholder={mode === 'signup' ? 'At least 8 characters' : '••••••••'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                minLength={8}
+                required
+                style={{ paddingRight: 44 }}
+              />
+              <button
+                type="button"
+                className="input-eye"
+                onClick={() => setShowPassword(s => !s)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           {status === 'error' && (

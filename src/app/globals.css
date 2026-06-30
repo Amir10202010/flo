@@ -430,6 +430,26 @@
 }
 .input-base::placeholder { color: var(--text-muted); }
 
+/* Show/hide toggle inside a password field */
+.input-eye {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color 0.13s, background 0.13s;
+}
+.input-eye:hover { color: var(--text-secondary); background: var(--bg-hover); }
+
 /* ── Marketing nav links (with active state) ────────────────────────────── */
 .nav-link {
   position: relative;

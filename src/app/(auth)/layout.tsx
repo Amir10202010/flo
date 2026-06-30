@@ -19,25 +19,16 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        position: 'relative',
-        overflow: 'hidden',
         background: 'var(--bg-base)',
       }}
     >
-      <div className="mesh mesh-soft" />
-      <div className="mesh-veil" />
-      <div className="dot-grid" />
-
-      <header
-        className="glass"
-        style={{ position: 'relative', zIndex: 2, flexShrink: 0 }}
-      >
+      <header style={{ flexShrink: 0, borderBottom: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
         <div style={{ maxWidth: 1140, margin: '0 auto', padding: '0 32px', height: 62, display: 'flex', alignItems: 'center' }}>
-          <Brand size={26} />
+          <Brand size={24} />
         </div>
       </header>
 
-      <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
         {children}
       </div>
     </div>
