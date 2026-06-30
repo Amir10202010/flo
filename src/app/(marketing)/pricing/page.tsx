@@ -46,22 +46,22 @@ function PlanCard({ plan, period }: { plan: BillingPlan; period: BillingPeriod }
         display: 'flex',
         flexDirection: 'column',
         padding: '28px 24px',
-        borderRadius: 18,
-        background: accent ? 'linear-gradient(180deg, rgba(79,92,244,0.05) 0%, #FFFFFF 40%)' : '#FFFFFF',
-        border: `1px solid ${accent ? 'rgba(79,92,244,0.25)' : 'var(--border)'}`,
-        boxShadow: accent ? '0 12px 40px rgba(79,92,244,0.12)' : 'var(--shadow-sm)',
+        borderRadius: 14,
+        background: '#FFFFFF',
+        border: `1px solid ${accent ? 'var(--accent)' : 'var(--border)'}`,
+        boxShadow: 'var(--shadow-sm)',
         position: 'relative',
       }}
     >
       {accent && (
-        <span style={{ position: 'absolute', top: -12, left: 24, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', background: 'var(--accent)', padding: '5px 12px', borderRadius: 999 }}>
+        <span style={{ position: 'absolute', top: -10, left: 24, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#fff', background: 'var(--accent)', padding: '4px 11px', borderRadius: 6 }}>
           Most popular
         </span>
       )}
       <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px' }}>{info.name}</h3>
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 18px', lineHeight: 1.55, minHeight: 40 }}>{info.tagline}</p>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
-        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 34, fontWeight: 400, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{price}</span>
+        <span style={{ fontSize: 32, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{price}</span>
         {sub && <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{sub}</span>}
       </div>
       <Link href={c.href} className={accent ? 'btn-primary' : 'btn-ghost'} style={{ justifyContent: 'center', textDecoration: 'none', marginBottom: 20, gap: 8 }}>
@@ -91,10 +91,11 @@ export default function PricingPage() {
             <motion.h1
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, ease: 'easeOut' }}
-              style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 400, color: 'var(--text-primary)', letterSpacing: '-0.03em', margin: '0 0 16px' }}
+              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+              className="display-title"
+              style={{ fontSize: 'clamp(32px, 4.6vw, 46px)', margin: '0 0 16px' }}
             >
-              Start solo, grow into a <span style={{ color: 'var(--accent)' }}>team</span>
+              Start solo, grow into a team
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
@@ -119,7 +120,7 @@ export default function PricingPage() {
                     fontSize: 13,
                     fontWeight: 600,
                     color: period === p ? '#fff' : 'var(--text-secondary)',
-                    background: period === p ? 'var(--accent)' : 'transparent',
+                    background: period === p ? 'var(--text-primary)' : 'transparent',
                   }}
                 >
                   {p === 'monthly' ? 'Monthly' : 'Annual · 2 months free'}

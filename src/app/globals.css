@@ -1060,6 +1060,54 @@
   .compare th, .compare td { padding: 12px 12px; font-size: 12.5px; }
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   Landing page (clean) — calm feature grid, numbered steps, dark CTA panel.
+   Hairline-separated cells (no per-card shadows), one neutral accent.
+   ══════════════════════════════════════════════════════════════════════════ */
+.lp-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border-light);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.lp-feature { background: var(--bg-surface); padding: 26px 24px; }
+@media (max-width: 860px) { .lp-features { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .lp-features { grid-template-columns: 1fr; } }
+
+.lp-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+@media (max-width: 760px) { .lp-steps { grid-template-columns: 1fr; gap: 22px; } }
+.lp-step-n {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 14px; font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.lp-cta {
+  background: #15172A;
+  border-radius: var(--radius-xl);
+  padding: clamp(36px, 6vw, 60px);
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center;
+}
+.lp-cta-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 22px;
+  border-radius: var(--radius-sm);
+  background: #fff; color: #15172A;
+  font-size: 15px; font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.lp-cta-btn:hover { background: #EEF0FA; }
+
 /* ── Scripted demo (cinematic) ──────────────────────────────────────────── */
 .scene {
   position: relative;

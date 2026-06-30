@@ -6,15 +6,15 @@ const ITEMS = [
 
 export default function HeroMockup() {
   return (
-    <div className="animate-float" style={{ position: 'relative' }}>
+    <div style={{ position: 'relative' }}>
       <div
         style={{
-          width: 'min(340px, 86vw)',
-          borderRadius: 14,
+          width: 'min(360px, 88vw)',
+          borderRadius: 12,
           overflow: 'hidden',
           background: '#FFFFFF',
-          border: '1px solid rgba(0,0,0,0.07)',
-          boxShadow: '0 30px 70px rgba(12,18,60,0.18), 0 0 0 1px rgba(12,18,60,0.04)',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--shadow-lg)',
         }}
       >
         {/* Browser chrome */}
@@ -32,8 +32,7 @@ export default function HeroMockup() {
           {/* Sidebar — mirrors the real dashboard nav */}
           <div style={{ width: 118, background: '#F6F8FE', borderRight: '1px solid #ECEEF8', display: 'flex', flexDirection: 'column', padding: '12px 8px', gap: 12, flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px' }}>
-              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 15, color: '#0C0E1D', letterSpacing: '-0.03em', lineHeight: 1 }}>velnox</span>
-              <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)', marginBottom: 6, display: 'inline-block' }} />
+              <span style={{ fontWeight: 600, fontSize: 15, color: '#0C0E1D', letterSpacing: '-0.035em', lineHeight: 1 }}>velnox</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {[
@@ -90,8 +89,7 @@ export default function HeroMockup() {
               style={{ margin: '10px 10px 0', padding: '8px 10px', borderRadius: 9, background: 'rgba(220,43,85,0.06)', border: '1px solid rgba(220,43,85,0.15)' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                <div className="animate-pulse-s" style={{ width: 5, height: 5, borderRadius: '50%', background: '#DC2B55' }} />
-                <span style={{ fontSize: 9, fontWeight: 700, color: '#DC2B55', letterSpacing: '0.07em', textTransform: 'uppercase' }}>AI · HIGH RISK</span>
+                <span style={{ fontSize: 9, fontWeight: 700, color: '#DC2B55', letterSpacing: '0.07em', textTransform: 'uppercase' }}>AI · High risk</span>
               </div>
               <p style={{ fontSize: 10, color: '#4B5282', margin: '0 0 3px', lineHeight: 1.4 }}>Alex is ready to buy — needs a response.</p>
               <p style={{ fontSize: 10, color: '#4F5CF4', margin: 0, fontWeight: 500 }}>→ Reply within 30 minutes</p>

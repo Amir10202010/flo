@@ -76,7 +76,7 @@ function FeatureRow({ row, flip }: { row: Row; flip: boolean }) {
           </span>
           <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent)' }}>{row.eyebrow}</span>
         </div>
-        <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px, 3.4vw, 38px)', fontWeight: 400, color: 'var(--text-primary)', letterSpacing: '-0.03em', margin: '0 0 14px', lineHeight: 1.12 }}>
+        <h2 className="display-title" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', lineHeight: 1.14, margin: '0 0 14px' }}>
           {row.title}
         </h2>
         <p style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 22px', maxWidth: 440 }}>{row.desc}</p>
@@ -106,21 +106,16 @@ export default function FeaturesPage() {
         <Navbar />
 
         {/* Hero */}
-        <section className="hero-top mkt-x" style={{ paddingLeft: 32, paddingRight: 32, position: 'relative', overflow: 'hidden' }}>
-          <div className="mesh mesh-soft" />
-          <div className="mesh-veil" />
-          <div className="dot-grid" />
-          <div style={{ position: 'relative', zIndex: 1, maxWidth: 760, margin: '0 auto', textAlign: 'center' }}>
-            <motion.p initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 16 }}>
-              FEATURES
-            </motion.p>
+        <section className="hero-top mkt-x" style={{ paddingLeft: 32, paddingRight: 32 }}>
+          <div style={{ maxWidth: 760, margin: '0 auto', textAlign: 'center' }}>
             <motion.h1
-              initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: 'easeOut' }}
-              style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(36px, 5.5vw, 60px)', fontWeight: 400, color: 'var(--text-primary)', letterSpacing: '-0.04em', lineHeight: 1.05, margin: '0 0 20px' }}
+              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+              className="display-title"
+              style={{ fontSize: 'clamp(34px, 5vw, 54px)', margin: '0 0 18px' }}
             >
-              Everything your team needs to <span style={{ fontStyle: 'italic', color: 'var(--accent)' }}>stay on top of the inbox</span>
+              Everything your team needs to stay on top of the inbox
             </motion.h1>
-            <motion.p initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: 'easeOut', delay: 0.1 }} style={{ fontSize: 18, color: 'var(--text-secondary)', lineHeight: 1.65, margin: '0 auto', maxWidth: 520 }}>
+            <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1], delay: 0.08 }} style={{ fontSize: 18, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 auto', maxWidth: 520 }}>
               Shared handling, AI triage, routing and search — built to turn a busy mailbox into a coordinated team queue.
             </motion.p>
           </div>
@@ -134,23 +129,16 @@ export default function FeaturesPage() {
         </section>
 
         {/* CTA */}
-        <section className="mkt-x mkt-pt mkt-pb" style={{ padding: '100px 32px 120px' }}>
-          <motion.div
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-            className="cta-inner"
-            style={{ maxWidth: 600, margin: '0 auto', borderRadius: 24, background: 'linear-gradient(135deg, #4F5CF4 0%, #7C4DFF 100%)', textAlign: 'center', boxShadow: '0 20px 60px rgba(79,92,244,0.3)', position: 'relative', overflow: 'hidden' }}
-          >
-            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.12) 0%, transparent 60%)', pointerEvents: 'none' }} />
-            <div style={{ position: 'relative' }}>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px, 4vw, 38px)', fontWeight: 400, color: '#FFFFFF', margin: '0 0 14px', letterSpacing: '-0.03em' }}>
+        <section className="mkt-x" style={{ padding: '40px 32px 110px' }}>
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} style={{ maxWidth: 760, margin: '0 auto' }}>
+            <div className="lp-cta">
+              <h2 className="display-title" style={{ fontSize: 'clamp(24px, 3vw, 34px)', color: '#fff', margin: '0 0 12px' }}>
                 Bring your team onto one inbox
               </h2>
-              <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.82)', margin: '0 0 32px', lineHeight: 1.65 }}>
+              <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.72)', margin: '0 0 28px', lineHeight: 1.6 }}>
                 Set up in minutes. Free to start, invite your whole team.
               </p>
-              <Link href="/signup" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 28px', background: '#FFFFFF', color: 'var(--accent)', borderRadius: 8, fontSize: 15, fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
-                Get started free <ArrowRight size={16} />
-              </Link>
+              <Link href="/signup" className="lp-cta-btn">Get started free <ArrowRight size={16} /></Link>
             </div>
           </motion.div>
         </section>

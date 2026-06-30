@@ -5,22 +5,13 @@ import Footer from '@/components/layout/Footer'
 
 /* ── Prose primitives ─────────────────────────────────────────────────────────
    Server-component-safe building blocks that match the marketing design system
-   (Instrument Serif headings, DM Sans body, the shared colour tokens). Reused by
-   the /privacy and /terms pages so legal copy stays visually consistent. */
+   (Inter headings + body, shared colour tokens). Reused by the /privacy and
+   /terms pages so legal copy stays visually consistent. */
 
 export function LegalSection({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
     <section id={id} style={{ scrollMarginTop: 100 }}>
-      <h2
-        style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: 'clamp(22px, 3vw, 28px)',
-          fontWeight: 400,
-          color: 'var(--text-primary)',
-          letterSpacing: '-0.02em',
-          margin: '0 0 14px',
-        }}
-      >
+      <h2 className="section-title" style={{ fontSize: 'clamp(20px, 2.6vw, 25px)', margin: '0 0 14px' }}>
         {title}
       </h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{children}</div>
@@ -71,29 +62,7 @@ export default function LegalLayout({
       {/* ── Header ───────────────────────────────────────────────────────────── */}
       <section className="hero-top mkt-x" style={{ paddingLeft: 32, paddingRight: 32 }}>
         <div style={{ maxWidth: 760, margin: '0 auto', textAlign: 'center' }}>
-          <span
-            style={{
-              display: 'inline-block',
-              fontSize: 12.5,
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: 'var(--accent)',
-              marginBottom: 14,
-            }}
-          >
-            Legal
-          </span>
-          <h1
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: 'clamp(32px, 5vw, 48px)',
-              fontWeight: 400,
-              color: 'var(--text-primary)',
-              letterSpacing: '-0.03em',
-              margin: '0 0 16px',
-            }}
-          >
+          <h1 className="display-title" style={{ fontSize: 'clamp(32px, 4.6vw, 46px)', margin: '0 0 16px' }}>
             {title}
           </h1>
           <p style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 18px' }}>{intro}</p>

@@ -1,197 +1,56 @@
 'use client'
 
-import React, { useRef, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
+import { motion, MotionConfig, AnimatePresence, type Variants } from 'framer-motion'
 import {
-  motion, type Variants, MotionConfig, AnimatePresence,
-  useReducedMotion, useMotionValue, useMotionTemplate, useSpring, useTransform, useScroll,
-} from 'framer-motion'
-import { ArrowRight, Check, Inbox, Shield, Sparkles, Bot, Search, SlidersHorizontal, Plus, X, Zap, TrendingUp, Play, type LucideIcon } from 'lucide-react'
+  ArrowRight, Check, X, Inbox, UserPlus, MessageSquare,
+  SlidersHorizontal, Sparkles, ShieldCheck, Plus, type LucideIcon,
+} from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
-import HeroVisual from '@/components/marketing/HeroVisual'
 import ProductDemo from '@/components/marketing/ProductDemo'
+import HeroMockup from '@/components/marketing/HeroMockup'
 
-/* ── Motion Variants ─────────────────────────────────────────────────────── */
-const fadeUp: Variants = {
-  hidden:   { opacity: 0, y: 20 },
-  visible:  { opacity: 1, y: 0, transition: { duration: 0.55, ease: 'easeOut' } },
+/* One calm reveal, reused everywhere. Subtle fade + lift; respects reduced motion
+   via the page-level <MotionConfig reducedMotion="user">. No magnetic cursors,
+   spotlights, parallax or scroll-drawn flourishes — the content is the design. */
+const reveal: Variants = {
+  hidden:  { opacity: 0, y: 14 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
 }
 
-const stagger: Variants = {
-  hidden:  {},
-  visible: { transition: { staggerChildren: 0.1 } },
-}
-
-const fromRight: Variants = {
-  hidden:  { opacity: 0, x: 32 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.65, ease: 'easeOut' } },
-}
-
-/* Signature reveal — blur + lift, used for hero lines and section headers. */
-const blurUp: Variants = {
-  hidden:  { opacity: 0, y: 26, filter: 'blur(10px)' },
-  visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.75, ease: [0.16, 1, 0.3, 1] } },
-}
-
-/* ── Magnetic wrapper — element eases toward the cursor on hover ──────────── */
-function Magnetic({ children, strength = 0.35 }: { children: React.ReactNode; strength?: number }) {
-  const reduce = useReducedMotion()
-  const x = useMotionValue(0)
-  const y = useMotionValue(0)
-  const sx = useSpring(x, { stiffness: 220, damping: 16 })
-  const sy = useSpring(y, { stiffness: 220, damping: 16 })
-  return (
-    <motion.span
-      style={{ display: 'inline-flex', x: sx, y: sy }}
-      onMouseMove={(e) => {
-        if (reduce) return
-        const r = e.currentTarget.getBoundingClientRect()
-        x.set((e.clientX - r.left - r.width / 2) * strength)
-        y.set((e.clientY - r.top - r.height / 2) * strength)
-      }}
-      onMouseLeave={() => { x.set(0); y.set(0) }}
-    >
-      {children}
-    </motion.span>
-  )
-}
-
-/* Cursor-follow spotlight handler for cards — sets --mx/--my CSS vars. */
-function spotlightMove(e: React.MouseEvent<HTMLElement>) {
-  const r = e.currentTarget.getBoundingClientRect()
-  e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left}px`)
-  e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`)
-}
-
-/* Branded section kicker — one consistent system in place of repeated eyebrows. */
-function Kicker({ children }: { children: React.ReactNode }) {
-  return (
-    <motion.span variants={fadeUp} className="kicker">
-      <span className="kicker-dot" />
-      {children}
-    </motion.span>
-  )
-}
-
-function Section({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+function Reveal({ children, className, style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
     <motion.div
+      className={className}
+      style={style}
+      variants={reveal}
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true, margin: '-80px' }}
-      variants={stagger}
-      className={className}
+      viewport={{ once: true, margin: '-60px' }}
     >
       {children}
     </motion.div>
   )
 }
 
-function BentoCard({ icon: Icon, title, desc }: { icon: LucideIcon; title: string; desc: string }) {
-  return (
-    <motion.div variants={fadeUp} className="bento-item spotlight-card grad-edge" onMouseMove={spotlightMove}>
-      <div className="b-icon"><Icon size={20} style={{ color: 'var(--accent)' }} /></div>
-      <h3>{title}</h3>
-      <p>{desc}</p>
-    </motion.div>
-  )
-}
-
-/* ── Scroll-drawn timeline (How it works) ─────────────────────────────────── */
-function TimelineItem({ n, title, desc }: { n: number; title: string; desc: string }) {
-  // `on` starts false on BOTH server and client first render (no reduce branch)
-  // so hydration matches; it flips when the node scrolls into view. Reduced
-  // motion is handled globally by <MotionConfig reducedMotion="user">.
-  const [on, setOn] = useState(false)
-  return (
-    <div className="tl-item">
-      <motion.div
-        className="tl-node"
-        data-on={on}
-        initial={{ scale: 0.6, opacity: 0 }}
-        whileInView={{ scale: 1, opacity: 1 }}
-        onViewportEnter={() => setOn(true)}
-        viewport={{ once: true, margin: '-45% 0px -45% 0px' }}
-        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-      >
-        {n}
-      </motion.div>
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-30% 0px -30% 0px' }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        style={{ paddingTop: 5 }}
-      >
-        <h3 style={{ fontSize: 16.5, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 7px', lineHeight: 1.3 }}>{title}</h3>
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.65 }}>{desc}</p>
-      </motion.div>
-    </div>
-  )
-}
-
-function Timeline({ steps }: { steps: { n: number; title: string; desc: string }[] }) {
-  const reduce = useReducedMotion()
-  const ref = useRef<HTMLDivElement>(null)
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start 72%', 'end 65%'] })
-  const scaleY = useSpring(scrollYProgress, { stiffness: 110, damping: 30, restDelta: 0.001 })
-  return (
-    <div className="timeline" ref={ref}>
-      <div className="tl-rail">
-        <motion.div className="tl-progress" style={{ scaleY: reduce ? 1 : scaleY }} />
-      </div>
-      {steps.map(s => <TimelineItem key={s.n} {...s} />)}
-    </div>
-  )
-}
-
-/* ── Marquee items (real brand logos + lucide glyphs) ──────────────────────── */
-const MARQUEE: { name: string; src?: string; Icon?: LucideIcon; soon?: boolean }[] = [
-  { name: 'Gmail', src: '/icons/gmail.svg' },
-  { name: 'AI priority', Icon: Sparkles },
-  { name: 'Risk alerts', Icon: Shield },
-  { name: 'Suggested replies', Icon: Bot },
-  { name: 'Smart search', Icon: Search },
-  { name: 'Telegram', src: '/icons/telegram.svg', soon: true },
-  { name: 'WhatsApp', src: '/icons/whatsapp.svg', soon: true },
-  { name: 'Instagram', src: '/icons/instagram.svg', soon: true },
+/* ── Content ─────────────────────────────────────────────────────────────── */
+const FEATURES: { icon: LucideIcon; title: string; desc: string }[] = [
+  { icon: Inbox, title: 'One shared inbox', desc: 'Your whole team works a single Gmail queue — sorted by priority, with the assignee right on the row.' },
+  { icon: UserPlus, title: 'Assignment & ownership', desc: 'Assign any thread, move it through Open / Snoozed / Closed, and always see who’s handling what. No collisions.' },
+  { icon: MessageSquare, title: 'Internal notes', desc: 'Discuss a thread with your team right inside it — private notes the customer never sees.' },
+  { icon: SlidersHorizontal, title: 'Routing rules', desc: 'Auto-assign and tag incoming mail by sender, subject or inbox, so every message lands on the right person.' },
+  { icon: Sparkles, title: 'AI triage & drafts', desc: 'A clear priority, risk flags, and a drafted reply on every thread — review-before-send, never auto-sent.' },
+  { icon: ShieldCheck, title: 'Roles & audit log', desc: 'Owner, Admin, Member and Viewer roles, with an audit log of every action across the workspace.' },
 ]
 
-/* ── FAQ ───────────────────────────────────────────────────────────────────── */
-const FAQS = [
-  { q: 'How does Velnox connect to our mailbox?', a: 'An admin connects a shared Gmail mailbox (support@, sales@, hello@…) in two clicks with Google’s secure OAuth — Velnox never sees or stores a password. Threads start syncing into your team’s shared inbox within minutes.' },
-  { q: 'How does the team work together on one inbox?', a: 'Every conversation can be assigned to a teammate, moved through Open / Snoozed / Closed, tagged, and discussed with internal notes only your team sees. No more “did anyone reply to this?” in Slack.' },
-  { q: 'What does the AI actually do?', a: 'It reads each thread, assigns a clear priority, flags accounts going at-risk, and drafts a reply in your team’s voice — review-before-send, never auto-sent. Routing rules can auto-assign and tag incoming mail.' },
-  { q: 'How do roles and permissions work?', a: 'Four roles — Owner, Admin, Member, Viewer. Members work the inbox; Admins manage members, inboxes, rules and billing; Viewers get read-only access. Every change is recorded in the audit log.' },
-  { q: 'Is our data private and secure?', a: 'OAuth tokens are encrypted at rest (AES-256-GCM), data is scoped per organization, and conversations are only ever used to power your own workspace. We never sell or share your data.' },
+const STEPS = [
+  { n: 1, title: 'Connect a shared inbox', desc: 'An admin connects a shared Gmail mailbox with Google OAuth and invites teammates with roles — in minutes.' },
+  { n: 2, title: 'Velnox triages & routes', desc: 'Every thread gets a priority and risk read; routing rules auto-assign and tag incoming mail to the right person.' },
+  { n: 3, title: 'Assign, discuss, reply', desc: 'Your team works one queue — assign, leave internal notes, and send AI-drafted replies. Nothing slips.' },
 ]
 
-function FaqItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean; onToggle: () => void }) {
-  return (
-    <div className="faq-item" data-open={open}>
-      <button className="faq-q" onClick={onToggle} aria-expanded={open}>
-        {q}
-        <Plus size={18} className="faq-icon" />
-      </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-            style={{ overflow: 'hidden' }}
-          >
-            <p style={{ padding: '0 22px 18px', margin: 0, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{a}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
-
-/* ── Comparison ────────────────────────────────────────────────────────────── */
 // crm = legacy help desk, manual = a plain shared Gmail mailbox
 const COMPARE: { label: string; flo: boolean; crm: boolean; manual: boolean }[] = [
   { label: 'Works on the Gmail your team already uses', flo: true, crm: false, manual: true },
@@ -202,407 +61,161 @@ const COMPARE: { label: string; flo: boolean; crm: boolean; manual: boolean }[] 
   { label: 'Live in minutes, no migration', flo: true, crm: false, manual: true },
 ]
 
-function Cell({ on }: { on: boolean }) {
-  return on
-    ? <Check size={17} style={{ color: 'var(--accent)' }} />
-    : <X size={16} style={{ color: 'var(--text-muted)', opacity: 0.6 }} />
-}
-
-/* ── Stats ─────────────────────────────────────────────────────────────────── */
-const STATS = [
-  { val: 'One inbox', lbl: 'Your whole team works the same queue' },
-  { val: 'Assign & note', lbl: 'No more “did anyone reply to this?”' },
-  { val: 'Roles & audit', lbl: 'Owner · Admin · Member · Viewer' },
-  { val: 'AES-256', lbl: 'Encryption on every connected mailbox' },
+const FAQS = [
+  { q: 'How does Velnox connect to our mailbox?', a: 'An admin connects a shared Gmail mailbox (support@, sales@, hello@…) in two clicks with Google’s secure OAuth — Velnox never sees or stores a password. Threads start syncing within minutes.' },
+  { q: 'How does the team work together on one inbox?', a: 'Every conversation can be assigned to a teammate, moved through Open / Snoozed / Closed, tagged, and discussed with internal notes only your team sees.' },
+  { q: 'What does the AI actually do?', a: 'It reads each thread, assigns a clear priority, flags accounts going at-risk, and drafts a reply in your team’s voice — review-before-send, never auto-sent. Routing rules can auto-assign and tag incoming mail.' },
+  { q: 'How do roles and permissions work?', a: 'Four roles — Owner, Admin, Member, Viewer. Members work the inbox; Admins manage members, inboxes, rules and billing; Viewers get read-only access. Every change is recorded in the audit log.' },
+  { q: 'Is our data private and secure?', a: 'OAuth tokens are encrypted at rest (AES-256-GCM), data is scoped per organization, and conversations are only ever used to power your own workspace. We never sell or share your data.' },
 ]
 
+function Cell({ on }: { on: boolean }) {
+  return on
+    ? <Check size={17} style={{ color: 'var(--text-primary)' }} />
+    : <X size={15} style={{ color: 'var(--text-muted)', opacity: 0.55 }} />
+}
+
+/* Shared section heading */
+function SectionHead({ title, sub, align = 'center' }: { title: string; sub?: string; align?: 'center' | 'left' }) {
+  return (
+    <Reveal style={{ textAlign: align, marginBottom: 48, maxWidth: align === 'center' ? 640 : undefined, marginLeft: align === 'center' ? 'auto' : undefined, marginRight: align === 'center' ? 'auto' : undefined }}>
+      <h2 className="display-title" style={{ fontSize: 'clamp(28px, 3.6vw, 40px)', margin: 0 }}>{title}</h2>
+      {sub && <p style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '12px auto 0', maxWidth: 540 }}>{sub}</p>}
+    </Reveal>
+  )
+}
+
 export default function LandingPage() {
-  const [openFaq, setOpenFaq] = useState<number | null>(null)
-
-  /* Hero pointer + scroll motion: cursor spotlight, card parallax, drift. */
-  const heroRef = useRef<HTMLElement>(null)
-  const mx = useMotionValue(0)
-  const my = useMotionValue(0)
-  const pnx = useMotionValue(0)
-  const pny = useMotionValue(0)
-  const spotlight = useMotionTemplate`radial-gradient(620px circle at ${mx}px ${my}px, rgba(79,92,244,0.10), transparent 62%)`
-
-  const sx = useSpring(pnx, { stiffness: 110, damping: 20 })
-  const sy = useSpring(pny, { stiffness: 110, damping: 20 })
-  const tlX = useTransform(sx, [-0.5, 0.5], [26, -26])
-  const tlY = useTransform(sy, [-0.5, 0.5], [18, -18])
-  const brX = useTransform(sx, [-0.5, 0.5], [-30, 30])
-  const brY = useTransform(sy, [-0.5, 0.5], [-20, 20])
-
-  const { scrollY } = useScroll()
-  const visualDrift = useTransform(scrollY, [0, 700], [0, 70])
-  const textDrift = useTransform(scrollY, [0, 700], [0, -36])
-
-  const onHeroMove = (e: React.MouseEvent<HTMLElement>) => {
-    const r = heroRef.current?.getBoundingClientRect()
-    if (!r) return
-    mx.set(e.clientX - r.left)
-    my.set(e.clientY - r.top)
-    pnx.set((e.clientX - r.left) / r.width - 0.5)
-    pny.set((e.clientY - r.top) / r.height - 0.5)
-  }
+  const [openFaq, setOpenFaq] = useState<number | null>(0)
 
   return (
     <MotionConfig reducedMotion="user">
-    <div style={{ background: 'var(--bg-base)', minHeight: '100vh' }}>
-      <Navbar />
+      <div style={{ background: 'var(--bg-base)', minHeight: '100vh' }}>
+        <Navbar />
 
-      {/* ── Hero ──────────────────────────────────────────────────────────── */}
-      <section
-        ref={heroRef}
-        onMouseMove={onHeroMove}
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          paddingTop: 80,
-          paddingBottom: 60,
-          background: 'var(--bg-base)',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        <div className="mesh mesh-hero" />
-        <div className="mesh-veil" />
-        <div className="dot-grid" />
-        <motion.div className="hero-spotlight" aria-hidden style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', background: spotlight }} />
-        <div className="grain" />
-        <div className="glow" style={{ width: 540, height: 540, top: -140, right: -60, background: 'radial-gradient(circle, rgba(79,92,244,0.16), transparent 70%)' }} />
-        <div className="glow" style={{ width: 420, height: 420, bottom: -160, left: -80, background: 'radial-gradient(circle, rgba(124,77,255,0.12), transparent 70%)' }} />
+        {/* ── Hero ────────────────────────────────────────────────────────── */}
+        <section className="hero-top mkt-x" style={{ padding: '140px 32px 72px', maxWidth: 1140, margin: '0 auto' }}>
+          <div className="hero-grid" style={{ display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: 64, alignItems: 'center' }}>
+            <div>
+              <motion.h1
+                className="display-title"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                style={{ fontSize: 'clamp(38px, 5.6vw, 60px)', margin: '0 0 20px' }}
+              >
+                One shared inbox for your whole team
+              </motion.h1>
 
-        <div
-          className="hero-grid mkt-x"
-          style={{ position: 'relative', zIndex: 2, maxWidth: 1140, margin: '0 auto', padding: '0 32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center', width: '100%' }}
-        >
-          {/* Left: text */}
-          <motion.div variants={stagger} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', gap: 0, y: textDrift }}>
+              <motion.p
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.55, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
+                style={{ fontSize: 18, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 28px', maxWidth: 480 }}
+              >
+                Velnox turns your team’s shared Gmail into one AI-triaged queue — assign threads, leave
+                internal notes, and send AI-drafted replies. Built for support, sales and ops teams.
+              </motion.p>
 
-            <motion.div variants={blurUp} className="hero-badge" style={{ marginBottom: 26 }}>
-              <span className="hb-dot" />
-              <span><span className="hb-shine">New</span> · The AI shared inbox for teams</span>
-            </motion.div>
-
-            <motion.h1
-              variants={stagger}
-              style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(40px, 9vw, 78px)', fontWeight: 400, lineHeight: 1.04, letterSpacing: '-0.04em', color: 'var(--text-primary)', margin: '0 0 24px', textWrap: 'balance' }}
-            >
-              <motion.span variants={blurUp} style={{ display: 'block' }}>One shared inbox</motion.span>
-              <motion.span variants={blurUp} style={{ display: 'block' }}>
-                <em style={{ fontStyle: 'italic' }}>for your whole</em>
-                {' '}
-                <span style={{ position: 'relative', display: 'inline-block' }}>
-                  <span className="ink-grad">team</span>
-                  <svg className="flourish" viewBox="0 0 300 24" preserveAspectRatio="none" aria-hidden="true">
-                    <motion.path
-                      d="M5 15 C 70 5, 150 3, 295 13"
-                      initial={{ pathLength: 0, opacity: 0 }}
-                      animate={{ pathLength: 1, opacity: 0.85 }}
-                      transition={{ duration: 0.9, delay: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                    />
-                  </svg>
-                </span>
-              </motion.span>
-            </motion.h1>
-
-            <motion.p
-              variants={blurUp}
-              style={{ fontSize: 18, color: 'var(--text-secondary)', lineHeight: 1.65, margin: '0 0 36px', maxWidth: 480 }}
-            >
-              Velnox turns your team&apos;s shared mailbox into one AI-triaged queue — assign threads, leave internal notes, and send AI-drafted replies. Built for support, sales and ops teams.
-            </motion.p>
-
-            <motion.div variants={fadeUp} className="hero-cta" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 28 }}>
-              <Magnetic strength={0.4}>
-                <Link href="/signup" className="btn-primary btn-shine" style={{ fontSize: 15, padding: '14px 28px' }}>
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.55, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+                className="hero-cta"
+                style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 22 }}
+              >
+                <Link href="/signup" className="btn-primary" style={{ fontSize: 15 }}>
                   Get early access <ArrowRight size={16} />
                 </Link>
-              </Magnetic>
-              <a href="#demo" className="btn-ghost" style={{ fontSize: 15, padding: '13px 24px', background: '#FFFFFF', color: 'var(--text-primary)', boxShadow: 'var(--shadow-sm)' }}>
-                <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent-dim)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Play size={11} style={{ color: 'var(--accent)', fill: 'var(--accent)', marginLeft: 1 }} />
-                </span>
-                See how it works
-              </a>
-            </motion.div>
-
-            {/* Trust row — who it's for + how it's secured */}
-            <motion.div variants={fadeUp} style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 26, flexWrap: 'wrap' }}>
-              <div style={{ width: 40, height: 40, borderRadius: 11, background: 'var(--accent-dim)', border: '1px solid rgba(79,92,244,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Shield size={18} style={{ color: 'var(--accent)' }} />
-              </div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Built for support, sales &amp; ops teams</div>
-                <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Connected with Google OAuth · AES-256 encrypted · we never store your password.</span>
-              </div>
-            </motion.div>
-
-            <motion.div variants={fadeUp} className="hero-checks" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-              {['Set up in minutes', 'Free to start', 'Roles & permissions'].map((t, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(79,92,244,0.1)', border: '1px solid rgba(79,92,244,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Check size={10} style={{ color: 'var(--accent)' }} />
-                  </div>
-                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{t}</span>
-                </div>
-              ))}
-            </motion.div>
-          </motion.div>
-
-          {/* Right: WebGL glass core + parallax floating glass metric cards */}
-          <motion.div className="hero-mockup" variants={fromRight} initial="hidden" animate="visible" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', y: visualDrift }}>
-            <div className="hero-stage">
-              <motion.div className="fc-pos fc-pos-tl" style={{ x: tlX, y: tlY }}>
-                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.9, ease: [0.16, 1, 0.3, 1] }}>
-                  <div className="float-card bob">
-                    <div className="fc-icon" style={{ background: 'rgba(14,163,113,0.12)' }}><TrendingUp size={17} style={{ color: '#0EA371' }} /></div>
-                    <div><div className="fc-val">Sorted</div><div className="fc-lbl">by priority</div></div>
-                  </div>
-                </motion.div>
+                <a href="#demo" className="btn-ghost" style={{ fontSize: 15 }}>See how it works</a>
               </motion.div>
 
-              <motion.div className="fc-pos fc-pos-tr" style={{ x: brX, y: tlY }}>
-                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 1.2, ease: [0.16, 1, 0.3, 1] }}>
-                  <div className="float-card bob" style={{ padding: '9px 13px' }}>
-                    <span className="priority-badge priority-hot" style={{ fontSize: 10 }}><span className="priority-dot" aria-hidden />Urgent</span>
-                  </div>
-                </motion.div>
-              </motion.div>
-
-              <HeroVisual />
-
-              <motion.div className="fc-pos fc-pos-br" style={{ x: brX, y: brY }}>
-                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 1.05, ease: [0.16, 1, 0.3, 1] }}>
-                  <div className="float-card bob rev">
-                    <div className="fc-icon" style={{ background: 'var(--accent-dim)' }}><Zap size={17} style={{ color: 'var(--accent)' }} /></div>
-                    <div><div className="fc-val">Replied in 2m</div><div className="fc-lbl">AI suggested</div></div>
-                  </div>
-                </motion.div>
-              </motion.div>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}
+              >
+                Connect a shared Gmail in two clicks · AES-256 encrypted · we never store your password.
+              </motion.p>
             </div>
-          </motion.div>
-        </div>
-      </section>
 
-      {/* ── Marquee strip (works with / value props) ──────────────────────── */}
-      <div style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '26px 0', background: '#FFFFFF' }}>
-        <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', textAlign: 'center', margin: '0 0 20px' }}>
-          Works on the Gmail your team already uses
-        </p>
-        <div className="marquee">
-          <div className="marquee-track">
-            {[...MARQUEE, ...MARQUEE].map((m, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap', opacity: m.soon ? 0.55 : 1 }}>
-                {m.src
-                  ? <img src={m.src} alt={m.name} width={20} height={20} style={{ display: 'block' }} />
-                  : m.Icon && <m.Icon size={18} style={{ color: 'var(--accent)' }} />}
-                <span style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--text-secondary)' }}>{m.name}</span>
-                {m.soon && (
-                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: 999, padding: '1px 7px' }}>Soon</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Stats band ────────────────────────────────────────────────────── */}
-      <section className="mkt-x" style={{ padding: '64px 32px', background: 'var(--bg-base)' }}>
-        <Section>
-          <motion.div variants={stagger} className="stats-band">
-            {STATS.map(s => (
-              <motion.div key={s.lbl} variants={fadeUp} className="stat-cell">
-                <div className="stat-val ink-grad">{s.val}</div>
-                <div className="stat-lbl">{s.lbl}</div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </Section>
-      </section>
-
-      {/* ── Product Demo ──────────────────────────────────────────────────── */}
-      <section id="demo" className="demo-section" style={{ background: '#FFFFFF', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-        <Section>
-          <div style={{ maxWidth: 1140, margin: '0 auto' }}>
-            <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 56 }}>
-              <Kicker>Product</Kicker>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 16px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
-                Your team&apos;s inbox, in one place
-              </h2>
-              <p style={{ fontSize: 16, color: 'var(--text-secondary)', maxWidth: 460, margin: '0 auto', lineHeight: 1.65 }}>
-                Velnox sorts the shared mailbox by what needs attention — and shows who&apos;s handling what, so nothing gets dropped or double-answered.
-              </p>
-            </motion.div>
-            <motion.div variants={{ hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: 'easeOut' } } }} style={{ position: 'relative' }}>
-              <div className="glow" style={{ width: 680, height: 380, top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: 'radial-gradient(circle, rgba(79,92,244,0.16), rgba(124,77,255,0.08) 45%, transparent 72%)' }} />
-              <div style={{ position: 'relative' }}><ProductDemo /></div>
-            </motion.div>
-          </div>
-        </Section>
-      </section>
-
-      {/* ── Features ──────────────────────────────────────────────────────── */}
-      <section className="section-padded mkt-x" style={{ padding: '100px 32px', background: 'var(--bg-base)' }}>
-        <Section>
-          <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-            <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 60, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <Kicker>Features</Kicker>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(30px, 4vw, 48px)', fontWeight: 400, color: 'var(--text-primary)', margin: '0 0 14px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
-                Built for how teams actually work
-              </h2>
-              <p style={{ fontSize: 15, color: 'var(--text-secondary)', maxWidth: 420, margin: '0 auto', lineHeight: 1.65 }}>
-                One shared queue, clear ownership on every thread, and a head start on every reply.
-              </p>
-            </motion.div>
-            <div className="bento">
-              {/* Showcase — wide cell with a live priority preview */}
-              <motion.div variants={fadeUp} className="bento-item bento-wide spotlight-card grad-edge" onMouseMove={spotlightMove}>
-                <div className="b-icon"><Inbox size={21} style={{ color: 'var(--accent)' }} /></div>
-                <h3>Your team&apos;s shared inbox, sorted</h3>
-                <p>Every thread in one calm queue — sorted by priority, with the assignee right on the row. No more “did anyone reply to this?” across three Slack channels.</p>
-                <div className="spotlight">
-                  {[
-                    { ini: 'AP', grad: 'linear-gradient(135deg,#DC2B55,#F2709C)', name: 'Alex Peterson', msg: 'When can we start?', badge: 'Urgent', cls: 'priority-hot' },
-                    { ini: 'KL', grad: 'linear-gradient(135deg,#C2620A,#F6A23B)', name: 'Karina Lee', msg: 'Checking with my team…', badge: 'High', cls: 'priority-attention' },
-                  ].map(r => (
-                    <div key={r.ini} className="spot-row">
-                      <div className="spot-av" style={{ background: r.grad, color: '#fff' }}>{r.ini}</div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div className="spot-name">{r.name}</div>
-                        <div className="spot-msg">{r.msg}</div>
-                      </div>
-                      <span className={`priority-badge ${r.cls}`} style={{ fontSize: 9 }}>{r.badge}</span>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-
-              <BentoCard icon={Bot} title="Assignment & ownership" desc="Assign any thread to a teammate, set Open / Snoozed / Closed, and see who’s on what — no collisions, no dropped threads." />
-              <BentoCard icon={Sparkles} title="Internal notes" desc="Discuss a thread with your team right inside it — private notes the customer never sees." />
-              <BentoCard icon={SlidersHorizontal} title="Routing rules" desc="Auto-assign and tag incoming mail by sender, subject or inbox, so every message lands on the right person." />
-              <BentoCard icon={Search} title="AI drafts & triage" desc="Priority, risk flags and a drafted reply on every thread — review-before-send, never auto-sent." />
-              <BentoCard icon={Shield} title="Roles, permissions & audit" desc="Owner, Admin, Member and Viewer roles, with an audit log of every action across the workspace." />
-
-              {/* CTA tile — wide, fills the row and pushes to the full feature tour */}
-              <motion.a variants={fadeUp} href="/features" className="bento-item bento-cta spotlight-card" onMouseMove={spotlightMove} style={{ justifyContent: 'center', background: 'linear-gradient(150deg, rgba(79,92,244,0.06), rgba(124,77,255,0.05))', borderColor: 'rgba(79,92,244,0.2)', textDecoration: 'none' }}>
-                <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 'clamp(20px,2.4vw,26px)', letterSpacing: '-0.02em' }}>See every feature in action</h3>
-                <p>Take the full tour — assignment, routing, AI drafts and more.</p>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 16, color: 'var(--accent)', fontWeight: 600, fontSize: 14 }}>
-                  Explore features <ArrowRight size={16} className="cta-arrow" />
-                </span>
-              </motion.a>
-            </div>
-          </div>
-        </Section>
-      </section>
-
-      {/* ── How it works ──────────────────────────────────────────────────── */}
-      <section id="how" className="section-padded mkt-x" style={{ padding: '100px 32px', background: '#FFFFFF', borderTop: '1px solid var(--border)' }}>
-        <Section>
-          <div style={{ maxWidth: 680, margin: '0 auto' }}>
-            <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 56 }}>
-              <Kicker>How it works</Kicker>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.03em', textWrap: 'balance' }}>
-                Three steps to full control
-              </h2>
-            </motion.div>
-            <Timeline
-              steps={[
-                { n: 1, title: 'Connect a shared inbox & invite your team', desc: 'An admin connects a shared Gmail mailbox with Google OAuth and invites teammates with roles — in minutes.' },
-                { n: 2, title: 'Velnox triages and routes',                  desc: 'Every thread gets a priority and risk read; routing rules auto-assign and tag incoming mail to the right person.' },
-                { n: 3, title: 'Assign, discuss, reply',                     desc: 'Your team works one queue — assign, leave internal notes, and send AI-drafted replies. Nothing slips.' },
-              ]}
-            />
-          </div>
-        </Section>
-      </section>
-
-      {/* ── Photography band — who it's for (human warmth) ────────────────── */}
-      <section className="section-padded mkt-x" style={{ padding: '90px 32px', background: '#FFFFFF', borderTop: '1px solid var(--border)' }}>
-        <Section>
-          <motion.div variants={fadeUp} style={{ maxWidth: 1140, margin: '0 auto' }}>
-            <div className="photo-band">
-              <div className="photo-fallback" aria-hidden />
-              <img
-                className="photo-media"
-                src="/photos/team.jpg"
-                alt="A client-facing team working together"
-                loading="lazy"
-                onError={(e) => { e.currentTarget.style.display = 'none' }}
-              />
-              <div className="photo-overlay" aria-hidden />
-              <div className="grain" />
-              <div className="photo-inner">
-                <span className="kicker" style={{ background: 'rgba(255,255,255,0.14)', borderColor: 'rgba(255,255,255,0.28)', color: '#fff', backdropFilter: 'blur(8px)' }}>
-                  <span className="kicker-dot" style={{ background: '#fff', boxShadow: '0 0 0 4px rgba(255,255,255,0.18)' }} />
-                  Who it&apos;s for
-                </span>
-                <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 'clamp(28px, 4.4vw, 48px)', letterSpacing: '-0.03em', color: '#fff', margin: '16px 0 12px', maxWidth: 620, lineHeight: 1.08, textWrap: 'balance' }}>
-                  Built for teams who live in a shared inbox
-                </h2>
-                <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.86)', maxWidth: 520, lineHeight: 1.65, margin: 0 }}>
-                  Support, sales and ops teams who can&apos;t afford a dropped thread. Velnox gives every message an owner — so the next reply is always handled.
-                </p>
-                <div className="photo-stat-row">
-                  {[
-                    { v: 'Zero', l: 'dropped or double-handled threads' },
-                    { v: 'One queue', l: 'the whole team works together' },
-                    { v: 'Instant', l: 'alerts when an account goes at-risk' },
-                  ].map(s => (
-                    <div key={s.l} className="photo-stat">
-                      <div className="ps-val">{s.v}</div>
-                      <div className="ps-lbl">{s.l}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </Section>
-      </section>
-
-      {/* ── From the founder ──────────────────────────────────────────────── */}
-      <section className="section-padded mkt-x" style={{ padding: '100px 32px', background: 'var(--bg-base)', borderTop: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
-        <div className="glow" style={{ width: 480, height: 480, top: -120, left: '50%', transform: 'translateX(-50%)', background: 'radial-gradient(circle, rgba(79,92,244,0.1), transparent 70%)' }} />
-        <Section>
-          <div style={{ maxWidth: 760, margin: '0 auto', position: 'relative' }}>
             <motion.div
-              variants={fadeUp}
-              className="spotlight-card grad-edge"
-              onMouseMove={spotlightMove}
-              style={{ background: '#FFFFFF', borderRadius: 24, padding: 'clamp(36px, 5vw, 60px)', boxShadow: 'var(--shadow-md)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+              className="hero-mockup"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+              style={{ display: 'flex', justifyContent: 'center' }}
             >
-              <Kicker>From the founder</Kicker>
-              <blockquote style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 'clamp(21px, 2.8vw, 31px)', lineHeight: 1.42, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '22px 0 30px', textWrap: 'balance' }}>
-                “I built Velnox because my own team kept dropping client emails in a shared Gmail — no one knew who was replying to what. So I built the tool I wished we’d had: one queue, a clear owner on every thread, and AI that flags what needs you first.”
-              </blockquote>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 13 }}>
-                <div className="av-chip" style={{ width: 46, height: 46, fontSize: 16, fontWeight: 700, background: 'linear-gradient(135deg,#4F5CF4,#7C4DFF)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>A</div>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Amirkhan</div>
-                  <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Founder of Velnox</div>
-                </div>
-              </div>
+              <HeroMockup />
             </motion.div>
           </div>
-        </Section>
-      </section>
+        </section>
 
-      {/* ── Comparison ────────────────────────────────────────────────────── */}
-      <section className="section-padded mkt-x" style={{ padding: '100px 32px', background: '#FFFFFF', borderTop: '1px solid var(--border)' }}>
-        <Section>
+        {/* ── Integrations line ───────────────────────────────────────────── */}
+        <section style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
+          <div className="mkt-x" style={{ maxWidth: 1140, margin: '0 auto', padding: '28px 32px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <img src="/icons/gmail.svg" alt="" width={20} height={20} style={{ display: 'block' }} />
+            <span style={{ fontSize: 14.5, color: 'var(--text-secondary)' }}>
+              Works on the <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Gmail</strong> your team already uses.
+            </span>
+            <span style={{ fontSize: 13.5, color: 'var(--text-muted)' }}>Telegram, WhatsApp & Instagram coming soon.</span>
+          </div>
+        </section>
+
+        {/* ── Product demo ────────────────────────────────────────────────── */}
+        <section id="demo" className="section-padded mkt-x" style={{ padding: '96px 32px', background: 'var(--bg-base)' }}>
+          <div style={{ maxWidth: 1140, margin: '0 auto' }}>
+            <SectionHead
+              title="Your team’s inbox, in one place"
+              sub="Velnox sorts the shared mailbox by what needs attention — and shows who’s handling what, so nothing gets dropped or double-answered."
+            />
+            <Reveal><ProductDemo /></Reveal>
+          </div>
+        </section>
+
+        {/* ── Features ────────────────────────────────────────────────────── */}
+        <section className="section-padded mkt-x" style={{ padding: '96px 32px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}>
+          <div style={{ maxWidth: 1080, margin: '0 auto' }}>
+            <SectionHead title="Built for how teams actually work" sub="One shared queue, clear ownership on every thread, and a head start on every reply." />
+            <div className="lp-features">
+              {FEATURES.map(({ icon: Icon, title, desc }) => (
+                <Reveal key={title} className="lp-feature">
+                  <Icon size={20} style={{ color: 'var(--accent)' }} />
+                  <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: '12px 0 6px', letterSpacing: '-0.01em' }}>{title}</h3>
+                  <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>{desc}</p>
+                </Reveal>
+              ))}
+            </div>
+            <Reveal style={{ textAlign: 'center', marginTop: 40 }}>
+              <Link href="/features" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: 'var(--accent)', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>
+                See every feature <ArrowRight size={15} />
+              </Link>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* ── How it works ────────────────────────────────────────────────── */}
+        <section className="section-padded mkt-x" style={{ padding: '96px 32px', background: 'var(--bg-base)', borderTop: '1px solid var(--border)' }}>
+          <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+            <SectionHead title="Three steps to a calmer inbox" />
+            <div className="lp-steps">
+              {STEPS.map(s => (
+                <Reveal key={s.n} className="lp-step">
+                  <span className="lp-step-n">{s.n}</span>
+                  <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 6px', letterSpacing: '-0.01em' }}>{s.title}</h3>
+                  <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>{s.desc}</p>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Comparison ──────────────────────────────────────────────────── */}
+        <section className="section-padded mkt-x" style={{ padding: '96px 32px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}>
           <div style={{ maxWidth: 880, margin: '0 auto' }}>
-            <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 44 }}>
-              <Kicker>Why Velnox</Kicker>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.03em', textWrap: 'balance' }}>
-                Not another help desk to migrate to
-              </h2>
-            </motion.div>
-            <motion.div variants={fadeUp} style={{ overflowX: 'auto' }}>
+            <SectionHead title="Not another help desk to migrate to" />
+            <Reveal style={{ overflowX: 'auto' }}>
               <table className="compare">
                 <thead>
                   <tr>
@@ -623,65 +236,65 @@ export default function LandingPage() {
                   ))}
                 </tbody>
               </table>
-            </motion.div>
+            </Reveal>
           </div>
-        </Section>
-      </section>
+        </section>
 
-      {/* ── FAQ ───────────────────────────────────────────────────────────── */}
-      <section className="section-padded mkt-x" style={{ padding: '100px 32px', background: 'var(--bg-base)', borderTop: '1px solid var(--border)' }}>
-        <Section>
+        {/* ── FAQ ─────────────────────────────────────────────────────────── */}
+        <section className="section-padded mkt-x" style={{ padding: '96px 32px', background: 'var(--bg-base)', borderTop: '1px solid var(--border)' }}>
           <div style={{ maxWidth: 720, margin: '0 auto' }}>
-            <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 44 }}>
-              <Kicker>FAQ</Kicker>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.03em', textWrap: 'balance' }}>
-                Questions, answered
-              </h2>
-            </motion.div>
-            <motion.div variants={fadeUp} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {FAQS.map((f, i) => (
-                <FaqItem key={f.q} q={f.q} a={f.a} open={openFaq === i} onToggle={() => setOpenFaq(o => (o === i ? null : i))} />
-              ))}
-            </motion.div>
+            <SectionHead title="Questions, answered" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {FAQS.map((f, i) => {
+                const open = openFaq === i
+                return (
+                  <Reveal key={f.q}>
+                    <div className="faq-item" data-open={open}>
+                      <button className="faq-q" onClick={() => setOpenFaq(o => (o === i ? null : i))} aria-expanded={open}>
+                        {f.q}
+                        <Plus size={18} className="faq-icon" />
+                      </button>
+                      <AnimatePresence initial={false}>
+                        {open && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+                            style={{ overflow: 'hidden' }}
+                          >
+                            <p style={{ padding: '0 22px 18px', margin: 0, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{f.a}</p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </Reveal>
+                )
+              })}
+            </div>
           </div>
-        </Section>
-      </section>
+        </section>
 
-      {/* ── CTA ───────────────────────────────────────────────────────────── */}
-      <section className="mkt-x mkt-pt mkt-pb" style={{ padding: '90px 32px 130px', background: 'var(--bg-base)', position: 'relative', overflow: 'hidden' }}>
-        <div className="glow" style={{ width: 580, height: 360, bottom: -130, left: '50%', transform: 'translateX(-50%)', background: 'radial-gradient(circle, rgba(124,77,255,0.18), transparent 70%)' }} />
-        <Section>
-          <motion.div
-            variants={fadeUp}
-            className="cta-inner"
-            style={{ maxWidth: 720, margin: '0 auto', borderRadius: 28, background: 'linear-gradient(135deg, #4F5CF4 0%, #6D44F5 52%, #7C4DFF 100%)', textAlign: 'center', boxShadow: '0 36px 90px rgba(79,92,244,0.42)', position: 'relative', overflow: 'hidden' }}
-          >
-            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.18) 0%, transparent 55%)', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', width: 320, height: 320, borderRadius: '50%', top: -150, right: -90, background: 'radial-gradient(circle, rgba(255,255,255,0.22), transparent 65%)', filter: 'blur(18px)', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', width: 260, height: 260, borderRadius: '50%', bottom: -140, left: -70, background: 'radial-gradient(circle, rgba(184,156,255,0.32), transparent 65%)', filter: 'blur(22px)', pointerEvents: 'none' }} />
-            <div className="grain" style={{ opacity: 0.4 }} />
-            <div style={{ position: 'relative' }}>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4.6vw, 46px)', fontWeight: 400, color: '#FFFFFF', margin: '0 0 14px', letterSpacing: '-0.03em', textWrap: 'balance' }}>
-                Ready to get your team&apos;s inbox under control?
+        {/* ── CTA ─────────────────────────────────────────────────────────── */}
+        <section className="mkt-x" style={{ padding: '40px 32px 110px', background: 'var(--bg-base)' }}>
+          <Reveal style={{ maxWidth: 880, margin: '0 auto' }}>
+            <div className="lp-cta">
+              <h2 className="display-title" style={{ fontSize: 'clamp(26px, 3.4vw, 38px)', color: '#fff', margin: '0 0 12px' }}>
+                Ready to get your team’s inbox under control?
               </h2>
-              <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.85)', margin: '0 auto 36px', lineHeight: 1.65, maxWidth: 460 }}>
+              <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.72)', margin: '0 0 28px', lineHeight: 1.6, maxWidth: 460 }}>
                 Connect a shared inbox, invite your team, and give every thread an owner — set up in minutes.
               </p>
-              <Magnetic strength={0.4}>
-                <Link href="/signup" className="btn-shine" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '15px 32px', background: '#FFFFFF', color: 'var(--accent)', borderRadius: 10, fontSize: 16, fontWeight: 700, textDecoration: 'none', boxShadow: '0 8px 28px rgba(0,0,0,0.18)' }}>
-                  Get early access <ArrowRight size={16} />
-                </Link>
-              </Magnetic>
-              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 18, marginBottom: 0 }}>
-                No credit card · Free to start
-              </p>
+              <Link href="/signup" className="lp-cta-btn">
+                Get early access <ArrowRight size={16} />
+              </Link>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', margin: '16px 0 0' }}>No credit card · Free to start</p>
             </div>
-          </motion.div>
-        </Section>
-      </section>
+          </Reveal>
+        </section>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
     </MotionConfig>
   )
 }
