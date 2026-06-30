@@ -31,11 +31,11 @@ export default async function SettingsPage() {
       <Reveal>
         <div className="dash-header-row" style={{ marginBottom: 20 }}>
           <div>
-            <h1 style={{ margin: '0 0 5px', fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 400, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
+            <h1 className="page-title" style={{ margin: '0 0 5px' }}>
               Settings
             </h1>
             <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
-              Organization, team members, inboxes and audit log.
+              Manage your organization, team, connections, billing and notifications.
             </p>
           </div>
         </div>

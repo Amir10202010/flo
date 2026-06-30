@@ -43,9 +43,11 @@ export default function SettingsTabs({
   userEmail: string | null
 }) {
   const tabs = [
-    { id: 'workspace', label: 'Workspace', icon: Building2, show: true },
+    { id: 'general', label: 'General', icon: Building2, show: true },
     { id: 'members', label: 'Members', icon: Users, show: can(role, 'members:manage') },
     { id: 'connections', label: 'Connections', icon: Mail, show: can(role, 'inbox:read') },
+    { id: 'notifications', label: 'Notifications', icon: Bell, show: true },
+    { id: 'billing', label: 'Billing', icon: Crown, show: true },
     { id: 'library', label: 'Library', icon: FileText, show: can(role, 'inbox:read') },
     { id: 'automations', label: 'Automations', icon: Zap, show: can(role, 'rules:manage') },
     { id: 'audit', label: 'Audit log', icon: History, show: can(role, 'audit:read') },
@@ -62,7 +64,7 @@ export default function SettingsTabs({
       ? 'connections'
       : tabParam && validIds.has(tabParam)
         ? tabParam
-        : 'workspace'
+        : 'general'
 
   const [active, setActive] = useState(initialTab)
   const display = userName ?? userEmail ?? 'User'
@@ -87,7 +89,7 @@ export default function SettingsTabs({
         })}
       </div>
 
-      {active === 'workspace' && (
+      {active === 'general' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <WidgetShell icon={<Building2 size={14} />} title="Organization" sub="Your team workspace" bodyStyle={{ padding: '18px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
@@ -100,9 +102,48 @@ export default function SettingsTabs({
             </div>
           </WidgetShell>
 
+          <WidgetShell icon={<ShieldCheck size={14} />} title="Account" sub={userEmail ? `Signed in as ${userEmail}` : 'Session'} bodyStyle={{ padding: '6px 8px' }}>
+            <div style={{ padding: '8px 4px 4px' }}>
+              <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--text-secondary)', paddingLeft: 8 }}>{display}</p>
+              <SignOutButton />
+            </div>
+          </WidgetShell>
+        </div>
+      )}
+
+      {active === 'notifications' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <WidgetShell icon={<Bell size={14} />} title="Urgent alert emails" sub="When a client hits critical or high risk" status="live" bodyStyle={{ padding: '6px 8px 8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px' }}>
+              <span style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--accent-dim)', border: '1px solid var(--border-light)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <ShieldCheck size={14} />
+              </span>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Email me urgent alerts</div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>One throttled email to the owner when an account goes critical or high risk.</div>
+              </div>
+              <AlertEmailToggle />
+            </div>
+          </WidgetShell>
+
+          <WidgetShell icon={<CalendarClock size={14} />} title="Weekly digest" sub="A Monday-morning summary, sent from your connected Gmail" status="live" bodyStyle={{ padding: '16px 18px 18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.9 }}>
+                <li>Response-time and volume trends vs last week</li>
+                <li>Clients who went quiet and threads to push</li>
+                <li>Your top recommended actions for the week</li>
+              </ul>
+              <SendDigestButton />
+            </div>
+          </WidgetShell>
+        </div>
+      )}
+
+      {active === 'billing' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <WidgetShell icon={<Crown size={14} />} title="Plan" sub="Billing for this organization" bodyStyle={{ padding: '18px 20px' }}>
             {memberCount > planLimits(plan as BillingPlan).members && (
-              <div style={{ marginBottom: 14, padding: '10px 12px', borderRadius: 10, background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)', fontSize: 12.5, color: '#b91c1c' }}>
+              <div style={{ marginBottom: 14, padding: '10px 12px', borderRadius: 8, background: 'var(--hot-dim)', border: '1px solid var(--hot-border)', fontSize: 12.5, color: 'var(--hot)' }}>
                 You have {memberCount} members but your plan allows {planLimits(plan as BillingPlan).members}. Upgrade, or remove members to stay within your plan.
               </div>
             )}
@@ -126,37 +167,6 @@ export default function SettingsTabs({
                   <a href="/api/billing/portal" className="btn-ghost" style={{ fontSize: 13.5, padding: '9px 18px' }}>Manage billing</a>
                 )
               )}
-            </div>
-          </WidgetShell>
-
-          <WidgetShell icon={<Bell size={14} />} title="Notifications" sub="Urgent-alert emails for this organization" status="live" bodyStyle={{ padding: '6px 8px 8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px' }}>
-              <span style={{ width: 30, height: 30, borderRadius: 9, background: 'var(--accent-dim)', border: '1px solid var(--border-light)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <ShieldCheck size={14} />
-              </span>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Urgent alert emails</div>
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>Sent to the owner when a client hits critical/high risk — throttled.</div>
-              </div>
-              <AlertEmailToggle />
-            </div>
-          </WidgetShell>
-
-          <WidgetShell icon={<CalendarClock size={14} />} title="Weekly digest" sub="A Monday-morning summary, sent from your connected Gmail" status="live" bodyStyle={{ padding: '16px 18px 18px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
-              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.9 }}>
-                <li>Response-time and volume trends vs last week</li>
-                <li>Clients who went quiet and threads to push</li>
-                <li>Your top recommended actions for the week</li>
-              </ul>
-              <SendDigestButton />
-            </div>
-          </WidgetShell>
-
-          <WidgetShell icon={<ShieldCheck size={14} />} title="Account" sub={userEmail ? `Signed in as ${userEmail}` : 'Session'} bodyStyle={{ padding: '6px 8px' }}>
-            <div style={{ padding: '8px 4px 4px' }}>
-              <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--text-secondary)', paddingLeft: 8 }}>{display}</p>
-              <SignOutButton />
             </div>
           </WidgetShell>
         </div>
