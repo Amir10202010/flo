@@ -273,7 +273,7 @@ export default function ProductDemo() {
                       {isHot ? (
                         <FlipBadge won={resolved} fontSize={9} />
                       ) : c.badge ? (
-                        <span className={`priority-badge ${c.cls}`} style={{ fontSize: 9, flexShrink: 0 }}><span className="priority-dot" aria-hidden />{c.badge}</span>
+                        <span className={`priority-badge ${c.cls}`} style={{ fontSize: 9, flexShrink: 0 }}>{c.badge}</span>
                       ) : null}
                       <AnimatePresence>
                         {c.unread > 0 && !unreadGone && (
@@ -584,7 +584,6 @@ function FlipBadge({ won, fontSize }: { won: boolean; fontSize?: number }) {
           className={`priority-badge ${won ? 'priority-cold' : 'priority-hot'}`}
           style={fontSize ? { fontSize } : undefined}
         >
-          <span className="priority-dot" aria-hidden />
           {won ? 'Won' : 'Urgent'}
         </motion.span>
       </AnimatePresence>

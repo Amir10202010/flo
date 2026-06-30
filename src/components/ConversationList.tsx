@@ -145,7 +145,6 @@ export default function ConversationList({ conversations }: { conversations: Con
                 )}
                 {showBadge && (
                   <span className={`priority-badge ${m.className}`} title={m.description} style={{ flexShrink: 0 }}>
-                    <span className="priority-dot" aria-hidden />
                     {m.label}
                   </span>
                 )}

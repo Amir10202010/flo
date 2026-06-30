@@ -316,7 +316,7 @@ export function RoutingRulesDemo() {
                             initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={SPRING.snap}
                             className="priority-badge priority-hot" style={{ fontSize: 9, flexShrink: 0 }}
                           >
-                            <span className="priority-dot" aria-hidden />High
+                            High
                           </motion.span>
                         )}
                       </AnimatePresence>
@@ -581,7 +581,7 @@ export function DashboardDemo() {
         {/* Header — paints first, like the real dashboard shell */}
         <motion.div variants={sceneItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 400, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Good to see you, Amir</div>
+            <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Good to see you, Amir</div>
             <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 2 }}>Thursday, June 11 · 3 teammates online</div>
           </div>
           <AnimatePresence>
@@ -671,7 +671,7 @@ export function DashboardDemo() {
                       <div style={{ fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Project kickoff — full package</div>
                     </div>
                     <span className="cat-tag" style={{ flexShrink: 0, color: 'var(--text-secondary)', background: 'var(--bg-subtle)' }}><UserRound size={10} /> Unassigned</span>
-                    <span className="priority-badge priority-hot" style={{ fontSize: 8.5, flexShrink: 0 }}><span className="priority-dot" aria-hidden />Urgent</span>
+                    <span className="priority-badge priority-hot" style={{ fontSize: 8.5, flexShrink: 0 }}>Urgent</span>
                   </div>
                   <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                     <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>AI suggests:</strong> Reply with a concrete start date — client is ready to buy.
@@ -697,7 +697,7 @@ export function DashboardDemo() {
                 <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-primary)' }}>Karina Lee is going quiet</div>
                 <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>No reply in 3 days — follow up before the deal cools</div>
               </div>
-              <span className="priority-badge priority-attention" style={{ fontSize: 8.5, flexShrink: 0 }}><span className="priority-dot" aria-hidden />High</span>
+              <span className="priority-badge priority-attention" style={{ fontSize: 8.5, flexShrink: 0 }}>High</span>
             </motion.div>
           )}
         </AnimatePresence>

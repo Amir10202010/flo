@@ -238,13 +238,6 @@
   line-height: 1.6;
   white-space: nowrap;
 }
-.priority-badge .priority-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  flex-shrink: 0;
-}
 .priority-hot       { background: var(--hot-dim);       color: var(--hot);       border: 1px solid var(--hot-border); }
 .priority-attention { background: var(--attention-dim); color: var(--attention); border: 1px solid var(--attention-border); }
 .priority-cold      { background: var(--cold-dim);      color: var(--cold);      border: 1px solid var(--cold-border); }

@@ -54,7 +54,7 @@ export default async function ClientsPage() {
         <div className="dash-header-row" style={{ marginBottom: 20 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5 }}>
-              <h1 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 400, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
+              <h1 className="page-title" style={{ margin: 0 }}>
                 Clients
               </h1>
               <ModulePill status="live" />
