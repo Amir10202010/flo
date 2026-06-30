@@ -95,7 +95,7 @@ export default function SettingsTabs({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
               <div>
                 <p style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>{orgName}</p>
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-secondary)', padding: '3px 10px', background: 'var(--bg-subtle)', borderRadius: 100 }}>
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>
                   You are {ROLE_LABEL[role]}
                 </span>
               </div>

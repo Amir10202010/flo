@@ -226,42 +226,49 @@
 /* Plain-language urgency scale (Urgent / High / Normal / Low) — dot + label,
    sentence case. Levels map from the internal HOT/ATTENTION/COLD/SPAM enum
    via src/lib/priority.ts. */
+/* Priority = a compact text label, not a capsule. The label colour carries the
+   level; Normal/Low stay muted so only what needs attention wears colour. No
+   background, border or pill — reads like a Linear/GitHub status word. */
 .priority-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2.5px 9px;
-  border-radius: 100px;
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.01em;
-  line-height: 1.6;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.5;
   white-space: nowrap;
 }
-.priority-hot       { background: var(--hot-dim);       color: var(--hot);       border: 1px solid var(--hot-border); }
-.priority-attention { background: var(--attention-dim); color: var(--attention); border: 1px solid var(--attention-border); }
-.priority-cold      { background: var(--cold-dim);      color: var(--cold);      border: 1px solid var(--cold-border); }
-.priority-spam      { background: var(--spam-dim);      color: var(--spam-text); border: 1px solid var(--spam-border); }
+.priority-hot       { color: var(--hot); }
+.priority-attention { color: var(--attention); }
+.priority-cold      { color: var(--text-muted); }
+.priority-spam      { color: var(--text-muted); }
 
 /* ── Tags ───────────────────────────────────────────────────────────────── */
+/* Neutral outlined label — a category colour shows only as a small leading dot,
+   not a translucent fill. */
 .tag {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
-  border-radius: 100px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
   font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-weight: 500;
+  letter-spacing: 0;
   white-space: nowrap;
   border: 1px solid var(--border);
   color: var(--text-secondary);
-  background: var(--bg-surface);
+  background: none;
 }
 .tag-accent {
-  border-color: rgba(79,92,244,0.3);
+  border-color: var(--border);
   color: var(--accent);
-  background: var(--accent-dim);
+  background: none;
 }
 
 /* ── Buttons ────────────────────────────────────────────────────────────── */
@@ -724,11 +731,6 @@
 }
 .client-card:last-child { border-bottom: none; }
 .client-card:active { background: var(--bg-hover); }
-.client-card-new {
-  font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em;
-  color: var(--accent); background: var(--accent-dim);
-  border: 1px solid rgba(79,92,244,0.2); border-radius: 5px; padding: 1.5px 5px; flex-shrink: 0;
-}
 @media (max-width: 768px) {
   .clients-table-wrap { display: none; }
   .clients-cards      { display: flex; flex-direction: column; }
@@ -1095,13 +1097,14 @@
   align-items: center;
   gap: 3px;
   font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  color: var(--accent);
-  background: var(--accent-dim);
-  border: 1px solid rgba(79,92,244,0.2);
-  border-radius: 5px;
-  padding: 2px 6px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: 1px 5px;
   flex-shrink: 0;
   cursor: default;
   white-space: nowrap;
@@ -1288,7 +1291,8 @@
 .rail-seg-btn:disabled { cursor: default; }
 
 .rail-tag-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 9px; }
-.rail-tag-chip { font-size: 11px; font-weight: 600; border: 1px solid; border-radius: 100px; padding: 2px 9px; }
+.rail-tag-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; border: 1px solid var(--border); border-radius: var(--radius-xs); padding: 2px 8px; color: var(--text-secondary); }
+.rail-tag-chip .rail-tag-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 
 .rail-notes-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 9px; }
 .rail-note { background: var(--bg-subtle); border: 1px solid var(--border-light); border-radius: 9px; padding: 8px 10px; }
@@ -1317,17 +1321,17 @@
   gap: 4px;
   flex-shrink: 0;
   padding: 3px 8px;
-  border-radius: 100px;
-  border: 1px solid rgba(79,92,244,0.35);
-  background: var(--accent-dim);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: none;
   color: var(--accent);
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 600;
   font-family: var(--font-sans);
   cursor: pointer;
   transition: background 0.13s, border-color 0.13s;
 }
-.conv-quick-reply:hover { background: rgba(79,92,244,0.16); border-color: var(--accent); }
+.conv-quick-reply:hover { background: var(--bg-hover); border-color: var(--accent); }
 
 /* Smart Compose modal */
 .compose-overlay {
@@ -1438,10 +1442,10 @@
 .upgrade-x { position: absolute; top: 12px; right: 12px; }
 .upgrade-badge {
   display: inline-flex; align-items: center; gap: 5px;
-  padding: 4px 11px; border-radius: 100px;
-  background: var(--accent-dim, rgba(79,92,244,0.1));
-  color: var(--accent); font-size: 11.5px; font-weight: 700;
-  letter-spacing: 0.02em; margin-bottom: 14px;
+  padding: 0; border-radius: 0;
+  background: none;
+  color: var(--accent); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 14px;
 }
 .upgrade-title {
   margin: 0 0 8px; font-size: 19px; font-weight: 700; line-height: 1.3;
@@ -1696,23 +1700,23 @@
 }
 
 /* ── Module status pills (Live / Beta / Preview / Soon) ────────────────────── */
+/* Maturity label — only shown for not-yet-live modules (the component renders
+   nothing for 'live'). Neutral outlined micro-label, no colour fill. */
 .module-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2.5px 8px;
-  border-radius: 100px;
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
   flex-shrink: 0;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-muted);
 }
-.pill-live    { background: var(--success-dim); color: var(--success); border: 1px solid var(--success-border); }
-.pill-beta    { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(79,92,244,0.22); }
-.pill-preview { background: var(--spam-dim); color: var(--text-muted); border: 1px solid var(--spam-border); }
-.pill-soon    { background: var(--attention-dim); color: var(--attention); border: 1px solid var(--attention-border); }
 
 /* ── Dashboard grids ────────────────────────────────────────────────────────── */
 .exec-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
@@ -1955,22 +1959,21 @@ a > .insight-card:hover {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 8px 14px;
-  border-radius: 100px;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: #FFFFFF;
+  background: var(--bg-surface);
   color: var(--text-secondary);
   font-size: 12.5px;
   font-weight: 500;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, transform 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
   font-family: var(--font-sans);
 }
 .prompt-chip:hover {
-  border-color: rgba(79,92,244,0.35);
+  border-color: var(--accent);
   color: var(--accent);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+  background: var(--bg-hover);
 }
 
 /* ── Marketing demo filter chips (ProductDemo) ─────────────────────────────── */
@@ -1978,10 +1981,10 @@ a > .insight-card:hover {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 11px;
-  border-radius: 100px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: #FFFFFF;
+  background: var(--bg-surface);
   color: var(--text-secondary);
   font-size: 11.5px;
   font-weight: 600;
@@ -1990,7 +1993,7 @@ a > .insight-card:hover {
   white-space: nowrap;
   transition: border-color 0.13s, color 0.13s, background 0.13s;
 }
-.fchip:hover { border-color: rgba(79,92,244,0.35); color: var(--text-primary); }
+.fchip:hover { border-color: var(--text-muted); color: var(--text-primary); }
 .fchip.active { background: var(--text-primary); border-color: var(--text-primary); color: #fff; }
 .fchip .fchip-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .fchip .fchip-count { font-size: 10px; font-weight: 700; opacity: 0.65; }
@@ -2027,28 +2030,28 @@ a > .insight-card:hover {
   align-items: center;
   gap: 7px;
   padding: 8px 13px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: #FFFFFF;
+  background: var(--bg-surface);
   color: var(--text-secondary);
   font-size: 12.5px;
   font-weight: 600;
   font-family: var(--font-sans);
   cursor: pointer;
-  transition: border-color 0.13s, color 0.13s, background 0.13s, box-shadow 0.13s;
+  transition: border-color 0.13s, color 0.13s, background 0.13s;
 }
-.inbox-filters-btn:hover { border-color: rgba(79,92,244,0.4); color: var(--text-primary); box-shadow: var(--shadow-sm); }
-.inbox-filters-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.inbox-filters-btn:hover { border-color: var(--text-muted); color: var(--text-primary); }
+.inbox-filters-btn.active { border-color: var(--accent); color: var(--accent); background: none; }
 .inbox-filters-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 100px;
-  background: var(--accent);
-  color: #fff;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
@@ -2115,10 +2118,10 @@ a > .insight-card:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 11px;
-  border-radius: 100px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: #FFFFFF;
+  background: var(--bg-surface);
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
@@ -2126,7 +2129,7 @@ a > .insight-card:hover {
   cursor: pointer;
   transition: border-color 0.13s, color 0.13s, background 0.13s;
 }
-.iff-seg-btn:hover { border-color: rgba(79,92,244,0.4); color: var(--text-primary); }
+.iff-seg-btn:hover { border-color: var(--text-muted); color: var(--text-primary); }
 .iff-seg-btn[data-active='true'] { background: var(--text-primary); border-color: var(--text-primary); color: #fff; }
 .iff-seg-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .iff-seg-count { font-size: 11px; font-weight: 700; opacity: 0.7; }
@@ -2175,9 +2178,9 @@ a > .insight-card:hover {
   align-items: center;
   gap: 5px;
   padding: 8px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: #FFFFFF;
+  background: var(--bg-surface);
   color: var(--text-muted);
   font-size: 12.5px;
   font-weight: 600;
@@ -2187,20 +2190,24 @@ a > .insight-card:hover {
   flex-shrink: 0;
   transition: color 0.13s, background 0.13s, border-color 0.13s;
 }
-.inbox-sort-btn:hover { color: var(--text-primary); border-color: rgba(79,92,244,0.4); background: var(--bg-hover); }
+.inbox-sort-btn:hover { color: var(--text-primary); border-color: var(--text-muted); background: var(--bg-hover); }
 
+/* Category tag — neutral outlined label; colour shows only as the leading dot. */
 .cat-tag {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 2px 8px;
-  border-radius: 100px;
-  font-size: 10.5px;
-  font-weight: 700;
-  line-height: 1.4;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
   white-space: nowrap;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: none;
 }
-.cat-tag .cat-tag-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.cat-tag .cat-tag-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 
 /* ── Category mover (conversation header) ──────────────────────────────────── */
 .cat-mover { position: relative; flex-shrink: 0; }
@@ -2434,9 +2441,9 @@ a > .insight-card:hover {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
-  background: #fff;
+  background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: 100px;
+  border-radius: var(--radius);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -2480,7 +2487,7 @@ a > .insight-card:hover {
   display: inline-flex;
   background: var(--bg-subtle);
   border: 1px solid var(--border);
-  border-radius: 100px;
+  border-radius: var(--radius);
   padding: 2px;
 }
 .collab-seg-btn {
@@ -2490,7 +2497,7 @@ a > .insight-card:hover {
   color: var(--text-muted);
   background: none;
   border: none;
-  border-radius: 100px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 .collab-seg-btn[data-active='true'] {

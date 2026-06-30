@@ -28,14 +28,10 @@ function SyncChip({ connected, lastSyncAgo }: { connected: boolean; lastSyncAgo:
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 7,
-          fontSize: 12,
+          gap: 6,
+          fontSize: 12.5,
           fontWeight: 600,
           color: 'var(--attention)',
-          background: 'var(--attention-dim)',
-          border: '1px solid var(--attention-border)',
-          borderRadius: 6,
-          padding: '6px 13px',
           textDecoration: 'none',
         }}
       >
@@ -50,17 +46,13 @@ function SyncChip({ connected, lastSyncAgo }: { connected: boolean; lastSyncAgo:
         display: 'inline-flex',
         alignItems: 'center',
         gap: 7,
-        fontSize: 12,
-        fontWeight: 600,
-        color: 'var(--success)',
-        background: 'var(--success-dim)',
-        border: '1px solid var(--success-border)',
-        borderRadius: 6,
-        padding: '6px 13px',
+        fontSize: 12.5,
+        fontWeight: 500,
+        color: 'var(--text-muted)',
         whiteSpace: 'nowrap',
       }}
     >
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)' }} />
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', flexShrink: 0 }} />
       {lastSyncAgo ? `Synced ${lastSyncAgo}` : 'First sync queued'}
     </span>
   )

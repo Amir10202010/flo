@@ -15,9 +15,8 @@ const LABEL: Record<ModuleStatus, string> = {
 }
 
 export default function ModulePill({ status }: { status: ModuleStatus }) {
-  return (
-    <span className={`module-pill pill-${status}`}>
-      {LABEL[status]}
-    </span>
-  )
+  // 'live' is the default state — a badge on every working module is just noise.
+  // Only surface a label for modules that aren't fully live yet.
+  if (status === 'live') return null
+  return <span className="module-pill">{LABEL[status]}</span>
 }

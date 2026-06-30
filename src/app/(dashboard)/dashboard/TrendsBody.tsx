@@ -116,9 +116,9 @@ export default async function TrendsBody({ organizationId }: { organizationId: s
                 {data.team.members.map((m) => (
                   <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-subtle)', borderRadius: 100, padding: '2px 9px' }}>{m.open} open</span>
+                    <span style={{ fontSize: 11.5, fontWeight: 500, color: 'var(--text-secondary)' }}>{m.open} open</span>
                     {m.awaiting > 0 && (
-                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--attention)', background: 'var(--attention-dim)', borderRadius: 100, padding: '2px 9px' }}>{m.awaiting} awaiting</span>
+                      <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--attention)' }}>{m.awaiting} awaiting</span>
                     )}
                     <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{m.assigned} total</span>
                   </div>

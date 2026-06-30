@@ -329,8 +329,8 @@ export function RoutingRulesDemo() {
                           transition={{ duration: 0.3 }}
                           style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 7, overflow: 'hidden' }}
                         >
-                          <span className="cat-tag" style={{ color: 'var(--text-secondary)', background: 'var(--bg-subtle)' }}><UserRound size={10} /> Finance</span>
-                          <span className="cat-tag" style={{ color: '#C2620A', background: 'rgba(194,98,10,0.1)' }}><Tag size={10} /> Billing</span>
+                          <span className="cat-tag" style={{ color: 'var(--text-secondary)' }}><UserRound size={10} /> Finance</span>
+                          <span className="cat-tag"><Tag size={10} /> Billing</span>
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -490,7 +490,7 @@ export function GmailConnectDemo() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{r.name}</div>
                         <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.snippet}</p>
-                        <span className="cat-tag" style={{ marginTop: 4, color: 'var(--text-secondary)', background: 'var(--bg-subtle)' }}><UserRound size={10} /> {r.assignee}</span>
+                        <span className="cat-tag" style={{ marginTop: 4, color: 'var(--text-secondary)' }}><UserRound size={10} /> {r.assignee}</span>
                       </div>
                       <span className={`priority-badge ${r.cls}`} style={{ fontSize: 8.5, flexShrink: 0, alignSelf: 'flex-start' }}>{r.badge}</span>
                     </motion.div>
@@ -575,9 +575,9 @@ export function DashboardDemo() {
   const riskIn = step >= 3
 
   return (
-    <div className="scene" style={{ minHeight: 420, background: 'var(--bg-subtle)' }}>
+    <div className="scene" style={{ minHeight: 420 }}>
       <Chrome url="usevelnox.com/dashboard" />
-      <SceneBody style={{ padding: 16, minHeight: 376, display: 'flex', flexDirection: 'column', gap: 11, background: 'var(--bg-subtle)' }}>
+      <SceneBody style={{ padding: 16, minHeight: 376, display: 'flex', flexDirection: 'column', gap: 11 }}>
         {/* Header — paints first, like the real dashboard shell */}
         <motion.div variants={sceneItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <div>
@@ -662,7 +662,7 @@ export function DashboardDemo() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                     <Zap size={10} style={{ color: 'var(--accent)' }} />
                     <span style={{ fontSize: 8.5, fontWeight: 800, letterSpacing: '0.08em', color: 'var(--accent)', textTransform: 'uppercase' }}>Next best action</span>
-                    <span style={{ marginLeft: 'auto', fontSize: 9.5, fontWeight: 700, color: 'var(--attention)', background: 'var(--attention-dim)', border: '1px solid var(--attention-border)', borderRadius: 6, padding: '1px 6px', whiteSpace: 'nowrap' }}>waiting 2h</span>
+                    <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 600, color: 'var(--attention)', whiteSpace: 'nowrap' }}>waiting 2h</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                     <div className="avatar" style={{ width: 28, height: 28, fontSize: 9.5, background: 'linear-gradient(135deg,#DC2B55,#F2709C)', color: '#fff' }}>AP</div>
@@ -670,7 +670,7 @@ export function DashboardDemo() {
                       <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Alex Peterson</div>
                       <div style={{ fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Project kickoff — full package</div>
                     </div>
-                    <span className="cat-tag" style={{ flexShrink: 0, color: 'var(--text-secondary)', background: 'var(--bg-subtle)' }}><UserRound size={10} /> Unassigned</span>
+                    <span className="cat-tag" style={{ flexShrink: 0, color: 'var(--text-secondary)' }}><UserRound size={10} /> Unassigned</span>
                     <span className="priority-badge priority-hot" style={{ fontSize: 8.5, flexShrink: 0 }}>Urgent</span>
                   </div>
                   <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>

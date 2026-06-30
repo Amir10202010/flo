@@ -95,7 +95,7 @@ export default function ConversationList({ conversations }: { conversations: Con
               )}
 
               {cat && (
-                <span className="cat-tag" style={{ marginTop: 4, color: cat.color, background: `${cat.color}14` }}>
+                <span className="cat-tag" style={{ marginTop: 4 }}>
                   <span className="cat-tag-dot" style={{ background: cat.color }} />
                   {cat.label}
                 </span>
@@ -105,7 +105,7 @@ export default function ConversationList({ conversations }: { conversations: Con
                 <span
                   className="cat-tag"
                   title="An AI reply draft is ready — open to review and send"
-                  style={{ marginTop: 4, marginLeft: cat ? 6 : 0, color: 'var(--accent)', background: 'var(--accent-dim)' }}
+                  style={{ marginTop: 4, marginLeft: cat ? 6 : 0, color: 'var(--accent)' }}
                 >
                   <Sparkles size={10} />
                   Draft ready
@@ -116,7 +116,7 @@ export default function ConversationList({ conversations }: { conversations: Con
                 <span
                   className="cat-tag"
                   title={`Assigned to ${c.assigneeName}`}
-                  style={{ marginTop: 4, marginLeft: cat || c.hasDraft ? 6 : 0, color: 'var(--text-secondary)', background: 'var(--bg-subtle)' }}
+                  style={{ marginTop: 4, marginLeft: cat || c.hasDraft ? 6 : 0 }}
                 >
                   <UserRound size={10} />
                   {c.assigneeName}

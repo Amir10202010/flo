@@ -258,11 +258,8 @@ export default function ThreadContextRail({
         {convTags.length > 0 && (
           <div className="rail-tag-chips">
             {convTags.map((t) => (
-              <span
-                key={t.id}
-                className="rail-tag-chip"
-                style={{ color: t.color, background: `${t.color}1a`, borderColor: `${t.color}55` }}
-              >
+              <span key={t.id} className="rail-tag-chip">
+                <span className="rail-tag-dot" style={{ background: t.color }} />
                 {t.name}
               </span>
             ))}

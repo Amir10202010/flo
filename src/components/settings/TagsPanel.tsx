@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Plus, Tag as TagIcon } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 type Tag = { id: string; name: string; color: string }
 const COLORS = ['#6366F1', '#DC2B55', '#0EA371', '#C2620A', '#7C4DFF', '#0891B2']
@@ -39,8 +39,8 @@ export default function TagsPanel({ canManage }: { canManage: boolean }) {
         {tags.length === 0 && <p style={{ margin: '0 0 12px', fontSize: 12.5, color: 'var(--text-muted)' }}>No tags yet.</p>}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: canManage ? 16 : 0 }}>
           {tags.map((t) => (
-            <span key={t.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: t.color, background: `${t.color}1a`, border: `1px solid ${t.color}55`, borderRadius: 100, padding: '4px 12px' }}>
-              <TagIcon size={11} /> {t.name}
+            <span key={t.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xs)', padding: '3px 9px' }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: t.color, flexShrink: 0 }} /> {t.name}
             </span>
           ))}
         </div>

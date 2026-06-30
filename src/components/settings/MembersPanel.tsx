@@ -117,7 +117,7 @@ export default function MembersPanel({ myRole }: { myRole: OrgRole }) {
                   {assignableRoles(myRole).map((r) => (<option key={r} value={r}>{ROLE_LABEL[r]}</option>))}
                 </select>
               ) : (
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-secondary)', padding: '4px 10px', background: 'var(--bg-subtle)', borderRadius: 100 }}>{ROLE_LABEL[m.role]}</span>
+                <span className="tag" style={{ fontSize: 11 }}>{ROLE_LABEL[m.role]}</span>
               )}
               {editable && (
                 <button type="button" onClick={() => remove(m)} title="Remove" style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'inline-flex', padding: 4 }}>

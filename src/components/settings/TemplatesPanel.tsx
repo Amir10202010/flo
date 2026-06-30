@@ -51,7 +51,7 @@ export default function TemplatesPanel() {
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
                 {t.title}
-                {!t.shared && <span style={{ marginLeft: 7, fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-subtle)', borderRadius: 100, padding: '1px 7px' }}>private</span>}
+                {!t.shared && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 500, color: 'var(--text-muted)' }}>· Private</span>}
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.body}</div>
             </div>

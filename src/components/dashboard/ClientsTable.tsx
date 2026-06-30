@@ -150,11 +150,6 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
                             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
                               {r.name}
                             </span>
-                            {r.isNew && (
-                              <span style={{ fontSize: 8.5, fontWeight: 800, letterSpacing: '0.06em', color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid rgba(79,92,244,0.2)', borderRadius: 5, padding: '1.5px 5px' }}>
-                                NEW
-                              </span>
-                            )}
                             {r.awaitingReply && (
                               <span title="Awaiting your reply" style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--attention)', flexShrink: 0 }} />
                             )}
@@ -214,7 +209,6 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
                     <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
-                    {r.isNew && <span className="client-card-new">NEW</span>}
                     {r.awaitingReply && <span title="Awaiting your reply" style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--attention)', flexShrink: 0 }} />}
                   </div>
                   {r.email && (
