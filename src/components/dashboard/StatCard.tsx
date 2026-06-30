@@ -8,12 +8,12 @@ import Sparkline from './Sparkline'
 
 export type StatTone = 'default' | 'critical' | 'warning' | 'success'
 
-// KPI numbers stay calm and neutral; only a genuine critical count (e.g. clients
-// at risk > 0) is tinted, so the one number that needs attention is the only one
-// wearing colour. No walls of red/green/amber digits.
+// KPI numbers are always neutral. A metric like "clients at risk" is a signal,
+// not an app error, so it doesn't earn red — the label + the number carry it.
+// Strong red is reserved for genuine error states elsewhere. Keep the dashboard calm.
 const VALUE_COLOR: Record<StatTone, string> = {
   default: 'var(--text-primary)',
-  critical: 'var(--hot)',
+  critical: 'var(--text-primary)',
   warning: 'var(--text-primary)',
   success: 'var(--text-primary)',
 }

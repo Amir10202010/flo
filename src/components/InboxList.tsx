@@ -417,17 +417,17 @@ function SearchLoading() {
 function ConnectEmpty() {
   return (
     <div style={{ padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 14 }}>
-      <div style={{ width: 52, height: 52, borderRadius: 14, background: '#FFFFFF', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-sm)' }}>
-        <Plug size={22} style={{ color: 'var(--accent)' }} />
+      <div style={{ width: 50, height: 50, borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Plug size={21} style={{ color: 'var(--accent)' }} />
       </div>
       <div>
-        <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>No channels connected yet</p>
-        <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: 240 }}>
-          Connect Gmail to pull your conversations into Velnox and start prioritising them.
+        <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>No inbox connected yet</p>
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: 260 }}>
+          Velnox is invite-only for now — request access to the Gmail your team works out of.
         </p>
       </div>
       <Link href="/settings?tab=connections" className="btn-primary" style={{ fontSize: 13.5, padding: '9px 18px', textDecoration: 'none' }}>
-        Connect a channel
+        Request access
       </Link>
     </div>
   )

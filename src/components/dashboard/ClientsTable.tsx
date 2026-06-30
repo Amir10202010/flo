@@ -151,7 +151,7 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
                               {r.name}
                             </span>
                             {r.awaitingReply && (
-                              <span title="Awaiting your reply" style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--attention)', flexShrink: 0 }} />
+                              <span title="Awaiting your reply" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-muted)', flexShrink: 0 }} />
                             )}
                           </div>
                           {r.email && (
@@ -209,7 +209,7 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
                     <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
-                    {r.awaitingReply && <span title="Awaiting your reply" style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--attention)', flexShrink: 0 }} />}
+                    {r.awaitingReply && <span title="Awaiting your reply" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-muted)', flexShrink: 0 }} />}
                   </div>
                   {r.email && (
                     <div style={{ fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>{r.email}</div>

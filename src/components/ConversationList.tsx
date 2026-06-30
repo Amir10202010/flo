@@ -6,8 +6,9 @@ import { Inbox, Sparkles, UserRound } from 'lucide-react'
 import { avatarGradient, initialsOf } from '@/components/dashboard/avatar'
 import EmptyNote from '@/components/dashboard/EmptyNote'
 import { priorityMeta } from '@/lib/priority'
+import { PRIORITY_ICON } from '@/components/ui/PriorityBadge'
 import { CATEGORY_META } from '@/lib/categories'
-import type { EmailCategory } from '@/types'
+import type { EmailCategory, PriorityLevel } from '@/types'
 
 export type ConversationSummary = {
   id: string
@@ -57,6 +58,7 @@ export default function ConversationList({ conversations }: { conversations: Con
         // Only elevated priorities earn a badge — keeping Normal/Low rows quiet
         // makes the urgent ones actually stand out.
         const showBadge = c.priority === 'HOT' || c.priority === 'ATTENTION'
+        const PIcon = PRIORITY_ICON[c.priority as PriorityLevel]
         // Category tag — shown for everything except the catch-all Primary bucket
         // so the row visibly reflects where it was sorted.
         const cat = c.category && c.category !== 'PRIMARY' ? CATEGORY_META[c.category] : null
@@ -145,6 +147,7 @@ export default function ConversationList({ conversations }: { conversations: Con
                 )}
                 {showBadge && (
                   <span className={`priority-badge ${m.className}`} title={m.description} style={{ flexShrink: 0 }}>
+                    {PIcon && <PIcon size={12} style={{ flexShrink: 0 }} />}
                     {m.label}
                   </span>
                 )}

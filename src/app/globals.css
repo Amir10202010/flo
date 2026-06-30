@@ -238,13 +238,15 @@
   background: none;
   border-radius: 0;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0;
   line-height: 1.5;
   white-space: nowrap;
 }
-.priority-hot       { color: var(--hot); }
-.priority-attention { color: var(--attention); }
+/* Monochrome — level reads from contrast + the leading icon, not colour. Urgent
+   is the darkest/heaviest so it draws the eye without shouting; Low fades back. */
+.priority-hot       { color: var(--text-primary);   font-weight: 600; }
+.priority-attention { color: var(--text-secondary); font-weight: 600; }
 .priority-cold      { color: var(--text-muted); }
 .priority-spam      { color: var(--text-muted); }
 
@@ -1008,6 +1010,45 @@
   transition: background 0.15s;
 }
 .lp-cta-btn:hover { background: #EEF0FA; }
+
+/* ── Hero ambience (restrained premium depth) ─────────────────────────────── */
+/* Soft radial light + a faint masked grid + a low-opacity cursor spotlight.
+   Subtle by design — depth without noise. The spotlight's background is driven
+   by a motion value in page.tsx; these classes just position and clip layers. */
+.hero-spotlight { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+
+.hero-ambient { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.hero-ambient::before {
+  content: '';
+  position: absolute;
+  top: -22%; right: -8%;
+  width: 46%; height: 78%;
+  background: radial-gradient(closest-side, rgba(79,92,244,0.12), transparent 76%);
+  filter: blur(14px);
+}
+.hero-ambient::after {
+  content: '';
+  position: absolute;
+  bottom: -30%; left: -12%;
+  width: 40%; height: 70%;
+  background: radial-gradient(closest-side, rgba(124,77,255,0.06), transparent 76%);
+  filter: blur(14px);
+}
+
+.hero-grid-faint {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--border-light) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-light) 1px, transparent 1px);
+  background-size: 58px 58px;
+  opacity: 0.55;
+  -webkit-mask-image: radial-gradient(ellipse 72% 58% at 50% 26%, #000 6%, transparent 68%);
+  mask-image: radial-gradient(ellipse 72% 58% at 50% 26%, #000 6%, transparent 68%);
+}
+@media (max-width: 900px) { .hero-grid-faint { display: none; } }
 
 /* ── Scripted demo (cinematic) ──────────────────────────────────────────── */
 .scene {

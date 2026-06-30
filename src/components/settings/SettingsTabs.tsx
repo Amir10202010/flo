@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Bell, Building2, CalendarClock, Crown, FileText, History, Mail, ShieldCheck, Tag as TagIcon, Users, Zap } from 'lucide-react'
+import { Bell, Building2, CalendarClock, Crown, FileText, Mail, ShieldCheck, Tag as TagIcon, Users, Zap } from 'lucide-react'
 import type { OrgRole, BillingPlan } from '@prisma/client'
 import { can, ROLE_LABEL } from '@/lib/permissions'
 import { planLimits } from '@/lib/billing'
@@ -15,7 +15,6 @@ import InboxesPanel from '@/components/settings/InboxesPanel'
 import TagsPanel from '@/components/settings/TagsPanel'
 import RulesPanel from '@/components/settings/RulesPanel'
 import TemplatesPanel from '@/components/settings/TemplatesPanel'
-import AuditPanel from '@/components/settings/AuditPanel'
 
 const PLAN_LABEL: Record<string, string> = { FREE: 'Free', PRO: 'Pro', TEAM: 'Team', BUSINESS: 'Business', ENTERPRISE: 'Enterprise' }
 
@@ -50,7 +49,6 @@ export default function SettingsTabs({
     { id: 'billing', label: 'Billing', icon: Crown, show: true },
     { id: 'library', label: 'Library', icon: FileText, show: can(role, 'inbox:read') },
     { id: 'automations', label: 'Automations', icon: Zap, show: can(role, 'rules:manage') },
-    { id: 'audit', label: 'Audit log', icon: History, show: can(role, 'audit:read') },
   ].filter((t) => t.show)
 
   // Deep-link a tab via ?tab=; the OAuth callback lands on ?connected / ?error,
@@ -191,7 +189,6 @@ export default function SettingsTabs({
         </div>
       )}
       {active === 'automations' && <RulesPanel role={role} />}
-      {active === 'audit' && <AuditPanel />}
     </div>
   )
 }

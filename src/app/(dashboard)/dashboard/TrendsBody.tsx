@@ -66,6 +66,8 @@ export default async function TrendsBody({ organizationId }: { organizationId: s
         />
       </div>
 
+      {/* Composition: a full-width trend on top, a balanced two-up row, then a
+          full-width team list — so no half-width widget sits next to an empty cell. */}
       <div className="ana-grid">
         <Reveal delay={0.08} className="ana-span2">
           <WidgetShell
@@ -74,12 +76,12 @@ export default async function TrendsBody({ organizationId }: { organizationId: s
             sub="Daily messages across all client threads"
             status="live"
             action={
-              <div style={{ display: 'flex', gap: 12, flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: 14, flexShrink: 0 }}>
                 <LegendChip color="#4F5CF4" label="Received" />
                 <LegendChip color="#8B5CF6" label="Sent" />
               </div>
             }
-            bodyStyle={{ padding: '18px 18px 14px' }}
+            bodyStyle={{ padding: '18px 20px 16px' }}
           >
             <AreaChart data={data.volumeSeries} height={210} />
           </WidgetShell>
@@ -91,7 +93,7 @@ export default async function TrendsBody({ organizationId }: { organizationId: s
             title="Response time trend"
             sub="Average reply time per week — lower is better"
             status="live"
-            bodyStyle={{ padding: '20px 22px 16px' }}
+            bodyStyle={{ padding: '18px 20px 16px' }}
           >
             {data.responseWeekly.every((w) => w.hours === null) ? (
               <EmptyNote icon={<Clock size={17} />} title="No reply pairs yet" hint="Send replies to client emails and the trend builds up week by week." />
@@ -101,50 +103,48 @@ export default async function TrendsBody({ organizationId }: { organizationId: s
           </WidgetShell>
         </Reveal>
 
-        <Reveal delay={0.16} className="ana-span2">
-          <WidgetShell
-            icon={<Users size={14} />}
-            title="Team workload"
-            sub="Assigned threads per member — open · awaiting reply"
-            status="live"
-            bodyStyle={{ padding: '14px 18px 16px' }}
-          >
-            {data.team.members.length === 0 ? (
-              <EmptyNote icon={<Users size={17} />} title="No members yet" hint="Invite teammates in Settings → Members." />
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {data.team.members.map((m) => (
-                  <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-                    <span style={{ fontSize: 11.5, fontWeight: 500, color: 'var(--text-secondary)' }}>{m.open} open</span>
-                    {m.awaiting > 0 && (
-                      <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--attention)' }}>{m.awaiting} awaiting</span>
-                    )}
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{m.assigned} total</span>
-                  </div>
-                ))}
-                {data.team.unassignedOpen > 0 && (
-                  <div style={{ marginTop: 4, paddingTop: 8, borderTop: '1px solid var(--border-light)', fontSize: 12, color: 'var(--text-muted)' }}>
-                    <strong style={{ color: 'var(--attention)' }}>{data.team.unassignedOpen}</strong> open thread{data.team.unassignedOpen === 1 ? '' : 's'} unassigned
-                  </div>
-                )}
-              </div>
-            )}
-          </WidgetShell>
-        </Reveal>
-
-        <Reveal delay={0.2}>
+        <Reveal delay={0.16}>
           <WidgetShell
             icon={<Users size={14} />}
             title="Most active clients"
             sub="By inbound emails · last 30 days"
             status="live"
-            bodyStyle={{ padding: '20px 22px' }}
+            bodyStyle={{ padding: '18px 20px' }}
           >
             {data.topContacts.length === 0 ? (
               <EmptyNote icon={<Users size={17} />} title="No client activity yet" />
             ) : (
               <HBars items={data.topContacts.map((c) => ({ label: c.name, value: c.count }))} />
+            )}
+          </WidgetShell>
+        </Reveal>
+
+        <Reveal delay={0.2} className="ana-span2">
+          <WidgetShell
+            icon={<Users size={14} />}
+            title="Team workload"
+            sub="Assigned threads per member — open · awaiting reply"
+            status="live"
+            bodyStyle={{ padding: '16px 20px 18px' }}
+          >
+            {data.team.members.length === 0 ? (
+              <EmptyNote icon={<Users size={17} />} title="No members yet" hint="Invite teammates in Settings → Members." />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                {data.team.members.map((m) => (
+                  <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
+                    <span style={{ fontSize: 11.5, fontWeight: 500, color: 'var(--text-secondary)', width: 56, textAlign: 'right' }}>{m.open} open</span>
+                    <span style={{ fontSize: 11.5, fontWeight: 500, color: 'var(--text-muted)', width: 76, textAlign: 'right' }}>{m.awaiting > 0 ? `${m.awaiting} awaiting` : ''}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 56, textAlign: 'right' }}>{m.assigned} total</span>
+                  </div>
+                ))}
+                {data.team.unassignedOpen > 0 && (
+                  <div style={{ marginTop: 4, paddingTop: 9, borderTop: '1px solid var(--border-light)', fontSize: 12, color: 'var(--text-muted)' }}>
+                    <strong style={{ color: 'var(--text-primary)' }}>{data.team.unassignedOpen}</strong> open thread{data.team.unassignedOpen === 1 ? '' : 's'} unassigned
+                  </div>
+                )}
+              </div>
             )}
           </WidgetShell>
         </Reveal>

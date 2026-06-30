@@ -10,7 +10,6 @@ import { longDate } from '@/lib/time'
 import { Reveal } from '@/components/dashboard/Motion'
 import StatCard from '@/components/dashboard/StatCard'
 import CommandCenter from '@/components/dashboard/CommandCenter'
-import RiskMonitor from '@/components/dashboard/RiskMonitor'
 import SmartInsights from '@/components/dashboard/SmartInsights'
 import RemindersCard from '@/components/dashboard/RemindersCard'
 import DashboardEmpty from '@/components/dashboard/DashboardEmpty'
@@ -140,9 +139,6 @@ async function DashboardBody({ organizationId }: { organizationId: string }) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
           <Reveal delay={0.16}>
-            <RiskMonitor items={data.riskClients} />
-          </Reveal>
-          <Reveal delay={0.2}>
             <SmartInsights insights={data.insights} />
           </Reveal>
           <RemindersCard />

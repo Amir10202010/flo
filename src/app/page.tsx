@@ -1,8 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import Link from 'next/link'
-import { motion, MotionConfig, AnimatePresence, type Variants } from 'framer-motion'
+import {
+  motion, MotionConfig, AnimatePresence, type Variants,
+  useMotionValue, useMotionTemplate, useSpring, useTransform, useReducedMotion,
+} from 'framer-motion'
 import {
   ArrowRight, Check, X, Inbox, UserPlus, MessageSquare,
   SlidersHorizontal, Sparkles, ShieldCheck, Plus, type LucideIcon,
@@ -88,67 +91,107 @@ function SectionHead({ title, sub, align = 'center' }: { title: string; sub?: st
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0)
 
+  // Restrained hero polish: a soft cursor-follow spotlight + a gentle 3D tilt on
+  // the product shot. Low amplitude, spring-damped, and fully inert under
+  // prefers-reduced-motion (guarded here + via MotionConfig).
+  const heroRef = useRef<HTMLElement>(null)
+  const reduce = useReducedMotion()
+  const mx = useMotionValue(-500)
+  const my = useMotionValue(-500)
+  const spotlight = useMotionTemplate`radial-gradient(460px circle at ${mx}px ${my}px, rgba(79,92,244,0.06), transparent 72%)`
+  const px = useMotionValue(0)
+  const py = useMotionValue(0)
+  const sx = useSpring(px, { stiffness: 110, damping: 18, mass: 0.5 })
+  const sy = useSpring(py, { stiffness: 110, damping: 18, mass: 0.5 })
+  const rotateY = useTransform(sx, [-0.5, 0.5], [-7, 7])
+  const rotateX = useTransform(sy, [-0.5, 0.5], [5, -5])
+
+  const onHeroMove = (e: React.MouseEvent<HTMLElement>) => {
+    if (reduce) return
+    const r = heroRef.current?.getBoundingClientRect()
+    if (!r) return
+    mx.set(e.clientX - r.left)
+    my.set(e.clientY - r.top)
+    px.set((e.clientX - r.left) / r.width - 0.5)
+    py.set((e.clientY - r.top) / r.height - 0.5)
+  }
+  const onHeroLeave = () => { px.set(0); py.set(0) }
+
   return (
     <MotionConfig reducedMotion="user">
       <div style={{ background: 'var(--bg-base)', minHeight: '100vh' }}>
         <Navbar />
 
         {/* ── Hero ────────────────────────────────────────────────────────── */}
-        <section className="hero-top mkt-x" style={{ padding: '140px 32px 72px', maxWidth: 1140, margin: '0 auto' }}>
-          <div className="hero-grid" style={{ display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: 64, alignItems: 'center' }}>
-            <div>
-              <motion.h1
-                className="display-title"
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-                style={{ fontSize: 'clamp(38px, 5.6vw, 60px)', margin: '0 0 20px' }}
-              >
-                One shared inbox for your whole team
-              </motion.h1>
+        <section
+          ref={heroRef}
+          onMouseMove={onHeroMove}
+          onMouseLeave={onHeroLeave}
+          className="hero-top"
+          style={{ position: 'relative', overflow: 'hidden' }}
+        >
+          <div className="hero-ambient" aria-hidden />
+          <div className="hero-grid-faint" aria-hidden />
+          {!reduce && <motion.div aria-hidden className="hero-spotlight" style={{ background: spotlight }} />}
 
-              <motion.p
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.55, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
-                style={{ fontSize: 18, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 28px', maxWidth: 480 }}
-              >
-                Velnox turns your team’s shared Gmail into one AI-triaged queue — assign threads, leave
-                internal notes, and send AI-drafted replies. Built for support, sales and ops teams.
-              </motion.p>
+          <div className="mkt-x" style={{ position: 'relative', zIndex: 1, maxWidth: 1140, margin: '0 auto', padding: '0 32px' }}>
+            <div className="hero-grid" style={{ display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: 64, alignItems: 'center' }}>
+              <div>
+                <motion.h1
+                  className="display-title"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ fontSize: 'clamp(38px, 5.6vw, 60px)', margin: '0 0 20px' }}
+                >
+                  One shared inbox for your whole team
+                </motion.h1>
+
+                <motion.p
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.55, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ fontSize: 18, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 28px', maxWidth: 480 }}
+                >
+                  Velnox turns your team’s shared Gmail into one AI-triaged queue — assign threads, leave
+                  internal notes, and send AI-drafted replies. Built for support, sales and ops teams.
+                </motion.p>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.55, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+                  className="hero-cta"
+                  style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 22 }}
+                >
+                  <Link href="/signup" className="btn-primary" style={{ fontSize: 15 }}>
+                    Get early access <ArrowRight size={16} />
+                  </Link>
+                  <a href="#demo" className="btn-ghost" style={{ fontSize: 15 }}>See how it works</a>
+                </motion.div>
+
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}
+                >
+                  Invite-only while we finish Google verification · AES-256 encrypted · we never store your password.
+                </motion.p>
+              </div>
 
               <motion.div
-                initial={{ opacity: 0, y: 16 }}
+                className="hero-mockup"
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.55, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
-                className="hero-cta"
-                style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 22 }}
+                transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+                style={{ display: 'flex', justifyContent: 'center', perspective: 1100 }}
               >
-                <Link href="/signup" className="btn-primary" style={{ fontSize: 15 }}>
-                  Get early access <ArrowRight size={16} />
-                </Link>
-                <a href="#demo" className="btn-ghost" style={{ fontSize: 15 }}>See how it works</a>
+                <motion.div style={{ rotateX, rotateY, transformStyle: 'preserve-3d', willChange: 'transform' }}>
+                  <HeroMockup />
+                </motion.div>
               </motion.div>
-
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}
-              >
-                Connect a shared Gmail in two clicks · AES-256 encrypted · we never store your password.
-              </motion.p>
             </div>
-
-            <motion.div
-              className="hero-mockup"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-              style={{ display: 'flex', justifyContent: 'center' }}
-            >
-              <HeroMockup />
-            </motion.div>
           </div>
         </section>
 

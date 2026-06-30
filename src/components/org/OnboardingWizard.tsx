@@ -105,7 +105,7 @@ export default function OnboardingWizard({ defaultName = '' }: { defaultName?: s
             {invites.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
                 {invites.map((e) => (
-                  <span key={e} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', background: 'var(--bg-subtle)', borderRadius: 100, padding: '4px 10px' }}>
+                  <span key={e} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xs)', padding: '3px 9px' }}>
                     <Mail size={11} /> {e}
                     <button type="button" onClick={() => setInvites((p) => p.filter((x) => x !== e))} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'inline-flex', padding: 0 }}><X size={11} /></button>
                   </span>
@@ -120,9 +120,12 @@ export default function OnboardingWizard({ defaultName = '' }: { defaultName?: s
             )}
             {sent > 0 && <p style={{ margin: '0 0 12px', fontSize: 12.5, color: 'var(--success)' }}>✓ Sent {sent} invite{sent === 1 ? '' : 's'}.</p>}
 
-            <a href="/api/auth/gmail" className="btn-ghost" style={{ width: '100%', justifyContent: 'center', gap: 7, marginBottom: 10, fontSize: 13.5 }}>
-              <Mail size={15} /> Connect a shared inbox
+            <a href="/settings?tab=connections" className="btn-ghost" style={{ width: '100%', justifyContent: 'center', gap: 7, marginBottom: 8, fontSize: 13.5 }}>
+              <Mail size={15} /> Set up your shared inbox
             </a>
+            <p style={{ margin: '0 0 12px', fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5, textAlign: 'center' }}>
+              Velnox is invite-only while we finish Google verification — you&apos;ll request access to the Gmail you want to connect.
+            </p>
 
             <button type="button" onClick={finish} className="btn-primary" style={{ width: '100%', justifyContent: 'center', gap: 8 }}>
               Go to dashboard <ArrowRight size={15} />
