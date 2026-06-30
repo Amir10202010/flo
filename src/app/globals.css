@@ -748,7 +748,7 @@
 /* ── Product Demo ───────────────────────────────────────────────────────── */
 .demo-wrap {
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
 /* Section padding — responsive */
@@ -929,7 +929,7 @@
   border-spacing: 0;
   background: #FFFFFF;
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
@@ -1010,7 +1010,7 @@
 /* ── Scripted demo (cinematic) ──────────────────────────────────────────── */
 .scene {
   position: relative;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid var(--border);
   box-shadow: var(--shadow-xl);
@@ -1346,7 +1346,7 @@
   max-width: 560px;
   background: #FFFFFF;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg, 0 20px 60px rgba(0,0,0,0.2));
   padding: 18px;
   display: flex;
@@ -1428,7 +1428,7 @@
   max-width: 440px;
   background: #FFFFFF;
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg, 0 20px 60px rgba(0,0,0,0.2));
   padding: 26px 24px 20px;
   display: flex;
@@ -1830,7 +1830,7 @@
   width: min(640px, 92vw);
   background: #FFFFFF;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
   z-index: 121;
   overflow: hidden;

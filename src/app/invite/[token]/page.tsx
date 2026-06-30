@@ -34,14 +34,14 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
         >
           {!preview ? (
             <>
-              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 400, margin: '0 0 8px', color: 'var(--text-primary)' }}>
+              <h1 className="section-title" style={{ fontSize: 20, margin: '0 0 8px' }}>
                 Invitation not found
               </h1>
               <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-secondary)' }}>This invite link is invalid.</p>
             </>
           ) : !preview.valid ? (
             <>
-              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 400, margin: '0 0 8px', color: 'var(--text-primary)' }}>
+              <h1 className="section-title" style={{ fontSize: 20, margin: '0 0 8px' }}>
                 Invitation unavailable
               </h1>
               <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-secondary)' }}>
@@ -50,7 +50,7 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
             </>
           ) : (
             <>
-              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 23, fontWeight: 400, margin: '0 0 8px', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              <h1 className="section-title" style={{ fontSize: 21, margin: '0 0 8px' }}>
                 Join {preview.organizationName}
               </h1>
               <p style={{ margin: '0 0 22px', fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>

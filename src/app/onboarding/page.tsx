@@ -26,7 +26,7 @@ export default async function OnboardingPage() {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 20px', background: 'var(--bg-base)' }}>
       <div style={{ width: '100%', maxWidth: 460 }}>
         <div style={{ textAlign: 'center', marginBottom: 26 }}>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, fontWeight: 400, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 8px' }}>
+          <h1 className="display-title" style={{ fontSize: 26, margin: '0 0 8px' }}>
             {firstName ? `Welcome, ${firstName}` : 'Welcome to Velnox'}
           </h1>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
