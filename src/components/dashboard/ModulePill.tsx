@@ -17,7 +17,6 @@ const LABEL: Record<ModuleStatus, string> = {
 export default function ModulePill({ status }: { status: ModuleStatus }) {
   return (
     <span className={`module-pill pill-${status}`}>
-      <span className="pill-dot" />
       {LABEL[status]}
     </span>
   )

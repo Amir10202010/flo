@@ -71,7 +71,7 @@ export default function AlertsDrawer() {
         }}
       >
         <header style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 18px', borderBottom: '1px solid var(--border-light)' }}>
-          <h2 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontSize: 19, fontWeight: 400, letterSpacing: '-0.01em', color: 'var(--text-primary)' }}>
+          <h2 className="section-title" style={{ margin: 0, fontSize: 18 }}>
             Risk alerts
           </h2>
           <button

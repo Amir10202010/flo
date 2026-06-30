@@ -34,12 +34,12 @@ function SyncChip({ connected, lastSyncAgo }: { connected: boolean; lastSyncAgo:
           color: 'var(--attention)',
           background: 'var(--attention-dim)',
           border: '1px solid var(--attention-border)',
-          borderRadius: 100,
+          borderRadius: 6,
           padding: '6px 13px',
           textDecoration: 'none',
         }}
       >
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--attention)' }} />
+        <Mail size={13} />
         Connect Gmail
       </Link>
     )
@@ -55,12 +55,12 @@ function SyncChip({ connected, lastSyncAgo }: { connected: boolean; lastSyncAgo:
         color: 'var(--success)',
         background: 'var(--success-dim)',
         border: '1px solid var(--success-border)',
-        borderRadius: 100,
+        borderRadius: 6,
         padding: '6px 13px',
         whiteSpace: 'nowrap',
       }}
     >
-      <span className="animate-pulse-s" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)' }} />
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)' }} />
       {lastSyncAgo ? `Synced ${lastSyncAgo}` : 'First sync queued'}
     </span>
   )
@@ -183,7 +183,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <Reveal>
         <div className="dash-header-row" style={{ marginBottom: 20 }}>
           <div>
-            <h1 style={{ margin: '0 0 5px', fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 400, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
+            <h1 className="page-title" style={{ margin: '0 0 5px' }}>
               {firstName ? `Good to see you, ${firstName}` : 'Your workspace'}
             </h1>
             <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>{longDate(new Date())}</p>

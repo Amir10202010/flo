@@ -15,21 +15,21 @@ export default function DashboardEmpty({ hasIntegration }: { hasIntegration: boo
       <div className="widget" style={{ alignItems: 'center', textAlign: 'center', padding: '52px 28px 44px' }}>
         <div
           style={{
-            width: 54,
-            height: 54,
-            borderRadius: 15,
-            background: 'linear-gradient(135deg, #4F5CF4, #6D44F5)',
-            color: '#fff',
+            width: 50,
+            height: 50,
+            borderRadius: 12,
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border)',
+            color: 'var(--accent)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 10px 28px rgba(79,92,244,0.35)',
             marginBottom: 18,
           }}
         >
-          <Mail size={23} />
+          <Mail size={22} />
         </div>
-        <h2 style={{ margin: '0 0 8px', fontFamily: 'var(--font-serif)', fontSize: 25, fontWeight: 400, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
+        <h2 className="section-title" style={{ margin: '0 0 8px', fontSize: 22 }}>
           {hasIntegration ? 'Your first sync is on its way' : 'Connect a shared inbox to light up your dashboard'}
         </h2>
         <p style={{ margin: '0 0 22px', fontSize: 14, color: 'var(--text-secondary)', maxWidth: 440, lineHeight: 1.6 }}>

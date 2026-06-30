@@ -70,15 +70,15 @@ export default function AssistantModal() {
             gap: 10,
             padding: '14px 16px',
             borderBottom: '1px solid var(--border-light)',
-            background: 'linear-gradient(180deg, rgba(79,92,244,0.05), rgba(255,255,255,0))',
+            background: 'var(--bg-subtle)',
           }}
         >
           <span
             style={{
               width: 28,
               height: 28,
-              borderRadius: 9,
-              background: 'linear-gradient(135deg, #4F5CF4, #6D44F5)',
+              borderRadius: 8,
+              background: 'var(--accent)',
               color: '#fff',
               display: 'flex',
               alignItems: 'center',

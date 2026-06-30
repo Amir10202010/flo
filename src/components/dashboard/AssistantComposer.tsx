@@ -266,7 +266,7 @@ function AnswerBubble({ turn, reduced }: { turn: AssistantTurn; reduced: boolean
           width: 24,
           height: 24,
           borderRadius: 7,
-          background: 'linear-gradient(135deg, #4F5CF4, #6D44F5)',
+          background: 'var(--accent)',
           color: '#fff',
           display: 'flex',
           alignItems: 'center',

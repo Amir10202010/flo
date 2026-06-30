@@ -61,7 +61,7 @@
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius:    8px;
-  --radius-lg: 10px;
+  --radius-lg: 12px;
   --radius-xl: 14px;
 
   /* Shadows — quiet. Elevation comes mostly from 1px borders; shadows are a
@@ -1981,7 +1981,7 @@
 .widget {
   background: #FFFFFF;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xs);
   overflow: hidden;
   display: flex;
@@ -2010,10 +2010,9 @@
 }
 /* AI-powered modules get the branded gradient tile — quiet but unmistakable */
 .widget-icon-ai {
-  background: linear-gradient(135deg, #4F5CF4, #7C4DF5);
+  background: var(--accent);
   color: #fff;
   border: none;
-  box-shadow: 0 3px 10px rgba(79,92,244,0.3);
 }
 .widget-title { font-size: 13.5px; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
 .widget-sub   { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
@@ -2036,21 +2035,16 @@
   padding: 2.5px 8px;
   border-radius: 100px;
   font-size: 9.5px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
   flex-shrink: 0;
 }
-.module-pill .pill-dot { width: 5px; height: 5px; border-radius: 50%; }
 .pill-live    { background: var(--success-dim); color: var(--success); border: 1px solid var(--success-border); }
-.pill-live    .pill-dot { background: var(--success); }
 .pill-beta    { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(79,92,244,0.22); }
-.pill-beta    .pill-dot { background: var(--accent); }
 .pill-preview { background: var(--spam-dim); color: var(--text-muted); border: 1px solid var(--spam-border); }
-.pill-preview .pill-dot { background: var(--text-muted); }
 .pill-soon    { background: var(--attention-dim); color: var(--attention); border: 1px solid var(--attention-border); }
-.pill-soon    .pill-dot { background: var(--attention); }
 
 /* ── Dashboard grids ────────────────────────────────────────────────────────── */
 .exec-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }

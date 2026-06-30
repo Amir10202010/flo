@@ -8,11 +8,14 @@ import Sparkline from './Sparkline'
 
 export type StatTone = 'default' | 'critical' | 'warning' | 'success'
 
+// KPI numbers stay calm and neutral; only a genuine critical count (e.g. clients
+// at risk > 0) is tinted, so the one number that needs attention is the only one
+// wearing colour. No walls of red/green/amber digits.
 const VALUE_COLOR: Record<StatTone, string> = {
   default: 'var(--text-primary)',
   critical: 'var(--hot)',
-  warning: 'var(--attention)',
-  success: 'var(--success)',
+  warning: 'var(--text-primary)',
+  success: 'var(--text-primary)',
 }
 
 function TrendChip({ deltaPct, upIsGood }: { deltaPct: number | null; upIsGood: boolean | null }) {
