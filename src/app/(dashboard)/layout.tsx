@@ -24,7 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: 'var(--bg-base)' }}>
       {/* Mobile-only top bar — the sidebar collapses to an icon rail and hides its logo below 768px */}
       <header className="dashboard-topbar">
-        <Brand size={22} />
+        <Brand size={22} href="/dashboard" />
         <MobileTopActions />
       </header>
 

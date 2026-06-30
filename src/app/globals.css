@@ -18,11 +18,17 @@
   --text-secondary: #4B5282;
   --text-muted:     #8D93BE;
 
-  /* Accent — premium indigo */
+  /* Accent — indigo. Reserved for links, active nav, focus rings, selected rows
+     and genuine AI affordances. NOT the default button fill (see --btn-primary). */
   --accent:       #4F5CF4;
   --accent-hover: #3D4AEF;
   --accent-dim:   rgba(79, 92, 244, 0.07);
   --accent-glow:  rgba(79, 92, 244, 0.22);
+
+  /* Primary action — near-black ink (Linear/Vercel/GitHub style). The default
+     button fill, calm and serious. */
+  --btn-primary:       #15172A;
+  --btn-primary-hover: #23263F;
 
   /* Priority — calibrated for light backgrounds */
   --hot:              #DC2B55;
@@ -41,30 +47,30 @@
   --spam-dim:    rgba(190, 195, 225, 0.25);
   --spam-border: rgba(175, 182, 220, 0.35);
 
-  /* Typography */
-  --font-sans:  var(--font-dm-sans,   system-ui, sans-serif);
-  --font-serif: var(--font-instrument, Georgia, serif);
-  /* Display = the heading face. Instrument Serif on desktop for editorial
-     character; swapped to the (sturdier, far more legible) sans on phones,
-     where the thin display serif renders spindly. Drives every marketing
-     heading via inline `fontFamily: var(--font-display)`. The brand wordmark
-     keeps var(--font-serif) directly, so it stays serif everywhere. */
-  --font-display:   var(--font-serif);
-  --display-weight: 400;
+  /* Typography — one neutral sans (Inter) across UI + marketing. --font-serif
+     and --font-display are kept as aliases pointing at the sans so any lingering
+     reference renders in Inter rather than breaking; references are removed
+     surface by surface. There is no display serif anymore. */
+  --font-sans:    var(--font-inter, system-ui, -apple-system, sans-serif);
+  --font-serif:   var(--font-sans);
+  --font-display: var(--font-sans);
+  --display-weight: 600;
 
-  /* Radius */
+  /* Radius — subtle. Tightened globally (Linear/GitHub middle ground); large
+     18/28px radii retired. Pills use 100px only for genuine status chips. */
   --radius-xs: 4px;
-  --radius-sm: 8px;
-  --radius:    12px;
-  --radius-lg: 18px;
-  --radius-xl: 28px;
+  --radius-sm: 6px;
+  --radius:    8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
 
-  /* Shadows — real and visible on light */
-  --shadow-xs: 0 1px 2px rgba(12, 18, 60, 0.05);
-  --shadow-sm: 0 1px 4px rgba(12, 18, 60, 0.07), 0 0 0 1px rgba(12, 18, 60, 0.04);
-  --shadow-md: 0 4px 16px rgba(12, 18, 60, 0.09), 0 0 0 1px rgba(12, 18, 60, 0.05);
-  --shadow-lg: 0 8px 32px rgba(12, 18, 60, 0.1),  0 0 0 1px rgba(12, 18, 60, 0.05);
-  --shadow-xl: 0 20px 60px rgba(12, 18, 60, 0.13), 0 0 0 1px rgba(12, 18, 60, 0.04);
+  /* Shadows — quiet. Elevation comes mostly from 1px borders; shadows are a
+     soft hint, not a glow. */
+  --shadow-xs: 0 1px 2px rgba(12, 18, 60, 0.04);
+  --shadow-sm: 0 1px 2px rgba(12, 18, 60, 0.05), 0 0 0 1px rgba(12, 18, 60, 0.035);
+  --shadow-md: 0 2px 8px rgba(12, 18, 60, 0.06), 0 0 0 1px rgba(12, 18, 60, 0.04);
+  --shadow-lg: 0 6px 20px rgba(12, 18, 60, 0.08), 0 0 0 1px rgba(12, 18, 60, 0.04);
+  --shadow-xl: 0 12px 36px rgba(12, 18, 60, 0.10), 0 0 0 1px rgba(12, 18, 60, 0.035);
 }
 
 /* ── Base Reset ─────────────────────────────────────────────────────────── */
@@ -150,6 +156,39 @@
 .text-primary   { color: var(--text-primary); }
 .text-secondary { color: var(--text-secondary); }
 .text-muted     { color: var(--text-muted); }
+
+/* Headings — one consistent treatment (Inter, semibold, tight tracking).
+   Replaces the old per-page inline serif-400 header styles so every page title,
+   section header and marketing headline shares the same calm voice. */
+.page-title {
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  line-height: 1.15;
+  color: var(--text-primary);
+}
+.page-subtitle {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+/* Marketing display headline — large + responsive; callers set font-size. */
+.display-title {
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.06;
+  color: var(--text-primary);
+  text-wrap: balance;
+}
+@media (max-width: 640px) { .page-title { font-size: 22px; } }
 
 /* ── Surfaces ───────────────────────────────────────────────────────────── */
 .surface {
@@ -237,8 +276,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 11px 22px;
-  background: linear-gradient(180deg, #5B68F6 0%, #4F5CF4 58%, #4550EE 100%);
+  padding: 10px 18px;
+  background: var(--btn-primary);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
@@ -246,25 +285,20 @@
   font-weight: 600;
   font-family: var(--font-sans);
   cursor: pointer;
-  transition: filter 0.15s, transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  transition: background 0.15s ease, opacity 0.15s ease;
   text-decoration: none;
   line-height: 1;
   white-space: nowrap;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 1px 3px rgba(79,92,244,0.35);
 }
-.btn-primary:hover {
-  filter: brightness(1.05) saturate(1.04);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 5px 20px rgba(79,92,244,0.38);
-  transform: translateY(-1px);
-}
-.btn-primary:active { transform: translateY(0); filter: brightness(0.97); box-shadow: inset 0 1px 2px rgba(12,18,60,0.18); }
-.btn-primary:disabled { opacity: 0.6; cursor: default; filter: none; transform: none; }
+.btn-primary:hover { background: var(--btn-primary-hover); }
+.btn-primary:active { background: #0C0E1D; }
+.btn-primary:disabled { opacity: 0.5; cursor: default; }
 
 .btn-ghost {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 11px 22px;
+  padding: 10px 18px;
   background: transparent;
   color: var(--text-secondary);
   border: 1px solid var(--border);
@@ -281,7 +315,6 @@
 .btn-ghost:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
-  border-color: rgba(79,92,244,0.25);
 }
 
 /* OAuth / provider button (auth pages) */
@@ -573,6 +606,12 @@
   border-radius: 14px;
   box-shadow: var(--shadow-xs);
   overflow: hidden;
+  /* .chat-scroll is a flex column, so cards are flex items. overflow:hidden
+     here zeroes their automatic flex min-size, which lets flex-shrink squash a
+     tall email card down to fit the viewport instead of overflowing — the
+     result was a clipped message and a thread that couldn't be scrolled. Pin
+     flex-shrink so each card keeps its full height and the container scrolls. */
+  flex-shrink: 0;
 }
 .msg-card:first-child { margin-top: 0; }
 .msg-card.cont { margin-top: 6px; }
@@ -1222,7 +1261,11 @@
   display: flex; flex-direction: column;
 }
 /* Rail default (no open/closed class) follows the breakpoint: a static column
-   on desktop, off-canvas on mobile. A toggle resolves it to .open / .closed. */
+   only on WIDE screens (>=1200px), off-canvas drawer below. The old 769px
+   breakpoint let the rail eat the message column on tablet-landscape / narrow
+   laptops (sidebar + 320 list + 320 rail squeezed .chat-main to ~0-236px at
+   769-1150px). 1200px is the first width where the column stays comfortable. A
+   toggle resolves it to .open / .closed. */
 .chat-rail {
   width: 320px; flex-shrink: 0;
   border-left: 1px solid var(--border);
@@ -1230,10 +1273,10 @@
 }
 .rail-scrim { display: none; }
 
-@media (min-width: 769px) {
-  .chat-rail.closed { display: none; }   /* explicit close on desktop */
+@media (min-width: 1200px) {
+  .chat-rail.closed { display: none; }   /* explicit close on wide screens */
 }
-@media (max-width: 768px) {
+@media (max-width: 1199px) {
   .chat-rail {
     position: fixed; top: 0; right: 0; bottom: 0; z-index: 50;
     width: min(86vw, 340px);
@@ -1417,9 +1460,9 @@
   align-items: center;
   gap: 7px;
   padding: 8px 18px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   border: none;
-  background: var(--accent);
+  background: var(--btn-primary);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -1427,7 +1470,7 @@
   cursor: pointer;
   transition: background 0.15s, opacity 0.15s;
 }
-.compose-send:hover:not(:disabled) { background: var(--accent-hover); }
+.compose-send:hover:not(:disabled) { background: var(--btn-primary-hover); }
 .compose-send:disabled { opacity: 0.5; cursor: default; }
 .compose-sent { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 40px; color: var(--cold); font-size: 15px; font-weight: 700; }
 
@@ -1470,12 +1513,12 @@
 .upgrade-actions { display: flex; align-items: center; gap: 10px; width: 100%; }
 .upgrade-cta {
   flex: 1; display: inline-flex; align-items: center; justify-content: center;
-  padding: 11px 18px; border-radius: 11px; border: none;
-  background: var(--accent); color: #fff;
-  font-size: 14px; font-weight: 700; font-family: var(--font-sans);
+  padding: 11px 18px; border-radius: var(--radius); border: none;
+  background: var(--btn-primary); color: #fff;
+  font-size: 14px; font-weight: 600; font-family: var(--font-sans);
   text-decoration: none; cursor: pointer; transition: background 0.15s;
 }
-.upgrade-cta:hover { background: var(--accent-hover); }
+.upgrade-cta:hover { background: var(--btn-primary-hover); }
 .upgrade-compare {
   align-self: center; margin-top: 14px;
   font-size: 12.5px; font-weight: 600; color: var(--text-muted); text-decoration: none;
@@ -1578,6 +1621,11 @@
   border: 1px solid var(--border);
   border-radius: 14px;
   background: #fff;
+  /* overflow:hidden clips the un-transformed overflow of a scaled-down email
+     (EmailFrame renders wide emails at natural width, then scales the frame to
+     fit and sets this wrap's height to the scaled height). No sideways scroll —
+     the whole email is visible. The iframe root stays overflow:visible so it
+     never becomes a scroll container that traps the thread's vertical scroll. */
   overflow: hidden;
   box-shadow: var(--shadow-xs);
 }
@@ -2251,9 +2299,9 @@ a > .insight-card:hover {
   gap: 6px;
   flex-shrink: 0;
   padding: 8px 13px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   border: 1px solid transparent;
-  background: var(--accent);
+  background: var(--btn-primary);
   color: #fff;
   font-size: 12.5px;
   font-weight: 600;
@@ -2261,7 +2309,7 @@ a > .insight-card:hover {
   cursor: pointer;
   transition: background 0.13s;
 }
-.inbox-compose-btn:hover { background: var(--accent-hover); }
+.inbox-compose-btn:hover { background: var(--btn-primary-hover); }
 
 .inbox-filters { position: relative; flex: 1; min-width: 0; }
 .inbox-filters-btn {
@@ -2401,16 +2449,16 @@ a > .insight-card:hover {
 .iff-done {
   padding: 7px 16px;
   border: none;
-  border-radius: 9px;
-  background: var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--btn-primary);
   color: #fff;
   font-size: 12.5px;
   font-weight: 600;
   font-family: var(--font-sans);
   cursor: pointer;
-  transition: filter 0.13s;
+  transition: background 0.13s;
 }
-.iff-done:hover { filter: brightness(1.06); }
+.iff-done:hover { background: var(--btn-primary-hover); }
 
 .inbox-sort-btn {
   display: inline-flex;
@@ -2563,15 +2611,15 @@ a > .insight-card:hover {
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   border: none;
-  background: var(--accent);
+  background: var(--btn-primary);
   color: #fff;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.15s, transform 0.15s, opacity 0.15s;
+  transition: background 0.15s, opacity 0.15s;
 }
-.composer-send:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+.composer-send:hover:not(:disabled) { background: var(--btn-primary-hover); }
 .composer-send:disabled { opacity: 0.45; cursor: default; }
 
 /* AI draft toolbar — under a hairline divider, inside the block */

@@ -1,20 +1,15 @@
 import type { Metadata } from 'next'
-import { DM_Sans, Instrument_Serif } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const dmSans = DM_Sans({
-  variable: '--font-dm-sans',
+// Single typeface for the whole product (UI + marketing). Variable font, so every
+// weight 400–700 is available without separate downloads. Inter is the calm,
+// neutral, "invisible" sans used by Linear/GitHub/Stripe — hard to make look
+// AI-templated, and it replaces the old DM Sans + Instrument Serif display pairing.
+const inter = Inter({
+  variable: '--font-inter',
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-})
-
-const instrumentSerif = Instrument_Serif({
-  variable: '--font-instrument',
-  subsets: ['latin'],
-  weight: '400',
-  style: ['normal', 'italic'],
   display: 'swap',
 })
 
@@ -28,7 +23,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     // data-scroll-behavior suppresses Next.js router warning about smooth scroll
-    <html lang="en" data-scroll-behavior="smooth" className={`${dmSans.variable} ${instrumentSerif.variable} h-full`}>
+    <html lang="en" data-scroll-behavior="smooth" className={`${inter.variable} h-full`}>
       <body className="min-h-full">
         {children}
         <Analytics />
