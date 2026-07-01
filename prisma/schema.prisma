@@ -35,6 +35,9 @@ model Organization {
   invitations  Invitation[]
   inboxes      Inbox[]
   subscription Subscription?
+  workspaceProfile  WorkspaceProfile?
+  objectDefinitions ObjectDefinition[]
+  crmRecords        CrmRecord[]
 }
 
 /// A user's seat in an organization, with a role. The unit billing counts as a seat.
@@ -132,6 +135,7 @@ model Contact {
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   conversations Conversation[]
   notes       ContactNote[]
+  crmRecords  CrmRecord[]
 
   @@unique([userId, telegramId])
   @@unique([userId, email])
@@ -647,4 +651,120 @@ enum BillingPlan {
   TEAM
   BUSINESS
   ENTERPRISE
+}
+
+/// Industry identity + workspace-level adaptive config for one organization.
+/// `terminology`/`dashboard`/`copilot` are blueprint-shaped JSON (validated by
+/// src/lib/workspace/blueprint.ts before every write and re-validated on read).
+/// `provider` records whether AI or the offline template produced the profile
+/// (module honesty: local results are labelled in the UI).
+model WorkspaceProfile {
+  id                String          @id @default(cuid())
+  organizationId    String          @unique
+  industryKey       String          @default("generic")
+  industryLabel     String          @default("General business")
+  subIndustry       String?
+  businessModel     String?
+  companySize       String?
+  description       String?
+  source            WorkspaceSource @default(TEMPLATE)
+  provider          String?
+  terminology       Json            @default("{}")
+  dashboard         Json            @default("[]")
+  copilot           Json            @default("{}")
+  automationIdeas   Json            @default("[]")
+  onboardingAnswers Json            @default("{}")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  organization      Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+/// A workspace-defined CRM object ("Patient", "Case", "Campaign"). `key` is a
+/// stable slug records reference; `pipeline` is an ordered stage list
+/// [{key,label,color?,terminal?}] — stage renames keep keys stable. Blueprint
+/// re-application archives (never deletes) so records are never orphaned.
+model ObjectDefinition {
+  id             String            @id @default(cuid())
+  organizationId String
+  key            String
+  singular       String
+  plural         String
+  icon           String            @default("box")
+  color          String?
+  description    String?
+  order          Int               @default(0)
+  pipeline       Json?
+  isArchived     Boolean           @default(false)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  fields         FieldDefinition[]
+  records        CrmRecord[]
+
+  @@unique([organizationId, key])
+  @@index([organizationId, isArchived, order])
+}
+
+/// A typed field on an object. `config` holds type specifics (select options,
+/// currency). Validation/coercion/formatting live in the field-type registry
+/// (src/lib/workspace/field-types.ts) — the DB stores declarations only.
+model FieldDefinition {
+  id         String           @id @default(cuid())
+  objectId   String
+  key        String
+  label      String
+  type       FieldType        @default(TEXT)
+  config     Json             @default("{}")
+  required   Boolean          @default(false)
+  showInList Boolean          @default(true)
+  order      Int              @default(0)
+  isArchived Boolean          @default(false)
+  object     ObjectDefinition @relation(fields: [objectId], references: [id], onDelete: Cascade)
+
+  @@unique([objectId, key])
+  @@index([objectId, order])
+}
+
+/// One row of a workspace-defined object. `data` is validated against the
+/// object's FieldDefinitions in the service layer; `title`/`stageKey`/`contactId`
+/// are promoted columns for the hot list/board/link query paths.
+model CrmRecord {
+  id                String           @id @default(cuid())
+  organizationId    String
+  objectId          String
+  title             String
+  stageKey          String?
+  data              Json             @default("{}")
+  ownerMembershipId String?
+  contactId         String?
+  createdById       String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  organization      Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  object            ObjectDefinition @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  contact           Contact?         @relation(fields: [contactId], references: [id])
+
+  @@index([organizationId, objectId, updatedAt(sort: Desc)])
+  @@index([objectId, stageKey])
+}
+
+enum WorkspaceSource {
+  TEMPLATE
+  AI
+  MANUAL
+}
+
+enum FieldType {
+  TEXT
+  LONG_TEXT
+  NUMBER
+  MONEY
+  DATE
+  DATETIME
+  BOOLEAN
+  SELECT
+  MULTI_SELECT
+  EMAIL
+  PHONE
+  URL
 }
