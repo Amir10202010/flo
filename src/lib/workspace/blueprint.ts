@@ -138,6 +138,8 @@ export const WorkspaceBlueprintSchema = z.object({
 })
 
 export type WorkspaceBlueprint = z.infer<typeof WorkspaceBlueprintSchema>
+/** Author-side shape (defaults still optional) — what templates are written in. */
+export type WorkspaceBlueprintInput = z.input<typeof WorkspaceBlueprintSchema>
 export type BlueprintObject = WorkspaceBlueprint['objects'][number]
 export type BlueprintField = BlueprintObject['fields'][number]
 export type BlueprintStage = NonNullable<BlueprintObject['pipeline']>[number]

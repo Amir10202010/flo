@@ -12,6 +12,7 @@ import { safeParseBlueprint, MAX_OBJECTS } from '@/lib/workspace/blueprint'
 import { validateRecordData, FIELD_TYPES, type FieldSpec } from '@/lib/workspace/field-types'
 import { isWorkspaceIcon, WORKSPACE_ICON_NAMES } from '@/lib/workspace/icons'
 import { resolveTerm } from '@/lib/workspace/terminology'
+import { INDUSTRY_TEMPLATES, TEMPLATE_KEYS, pickTemplateByKeywords } from '@/lib/workspace/templates'
 
 let passed = 0
 function check(name: string, fn: () => void) {
@@ -230,6 +231,36 @@ check('resolveTerm prefers overrides, falls back to defaults, then identity', ()
   assert.deepEqual(resolveTerm(map, 'contact'), { singular: 'Patient', plural: 'Patients' })
   assert.deepEqual(resolveTerm({}, 'contact'), { singular: 'Client', plural: 'Clients' })
   assert.deepEqual(resolveTerm(undefined, 'conversation').plural, 'Conversations')
+})
+
+console.log('industry templates — integrity:')
+check('every template blueprint parses, is self-consistent and content-complete', () => {
+  assert.ok(TEMPLATE_KEYS.length >= 6)
+  for (const key of TEMPLATE_KEYS) {
+    const t = INDUSTRY_TEMPLATES[key]
+    assert.equal(t.key, key)
+    const r = safeParseBlueprint(t.blueprint)
+    assert.equal(r.ok, true, `${key}: ${r.ok ? '' : r.error}`)
+    if (!r.ok) continue
+    // Widgets surviving normalization proves they reference real objects.
+    assert.equal(r.blueprint.dashboard.length, (t.blueprint.dashboard ?? []).length, `${key}: widget referenced a missing object`)
+    assert.ok(r.blueprint.objects.length >= 2, `${key}: needs at least 2 objects`)
+    assert.ok(r.blueprint.dashboard.length >= 2, `${key}: needs dashboard widgets`)
+    assert.ok(r.blueprint.objects.some((o) => o.pipeline && o.pipeline.length >= 3), `${key}: needs a pipeline object`)
+    assert.ok(r.blueprint.automationIdeas.length >= 3, `${key}: needs automation ideas`)
+    assert.ok(r.blueprint.copilot.title.length > 0, `${key}: needs a copilot persona`)
+    if (key !== 'generic') assert.ok(t.keywords.length >= 5, `${key}: needs matching keywords`)
+  }
+})
+
+check('keyword picker matches en+ru descriptions and falls back to generic', () => {
+  assert.equal(pickTemplateByKeywords('We are a dental clinic in Almaty'), 'dental-clinic')
+  assert.equal(pickTemplateByKeywords('Мы — стоматологическая клиника'), 'dental-clinic')
+  assert.equal(pickTemplateByKeywords('recruiting agency, we place candidates into tech vacancies'), 'recruiting-agency')
+  assert.equal(pickTemplateByKeywords('boutique law firm: litigation and contracts'), 'law-firm')
+  assert.equal(pickTemplateByKeywords('агентство недвижимости, продаём квартиры'), 'real-estate')
+  assert.equal(pickTemplateByKeywords('performance marketing agency running paid ads'), 'marketing-agency')
+  assert.equal(pickTemplateByKeywords('zzz qqq unrelated words'), 'generic')
 })
 
 console.log(`\n${passed} checks passed.`)
