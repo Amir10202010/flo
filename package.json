@@ -17,6 +17,7 @@
     "cleanup:inline-images": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/strip-inline-images.ts",
     "reclassify:categories": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/reclassify-categories.ts",
     "test:permissions": "tsx scripts/permissions.check.ts",
+    "test:workspace": "tsx scripts/workspace.check.ts",
     "test:billing": "tsx scripts/billing.check.ts",
     "test:polar": "tsx scripts/polar.check.ts",
     "test:rules": "tsx scripts/rules.check.ts",
