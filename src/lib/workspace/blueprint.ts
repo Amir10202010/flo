@@ -102,7 +102,13 @@ const BlueprintWidgetSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('stage-breakdown'), objectKey: Key, label: Label.optional() }),
 ])
 
-const BlueprintCopilotSchema = z.object({
+/** Re-validators for blueprint-shaped JSON stored on WorkspaceProfile /
+ * ObjectDefinition rows — corrupt data degrades to defaults instead of
+ * crashing the read-model. */
+export const StoredStagesSchema = z.array(BlueprintStageSchema).min(1)
+export const StoredWidgetsSchema = z.array(BlueprintWidgetSchema)
+
+export const BlueprintCopilotSchema = z.object({
   /** Persona headline, e.g. "Dental practice copilot". */
   title: z.string().trim().min(1).max(80),
   /** One-line voice/behavior hint injected into assistant prompts. */
@@ -111,7 +117,7 @@ const BlueprintCopilotSchema = z.object({
   focus: z.array(ShortText).max(6).optional(),
 })
 
-const TerminologySchema = z.record(
+export const TerminologySchema = z.record(
   z.string().regex(KEY_RE),
   z.object({ singular: Label, plural: Label }),
 )
