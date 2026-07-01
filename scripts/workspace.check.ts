@@ -13,6 +13,7 @@ import { validateRecordData, FIELD_TYPES, type FieldSpec } from '@/lib/workspace
 import { isWorkspaceIcon, WORKSPACE_ICON_NAMES } from '@/lib/workspace/icons'
 import { resolveTerm } from '@/lib/workspace/terminology'
 import { INDUSTRY_TEMPLATES, TEMPLATE_KEYS, pickTemplateByKeywords } from '@/lib/workspace/templates'
+import { applyCustomization, generateWorkspaceBlueprint } from '@/services/workspace/blueprint.generator'
 
 let passed = 0
 function check(name: string, fn: () => void) {
@@ -263,4 +264,75 @@ check('keyword picker matches en+ru descriptions and falls back to generic', () 
   assert.equal(pickTemplateByKeywords('zzz qqq unrelated words'), 'generic')
 })
 
-console.log(`\n${passed} checks passed.`)
+console.log('generator — customization application:')
+check('applyCustomization renames, extends and removes safely; result re-validates', () => {
+  const out = applyCustomization(INDUSTRY_TEMPLATES['dental-clinic'].blueprint, {
+    templateKey: 'dental-clinic',
+    industryLabel: 'Pediatric dental clinic',
+    subIndustry: 'Pediatric dentistry',
+    contactSingular: 'Parent',
+    contactPlural: 'Parents',
+    objectRenames: [{ key: 'patient', singular: 'Kid', plural: 'Kids' }],
+    extraFields: [
+      { objectKey: 'patient', key: 'School Grade', label: 'School grade', type: 'TEXT' }, // key coerced to slug
+      { objectKey: 'patient', key: 'bogus', label: 'Bogus', type: 'WORMHOLE' }, // unknown type → dropped
+      { objectKey: 'ghost', key: 'x', label: 'X', type: 'TEXT' }, // unknown object → dropped
+      { objectKey: 'patient', key: 'phone', label: 'Duplicate phone', type: 'TEXT' }, // duplicate key → dropped
+    ],
+    extraObjects: [
+      { key: 'Xray Archive', singular: 'X-ray', plural: 'X-rays', icon: 'not-an-icon', fields: [{ key: 'taken_at', label: 'Taken at', type: 'DATE' }] },
+    ],
+    removeObjectKeys: ['treatment_plan'],
+    copilotTitle: 'Pediatric dental copilot',
+    automationIdeas: ['Remind parents about six-month check-ups'],
+  })
+  assert.equal(out.profile.industryKey, 'dental-clinic')
+  assert.equal(out.profile.industryLabel, 'Pediatric dental clinic')
+  assert.deepEqual(out.terminology.contact, { singular: 'Parent', plural: 'Parents' })
+  const patient = out.objects.find((o) => o.key === 'patient')
+  assert.ok(patient)
+  assert.equal(patient!.singular, 'Kid')
+  assert.ok(patient!.fields.some((f) => f.key === 'school_grade'))
+  assert.ok(!patient!.fields.some((f) => f.label === 'Bogus'))
+  assert.equal(patient!.fields.filter((f) => f.key === 'phone').length, 1)
+  assert.ok(!out.objects.some((o) => o.key === 'treatment_plan'))
+  const xray = out.objects.find((o) => o.key === 'xray_archive')
+  assert.ok(xray, 'extra object added with coerced key')
+  assert.equal(xray!.icon, 'box')
+  assert.equal(out.copilot.title, 'Pediatric dental copilot')
+  assert.deepEqual(out.automationIdeas, ['Remind parents about six-month check-ups'])
+  assert.equal(safeParseBlueprint(out).ok, true)
+})
+
+check('applyCustomization never removes every object and survives garbage', () => {
+  const out = applyCustomization(INDUSTRY_TEMPLATES['generic'].blueprint, {
+    templateKey: 'generic',
+    industryLabel: 'X',
+    removeObjectKeys: ['deal', 'task'],
+    objectRenames: [{ key: 'nope', singular: 'A', plural: 'B' }],
+  })
+  assert.ok(out.objects.length >= 1)
+  assert.equal(safeParseBlueprint(out).ok, true)
+})
+
+void (async () => {
+  console.log('generator — offline fallback:')
+  process.env.AI_PROVIDER = 'local'
+  {
+    const g = await generateWorkspaceBlueprint({ description: 'Мы — стоматологическая клиника в Алматы' })
+    assert.equal(g.templateKey, 'dental-clinic')
+    assert.equal(g.provider, 'local')
+    assert.equal(g.blueprint.profile.industryKey, 'dental-clinic')
+    passed++
+    console.log('  ✓ local mode picks the matching template')
+  }
+  {
+    const g = await generateWorkspaceBlueprint({ description: 'whatever' }, { templateKey: 'law-firm' })
+    assert.equal(g.templateKey, 'law-firm')
+    assert.equal(g.provider, 'local')
+    passed++
+    console.log('  ✓ explicit templateKey short-circuits generation')
+  }
+
+  console.log(`\n${passed} checks passed.`)
+})()
