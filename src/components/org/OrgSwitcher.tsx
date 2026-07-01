@@ -68,6 +68,9 @@ export default function OrgSwitcher() {
       if (r.ok) {
         setActiveId(id)
         setOpen(false)
+        // Adaptive surfaces (sidebar nav, dashboard widgets) cache the
+        // workspace schema client-side — tell them the org changed.
+        window.dispatchEvent(new Event('velnox:org-switched'))
         router.refresh()
       }
     } finally {

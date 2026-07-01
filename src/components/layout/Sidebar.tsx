@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Inbox, LayoutDashboard, Search, Settings, Sparkles, Users } from 'lucide-react'
 import { useUiStore } from '@/stores/ui.store'
+import { useWorkspaceSchema } from '@/lib/workspace/use-workspace-schema'
+import { iconFor } from '@/lib/workspace/icons'
+import { resolveTerm } from '@/lib/workspace/terminology'
 import OrgSwitcher from '@/components/org/OrgSwitcher'
 import Brand from './Brand'
 
@@ -17,18 +20,14 @@ interface NavEntry {
   tour?: string
 }
 
-// Four destinations, period. Risk/Insights/Analytics live inside the dashboard;
-// the assistant is the "Ask AI" overlay below; connecting a mailbox lives in
-// Integrations → (folding into Settings). Everything else is reachable via ⌘K.
-const SECTIONS: { label: string | null; items: NavEntry[] }[] = [
-  {
-    label: null,
-    items: [
-      { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { href: '/inbox', icon: Inbox, label: 'Inbox', tour: 'inbox' },
-      { href: '/clients', icon: Users, label: 'Clients', tour: 'clients' },
-    ],
-  },
+// The nav is generated per-workspace: Dashboard + Inbox are system anchors,
+// then the org's own CRM objects (from the workspace schema — Patients,
+// Cases, Campaigns…), then the contact directory under the org's own word
+// for "Clients". Before the schema loads (or without a profile) it renders
+// exactly the classic trio. Everything else is reachable via ⌘K.
+const ANCHORS: NavEntry[] = [
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/inbox', icon: Inbox, label: 'Inbox', tour: 'inbox' },
 ]
 
 const SYSTEM: NavEntry[] = [
@@ -64,6 +63,20 @@ export default function Sidebar({ userName, userEmail }: { userName?: string | n
   const togglePalette = useUiStore((s) => s.togglePalette)
   const openAssistant = useUiStore((s) => s.setAssistantOpen)
   const metaKey = useSyncExternalStore(emptySubscribe, isApplePlatform, serverIsApple) ? '⌘' : 'Ctrl'
+  const { schema } = useWorkspaceSchema()
+
+  // Workspace-generated nav: the org's own objects + its word for "Clients".
+  const objectEntries: NavEntry[] = (schema?.nav ?? []).map((n) => ({
+    href: n.href,
+    icon: iconFor(n.icon),
+    label: n.label,
+  }))
+  const contactsLabel = resolveTerm(schema?.terminology, 'contact').plural
+  const sections: { label: string | null; items: NavEntry[] }[] = [
+    { label: null, items: ANCHORS },
+    ...(objectEntries.length ? [{ label: schema?.profile.industryLabel ?? 'Workspace', items: objectEntries }] : []),
+    { label: null, items: [{ href: '/clients', icon: Users, label: contactsLabel, tour: 'clients' }] },
+  ]
 
   const initials = userName
     ? userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -106,8 +119,8 @@ export default function Sidebar({ userName, userEmail }: { userName?: string | n
         <span className="sidebar-nav-label">Ask AI</span>
       </button>
 
-      {/* Navigation */}
-      {SECTIONS.map((section, si) => (
+      {/* Navigation — generated from the workspace schema */}
+      {sections.map((section, si) => (
         <nav key={si} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {section.label && <div className="sidebar-section-label">{section.label}</div>}
           {!section.label && si === 0 && <div style={{ height: 6 }} />}
