@@ -47,6 +47,9 @@ export type OrgAction =
   | 'analytics:read'
   | 'org:settings' // rename org, general settings
   | 'org:delete' // delete org / transfer ownership
+  | 'workspace:manage' // apply/regenerate the adaptive workspace schema
+  | 'records:read' // view workspace objects & records
+  | 'records:write' // create/edit/move/delete records
 
 /** The minimum role required for each action (all higher roles inherit it). */
 const MIN_ROLE: Record<OrgAction, OrgRole> = {
@@ -62,6 +65,9 @@ const MIN_ROLE: Record<OrgAction, OrgRole> = {
   'audit:read': 'ADMIN',
   'org:settings': 'ADMIN',
   'org:delete': 'OWNER',
+  'workspace:manage': 'ADMIN',
+  'records:read': 'VIEWER',
+  'records:write': 'MEMBER',
 }
 
 /** Is `role` at least as privileged as `min`? */

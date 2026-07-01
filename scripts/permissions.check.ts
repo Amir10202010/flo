@@ -45,6 +45,21 @@ check('inbox/rules/templates/tags/members/billing/audit require admin+', () => {
   }
 })
 
+console.log('permissions — adaptive workspace:')
+check('workspace schema management requires admin+', () => {
+  assert.equal(can('ADMIN', 'workspace:manage'), true)
+  assert.equal(can('OWNER', 'workspace:manage'), true)
+  assert.equal(can('MEMBER', 'workspace:manage'), false)
+  assert.equal(can('VIEWER', 'workspace:manage'), false)
+})
+check('records readable by all, writable by member+', () => {
+  for (const r of ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'] as const) {
+    assert.equal(can(r, 'records:read'), true)
+  }
+  assert.equal(can('MEMBER', 'records:write'), true)
+  assert.equal(can('VIEWER', 'records:write'), false)
+})
+
 console.log('permissions — owner-only:')
 check('only owner can delete org / transfer ownership', () => {
   assert.equal(can('OWNER', 'org:delete'), true)

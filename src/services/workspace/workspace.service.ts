@@ -345,3 +345,15 @@ export async function getObjectByKey(
   })
   return row ? rowToObjectModel(row) : null
 }
+
+/** Object by id (archived included — records of archived objects stay editable). */
+export async function getObjectById(
+  organizationId: string,
+  objectId: string,
+): Promise<WorkspaceObjectModel | null> {
+  const row = await prisma.objectDefinition.findFirst({
+    where: { id: objectId, organizationId },
+    include: { fields: ACTIVE_FIELDS },
+  })
+  return row ? rowToObjectModel(row) : null
+}

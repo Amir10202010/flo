@@ -43,6 +43,23 @@ export interface OnboardingAnswers {
   teamSize?: string
 }
 
+/** Coerce untrusted request JSON into OnboardingAnswers (null = unusable). */
+export function coerceOnboardingAnswers(raw: unknown): OnboardingAnswers | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = raw as Record<string, unknown>
+  const description = typeof r.description === 'string' ? r.description.trim().slice(0, 2000) : ''
+  if (description.length < 8) return null
+  const opt = (v: unknown) =>
+    typeof v === 'string' && v.trim() ? v.trim().slice(0, 500) : undefined
+  return {
+    description,
+    services: opt(r.services),
+    channels: opt(r.channels),
+    salesProcess: opt(r.salesProcess),
+    teamSize: opt(r.teamSize),
+  }
+}
+
 export interface BlueprintCustomization {
   templateKey: TemplateKey
   industryLabel?: string
