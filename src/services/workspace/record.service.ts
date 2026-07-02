@@ -288,6 +288,52 @@ export async function searchRecords(
   return rows.map((r) => toLinkedRecord(null, r))
 }
 
+/** One record + its object model (for the detail page). Null = not in org. */
+export async function getRecord(
+  organizationId: string,
+  objectKey: string,
+  recordId: string,
+): Promise<{ object: WorkspaceObjectModel; record: RecordModel } | null> {
+  const object = await getObjectByKey(organizationId, objectKey)
+  if (!object) return null
+  const row = await prisma.crmRecord.findFirst({
+    where: { id: recordId, organizationId, objectId: object.id },
+  })
+  return row ? { object, record: toModel(row) } : null
+}
+
+export interface LinkedConversation {
+  linkId: string
+  conversationId: string
+  contactName: string
+  subject: string | null
+  lastActivityAgo: string
+}
+
+/** Conversations linked to one record — the reverse of the thread rail. */
+export async function listConversationsForRecord(
+  organizationId: string,
+  recordId: string,
+): Promise<LinkedConversation[]> {
+  const links = await prisma.recordConversationLink.findMany({
+    where: { organizationId, recordId },
+    include: {
+      conversation: {
+        select: { id: true, subject: true, lastMessageAt: true, contact: { select: { name: true } } },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+  })
+  return links.map((l) => ({
+    linkId: l.id,
+    conversationId: l.conversation.id,
+    contactName: l.conversation.contact.name,
+    subject: l.conversation.subject,
+    lastActivityAgo: l.conversation.lastMessageAt ? compactAgo(l.conversation.lastMessageAt) : '',
+  }))
+}
+
 export interface ObjectStats {
   total: number
   createdLast7d: number

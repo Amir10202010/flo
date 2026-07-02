@@ -12,7 +12,7 @@ import { prisma } from '@/lib/prisma'
 import { safeParseBlueprint } from '@/lib/workspace/blueprint'
 import { INDUSTRY_TEMPLATES } from '@/lib/workspace/templates'
 import { applyBlueprint, getObjectByKey, getWorkspaceSchema } from '@/services/workspace/workspace.service'
-import { createRecord, deleteRecord, listRecords, recordStats, updateRecord } from '@/services/workspace/record.service'
+import { createRecord, deleteRecord, getRecord, listRecords, recordStats, updateRecord } from '@/services/workspace/record.service'
 
 let passed = 0
 function check(name: string) {
@@ -67,6 +67,11 @@ async function main() {
     assert.equal(moved.record.data.room, 'A2')
     assert.equal(moved.record.data.patient_name, 'Aliya', 'partial update merges data')
     check('updateRecord moves stage and merges data')
+
+    const detail = await getRecord(org.id, 'appointment', created.record.id)
+    assert.ok(detail && detail.record.id === created.record.id && detail.object.key === 'appointment')
+    assert.equal(await getRecord(org.id, 'patient', created.record.id), null, 'object/record mismatch → null')
+    check('getRecord scopes by object and org')
 
     const listed = await listRecords(org.id, 'appointment')
     assert.equal(listed!.records.length, 1)

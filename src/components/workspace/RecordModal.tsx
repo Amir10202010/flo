@@ -16,11 +16,14 @@ export default function RecordModal({
   object,
   record,
   onClose,
+  onDeleted,
 }: {
   object: WorkspaceObjectModel
   /** Null → create mode. */
   record: RecordModel | null
   onClose: () => void
+  /** Where deletion should land (detail pages navigate away); defaults to a refresh in place. */
+  onDeleted?: () => void
 }) {
   const router = useRouter()
   const [title, setTitle] = useState(record?.title ?? '')
@@ -69,7 +72,8 @@ export default function RecordModal({
         return
       }
       onClose()
-      router.refresh()
+      if (onDeleted) onDeleted()
+      else router.refresh()
     } catch {
       setError('Network error — try again')
     } finally {

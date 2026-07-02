@@ -114,7 +114,7 @@ export default function ThreadRecords({ conversationId }: { conversationId: stri
               style={{ display: 'flex', alignItems: 'center', gap: 7, border: '1px solid var(--border)', borderRadius: 8, padding: '6px 8px', background: 'var(--bg-base)' }}
             >
               {createElement(iconFor(r.icon), { size: 13, style: { color: 'var(--text-muted)', flexShrink: 0 } })}
-              <Link href={`/o/${r.objectKey}`} style={{ minWidth: 0, flex: 1, textDecoration: 'none' }}>
+              <Link href={`/o/${r.objectKey}/${r.recordId}`} style={{ minWidth: 0, flex: 1, textDecoration: 'none' }}>
                 <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {r.title}
                 </span>

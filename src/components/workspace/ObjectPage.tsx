@@ -133,11 +133,16 @@ export default function ObjectPage({
           object={object}
           records={visible}
           movingId={movingId}
-          onOpen={(record) => setModal({ record })}
+          onOpen={(record) => router.push(`/o/${object.key}/${record.id}`)}
           onMove={moveStage}
         />
       ) : (
-        <RecordsTable object={object} records={visible} listFields={listFields} onOpen={(record) => setModal({ record })} />
+        <RecordsTable
+          object={object}
+          records={visible}
+          listFields={listFields}
+          onOpen={(record) => router.push(`/o/${object.key}/${record.id}`)}
+        />
       )}
 
       {modal && <RecordModal object={object} record={modal.record} onClose={() => setModal(null)} />}
