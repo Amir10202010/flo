@@ -116,6 +116,50 @@ check('parseAction triage_alert: missing href or bad op → null', () => {
   assert.equal(parseAction({ type: 'triage_alert', summary: 'x', params: { alertHref: '/inbox/c1', op: 'nuke' } }, NOW), null)
 })
 
+check('parseAction create_record: slug keys enforced, fields bounded, href optional', () => {
+  const a = parseAction(
+    {
+      type: 'create_record',
+      summary: 'Log the appointment',
+      params: {
+        objectKey: 'appointment',
+        title: '  Checkup — Aliya  ',
+        stageKey: 'confirmed',
+        conversationHref: '/inbox/c42',
+        fields: [
+          { key: 'doctor', value: 'Dr. K' },
+          { key: 'BAD KEY!!', value: 'dropped' },
+          ...Array.from({ length: 10 }, (_, i) => ({ key: `extra_${i}`, value: String(i) })),
+        ],
+      },
+    },
+    NOW,
+  )
+  assert.equal(a?.type, 'create_record')
+  if (a && a.type === 'create_record') {
+    assert.equal(a.objectKey, 'appointment')
+    assert.equal(a.title, 'Checkup — Aliya')
+    assert.equal(a.stageKey, 'confirmed')
+    assert.equal(a.conversationId, 'c42')
+    assert.equal(a.data.doctor, 'Dr. K')
+    assert.ok(!Object.keys(a.data).some((k) => k.includes('bad')), 'malformed field keys dropped')
+    assert.ok(Object.keys(a.data).length <= 8, 'field count capped')
+  }
+  assert.equal(parseAction({ type: 'create_record', summary: 'x', params: { objectKey: 'Bad Key', title: 'T' } }, NOW), null)
+  assert.equal(parseAction({ type: 'create_record', summary: 'x', params: { objectKey: 'case' } }, NOW), null)
+})
+
+check('coerceAction create_record: normalized echo re-validated', () => {
+  const ok = coerceAction(
+    { type: 'create_record', summary: 's', objectKey: 'case', title: 'Ivanov v. X', stageKey: 'intake', conversationId: 'c1', data: { practice_area: 'Litigation' } },
+    NOW,
+  )
+  assert.equal(ok?.type, 'create_record')
+  if (ok && ok.type === 'create_record') assert.equal(ok.data.practice_area, 'Litigation')
+  assert.equal(coerceAction({ type: 'create_record', summary: 's', objectKey: 'CASE!', title: 'x' }, NOW), null)
+  assert.equal(coerceAction({ type: 'create_record', summary: 's', objectKey: 'case', title: '   ' }, NOW), null)
+})
+
 check('parseAction create_reminder: future dueAt ok, past dueAt rejected', () => {
   const ok = parseAction(
     { type: 'create_reminder', summary: 'Remind', params: { note: 'Call Sam', dueAt: iso(NOW + 2 * 86_400_000) } },

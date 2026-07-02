@@ -4,6 +4,7 @@ import { getTextProvider } from './ai'
 import { setAlertStatus } from './alert.service'
 import { createReminder } from './reminder.service'
 import { createContactNote } from './note.service'
+import { createRecord, linkRecordToConversation } from './workspace/record.service'
 import { enqueueMany } from './jobs/queue'
 import { shortDate } from '@/lib/time'
 
@@ -35,6 +36,11 @@ export type AssistantAction =
   | { type: 'triage_alert'; conversationId: string; op: TriageOp; snoozeDays?: number; summary: string }
   | { type: 'create_reminder'; note: string; dueAt: string; conversationId?: string; contactName?: string; summary: string }
   | { type: 'create_note'; conversationId: string; body: string; summary: string }
+  | { type: 'create_record'; objectKey: string; title: string; stageKey?: string; conversationId?: string; data: Record<string, string>; summary: string }
+
+const MAX_RECORD_FIELDS = 8
+/** Workspace object/field/stage keys (must match the blueprint slug shape). */
+const SLUG_RE = /^[a-z][a-z0-9_-]{1,31}$/
 
 export interface ActionResult {
   ok: boolean
@@ -107,6 +113,37 @@ export function parseAction(raw: unknown, now: number = Date.now()): AssistantAc
       if (!body) return null
       return { type: 'create_note', conversationId, body: body.slice(0, 2000), summary }
     }
+    case 'create_record': {
+      const objectKey = typeof params.objectKey === 'string' ? params.objectKey.trim() : ''
+      if (!SLUG_RE.test(objectKey)) return null
+      const title = typeof params.title === 'string' ? params.title.replace(/\s+/g, ' ').trim().slice(0, 200) : ''
+      if (!title) return null
+      const stageRaw = typeof params.stageKey === 'string' ? params.stageKey.trim() : ''
+      const conversationId = convIdFromHref(params.conversationHref) ?? undefined
+      // Field values arrive as [{key, value}] pairs; keys must already be the
+      // exact slugs from the briefing's WORKSPACE OBJECTS section. The record
+      // service re-validates values against the field-type registry anyway.
+      const data: Record<string, string> = {}
+      if (Array.isArray(params.fields)) {
+        for (const f of params.fields) {
+          if (Object.keys(data).length >= MAX_RECORD_FIELDS) break
+          if (!f || typeof f !== 'object') continue
+          const key = typeof (f as Record<string, unknown>).key === 'string' ? ((f as Record<string, unknown>).key as string).trim() : ''
+          const value = (f as Record<string, unknown>).value
+          if (!SLUG_RE.test(key) || (typeof value !== 'string' && typeof value !== 'number')) continue
+          data[key] = String(value).slice(0, 500)
+        }
+      }
+      return {
+        type: 'create_record',
+        objectKey,
+        title,
+        stageKey: SLUG_RE.test(stageRaw) ? stageRaw : undefined,
+        conversationId,
+        data,
+        summary,
+      }
+    }
     default:
       return null
   }
@@ -156,6 +193,31 @@ export function coerceAction(raw: unknown, now: number = Date.now()): AssistantA
       const body = typeof o.body === 'string' ? o.body.trim() : ''
       if (!ID_RE.test(conversationId) || !body) return null
       return { type: 'create_note', conversationId, body: body.slice(0, 2000), summary }
+    }
+    case 'create_record': {
+      const objectKey = typeof o.objectKey === 'string' ? o.objectKey.trim() : ''
+      const title = typeof o.title === 'string' ? o.title.replace(/\s+/g, ' ').trim().slice(0, 200) : ''
+      if (!SLUG_RE.test(objectKey) || !title) return null
+      const stageRaw = typeof o.stageKey === 'string' ? o.stageKey.trim() : ''
+      const conversationId =
+        typeof o.conversationId === 'string' && ID_RE.test(o.conversationId) ? o.conversationId : undefined
+      const data: Record<string, string> = {}
+      if (o.data && typeof o.data === 'object' && !Array.isArray(o.data)) {
+        for (const [key, value] of Object.entries(o.data as Record<string, unknown>)) {
+          if (Object.keys(data).length >= MAX_RECORD_FIELDS) break
+          if (!SLUG_RE.test(key) || (typeof value !== 'string' && typeof value !== 'number')) continue
+          data[key] = String(value).slice(0, 500)
+        }
+      }
+      return {
+        type: 'create_record',
+        objectKey,
+        title,
+        stageKey: SLUG_RE.test(stageRaw) ? stageRaw : undefined,
+        conversationId,
+        data,
+        summary,
+      }
     }
     default:
       return null
@@ -239,6 +301,36 @@ async function execCreateNote(
   return { ok: true, message: `Note saved for ${conv.contact.name}: “${preview}”.` }
 }
 
+async function execCreateRecord(
+  organizationId: string,
+  actorId: string,
+  action: Extract<AssistantAction, { type: 'create_record' }>,
+): Promise<ActionResult> {
+  const membership = await prisma.membership.findFirst({
+    where: { organizationId, userId: actorId, status: 'ACTIVE' },
+    select: { id: true },
+  })
+  if (!membership) return { ok: false, message: 'You are not an active member of this workspace.' }
+
+  const result = await createRecord(
+    organizationId,
+    action.objectKey,
+    { title: action.title, stageKey: action.stageKey, data: action.data },
+    { userId: actorId, membershipId: membership.id },
+  )
+  if (!result) return { ok: false, message: `This workspace has no “${action.objectKey}” object.` }
+  if (!result.ok) return { ok: false, message: `Couldn’t create the record: ${result.errors.join('; ')}.` }
+
+  let linked = false
+  if (action.conversationId) {
+    linked = !!(await linkRecordToConversation(organizationId, action.conversationId, result.record.id, actorId))
+  }
+  return {
+    ok: true,
+    message: `Created “${result.record.title}”${result.record.stageKey ? ` (${result.record.stageKey.replace(/_/g, ' ')})` : ''}${linked ? ' and linked it to the thread' : ''}. Find it under /o/${action.objectKey}.`,
+  }
+}
+
 /** Run a validated action through authorized, org-scoped services. `actorId` is
  * the acting member (authorship); `organizationId` is the tenant boundary. */
 export async function executeAction(
@@ -255,5 +347,7 @@ export async function executeAction(
       return execCreateReminder(organizationId, actorId, action)
     case 'create_note':
       return execCreateNote(organizationId, actorId, action)
+    case 'create_record':
+      return execCreateRecord(organizationId, actorId, action)
   }
 }
