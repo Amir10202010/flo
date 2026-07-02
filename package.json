@@ -18,6 +18,7 @@
     "reclassify:categories": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/reclassify-categories.ts",
     "test:permissions": "tsx scripts/permissions.check.ts",
     "test:workspace": "tsx scripts/workspace.check.ts",
+    "test:workspace-e2e": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/workspace-e2e.check.ts",
     "test:billing": "tsx scripts/billing.check.ts",
     "test:polar": "tsx scripts/polar.check.ts",
     "test:rules": "tsx scripts/rules.check.ts",

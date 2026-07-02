@@ -3,6 +3,7 @@
  * WorkspaceProfile.dashboard (blueprint-validated), data from real record
  * counts (recordStats: two groupBys total). Server component; no client JS.
  */
+import { createElement } from 'react'
 import Link from 'next/link'
 import { iconFor } from '@/lib/workspace/icons'
 import { recordStats, type ObjectStats } from '@/services/workspace/record.service'
@@ -22,10 +23,9 @@ const cardStyle: React.CSSProperties = {
 }
 
 function CardLabel({ object, label }: { object: WorkspaceObjectModel; label?: string }) {
-  const Icon = iconFor(object.icon)
   return (
     <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-      <Icon size={12} />
+      {createElement(iconFor(object.icon), { size: 12 })}
       {label ?? object.plural}
     </span>
   )

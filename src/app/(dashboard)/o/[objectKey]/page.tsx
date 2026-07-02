@@ -1,3 +1,4 @@
+import { createElement } from 'react'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { requireOrgPage } from '@/lib/org'
@@ -26,7 +27,6 @@ export default async function WorkspaceObjectPage({ params }: { params: Promise<
   if (!result) notFound()
 
   const { object, records } = result
-  const Icon = iconFor(object.icon)
 
   return (
     <div className="dash-page" style={{ padding: '28px 32px 56px', maxWidth: 1480, margin: '0 auto', width: '100%' }}>
@@ -34,7 +34,7 @@ export default async function WorkspaceObjectPage({ params }: { params: Promise<
         <div className="dash-header-row" style={{ marginBottom: 20 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5 }}>
-              <Icon size={20} style={{ color: 'var(--text-secondary)' }} aria-hidden />
+              {createElement(iconFor(object.icon), { size: 20, style: { color: 'var(--text-secondary)' }, 'aria-hidden': true })}
               <h1 className="page-title" style={{ margin: 0 }}>{object.plural}</h1>
               <ModulePill status="live" />
             </div>
