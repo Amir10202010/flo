@@ -9,6 +9,7 @@ import { getDashboardData, type DashboardData } from '@/services/dashboard.servi
 import { getWorkspaceSchema } from '@/services/workspace/workspace.service'
 import { resolveTerm } from '@/lib/workspace/terminology'
 import IndustryPulse from '@/components/workspace/IndustryPulse'
+import SetupPromptCard from '@/components/workspace/SetupPromptCard'
 import { longDate } from '@/lib/time'
 import { Reveal } from '@/components/dashboard/Motion'
 import StatCard from '@/components/dashboard/StatCard'
@@ -74,14 +75,21 @@ async function DashboardBody({ organizationId }: { organizationId: string }) {
     return <MetricsUnavailable />
   }
 
-  if (!data.hasData) {
-    return <DashboardEmpty hasIntegration={data.hasIntegration} />
-  }
-
   // Adaptive layer: industry widgets + the org's own terminology. Sequential
   // after the metrics fetch (small pool); a failure only hides the strip.
+  // Fetched before the empty-state return so unconfigured orgs get the
+  // workspace-setup prompt even with no mail synced yet.
   const schema = await getWorkspaceSchema(organizationId).catch(() => null)
   const contactTerm = resolveTerm(schema?.terminology, 'contact')
+
+  if (!data.hasData) {
+    return (
+      <>
+        {!schema && <SetupPromptCard />}
+        <DashboardEmpty hasIntegration={data.hasIntegration} />
+      </>
+    )
+  }
 
   const s = data.stats
 
@@ -137,6 +145,13 @@ async function DashboardBody({ organizationId }: { organizationId: string }) {
           delay={0.1}
         />
       </div>
+
+      {/* No profile yet → offer industry specialization right on the dashboard */}
+      {!schema && (
+        <Reveal delay={0.11}>
+          <SetupPromptCard />
+        </Reveal>
+      )}
 
       {/* Industry pulse — the workspace's own objects, from its schema */}
       {schema && schema.dashboard.length > 0 && (
