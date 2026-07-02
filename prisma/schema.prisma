@@ -205,6 +205,7 @@ model Conversation {
   riskAlerts     RiskAlert[]
   internalNotes  InternalNote[]
   tags           ConversationTag[]
+  recordLinks    RecordConversationLink[]
 
   @@unique([integrationId, externalId])
   @@index([userId, priorityScore(sort: Desc), lastMessageAt(sort: Desc)])
@@ -743,6 +744,7 @@ model CrmRecord {
   organization      Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   object            ObjectDefinition @relation(fields: [objectId], references: [id], onDelete: Cascade)
   contact           Contact?         @relation(fields: [contactId], references: [id])
+  conversationLinks RecordConversationLink[]
 
   @@index([organizationId, objectId, updatedAt(sort: Desc)])
   @@index([objectId, stageKey])
@@ -767,4 +769,22 @@ enum FieldType {
   EMAIL
   PHONE
   URL
+}
+
+/// Links a workspace record to an inbox conversation (many-to-many) — the
+/// bridge between adaptive CRM objects and the shared inbox. Unique per pair;
+/// rows cascade away with either side.
+model RecordConversationLink {
+  id             String       @id @default(cuid())
+  organizationId String
+  recordId       String
+  conversationId String
+  createdById    String?
+  createdAt      DateTime     @default(now())
+  record         CrmRecord    @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([recordId, conversationId])
+  @@index([conversationId])
+  @@index([organizationId])
 }

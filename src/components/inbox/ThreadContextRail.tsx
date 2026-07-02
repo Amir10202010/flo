@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronDown, Send, Sparkles, Tag as TagIcon, UserRound } from 'lucide-react'
 import CategoryMover from '@/components/CategoryMover'
+import ThreadRecords from '@/components/inbox/ThreadRecords'
 import ThreadSummary from '@/components/ThreadSummary'
 import type { EmailCategory } from '@/types'
 
@@ -266,6 +267,9 @@ export default function ThreadContextRail({
           </div>
         )}
       </section>
+
+      {/* Workspace records linked to this thread (adaptive CRM bridge) */}
+      <ThreadRecords conversationId={conversationId} />
 
       {/* Internal notes — team only */}
       <section className="rail-section">

@@ -7,6 +7,7 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { validateRecordData } from '@/lib/workspace/field-types'
+import { StoredStagesSchema } from '@/lib/workspace/blueprint'
 import { compactAgo } from '@/lib/time'
 import { getObjectById, getObjectByKey, type WorkspaceObjectModel } from './workspace.service'
 
@@ -173,6 +174,118 @@ export async function updateRecord(
 export async function deleteRecord(organizationId: string, recordId: string): Promise<boolean> {
   const res = await prisma.crmRecord.deleteMany({ where: { id: recordId, organizationId } })
   return res.count > 0
+}
+
+// ── Record ↔ conversation linking (the inbox ↔ CRM-objects bridge) ──────────
+
+export interface LinkedRecord {
+  linkId: string | null
+  recordId: string
+  title: string
+  objectKey: string
+  objectSingular: string
+  icon: string
+  stageLabel: string | null
+}
+
+type RecordWithObject = {
+  id: string
+  title: string
+  stageKey: string | null
+  object: { key: string; singular: string; icon: string; pipeline: Prisma.JsonValue | null }
+}
+
+function toLinkedRecord(linkId: string | null, r: RecordWithObject): LinkedRecord {
+  const stages = StoredStagesSchema.safeParse(r.object.pipeline)
+  const stageLabel = r.stageKey
+    ? (stages.success ? stages.data.find((s) => s.key === r.stageKey)?.label : undefined) ?? r.stageKey
+    : null
+  return {
+    linkId,
+    recordId: r.id,
+    title: r.title,
+    objectKey: r.object.key,
+    objectSingular: r.object.singular,
+    icon: r.object.icon,
+    stageLabel,
+  }
+}
+
+const LINK_OBJECT_SELECT = {
+  select: { key: true, singular: true, icon: true, pipeline: true },
+} as const
+
+/** Records linked to one conversation, newest link first. */
+export async function listRecordsForConversation(
+  organizationId: string,
+  conversationId: string,
+): Promise<LinkedRecord[]> {
+  const links = await prisma.recordConversationLink.findMany({
+    where: { organizationId, conversationId },
+    include: { record: { include: { object: LINK_OBJECT_SELECT } } },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+  })
+  return links.map((l) => toLinkedRecord(l.id, l.record))
+}
+
+/**
+ * Link a record to a conversation (idempotent via the unique pair). Both sides
+ * are verified to belong to the org; null = either side not found.
+ */
+export async function linkRecordToConversation(
+  organizationId: string,
+  conversationId: string,
+  recordId: string,
+  createdById?: string,
+): Promise<LinkedRecord | null> {
+  const conv = await prisma.conversation.findFirst({
+    where: { id: conversationId, organizationId },
+    select: { id: true },
+  })
+  if (!conv) return null
+  const record = await prisma.crmRecord.findFirst({
+    where: { id: recordId, organizationId },
+    include: { object: LINK_OBJECT_SELECT },
+  })
+  if (!record) return null
+
+  const link = await prisma.recordConversationLink.upsert({
+    where: { recordId_conversationId: { recordId, conversationId } },
+    create: { organizationId, recordId, conversationId, createdById: createdById ?? null },
+    update: {},
+  })
+  return toLinkedRecord(link.id, record)
+}
+
+/** Remove one link (org-scoped). False = not found. */
+export async function unlinkRecordFromConversation(
+  organizationId: string,
+  linkId: string,
+): Promise<boolean> {
+  const res = await prisma.recordConversationLink.deleteMany({ where: { id: linkId, organizationId } })
+  return res.count > 0
+}
+
+/** Title search across ALL active objects — powers the thread link picker. */
+export async function searchRecords(
+  organizationId: string,
+  q: string,
+  limit = 8,
+): Promise<LinkedRecord[]> {
+  const query = q.trim().slice(0, 100)
+  if (!query) return []
+  const rows = await prisma.crmRecord.findMany({
+    where: {
+      organizationId,
+      title: { contains: query, mode: 'insensitive' },
+      object: { isArchived: false },
+    },
+    include: { object: LINK_OBJECT_SELECT },
+    orderBy: { updatedAt: 'desc' },
+    take: Math.min(limit, 20),
+  })
+  return rows.map((r) => toLinkedRecord(null, r))
 }
 
 export interface ObjectStats {
