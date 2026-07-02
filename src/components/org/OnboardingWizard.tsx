@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, Building2, Check, Mail, Plus, Users, X } from 'lucide-react'
+import WorkspaceSetupStep from './WorkspaceSetupStep'
 
-type Step = 'create' | 'team'
+type Step = 'create' | 'business' | 'team'
+const STEPS: Step[] = ['create', 'business', 'team']
 
 /** Multi-step first-run onboarding: create the workspace, then optionally invite
  * teammates and connect a shared inbox. Each step persists immediately. */
@@ -28,7 +30,7 @@ export default function OnboardingWizard({ defaultName = '' }: { defaultName?: s
     try {
       const r = await fetch('/api/orgs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: trimmed }) })
       if (!r.ok) { const d = await r.json().catch(() => null); setError(d?.error ?? 'Could not create workspace'); return }
-      setStep('team')
+      setStep('business')
     } catch { setError('Network error — try again') } finally { setBusy(false) }
   }
 
@@ -57,14 +59,19 @@ export default function OnboardingWizard({ defaultName = '' }: { defaultName?: s
     <div style={{ width: '100%', maxWidth: 460 }}>
       {/* Step indicator */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 22 }}>
-        {(['create', 'team'] as Step[]).map((s, i) => (
-          <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, background: step === s || (s === 'create' && step === 'team') ? 'var(--accent)' : 'var(--bg-subtle)', color: step === s || (s === 'create' && step === 'team') ? '#fff' : 'var(--text-muted)' }}>
-              {s === 'create' && step === 'team' ? <Check size={13} /> : i + 1}
-            </span>
-            {i === 0 && <span style={{ width: 28, height: 2, background: 'var(--border)' }} />}
-          </div>
-        ))}
+        {STEPS.map((s, i) => {
+          const idx = STEPS.indexOf(step)
+          const done = i < idx
+          const reached = i <= idx
+          return (
+            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, background: reached ? 'var(--accent)' : 'var(--bg-subtle)', color: reached ? '#fff' : 'var(--text-muted)' }}>
+                {done ? <Check size={13} /> : i + 1}
+              </span>
+              {i < STEPS.length - 1 && <span style={{ width: 28, height: 2, background: 'var(--border)' }} />}
+            </div>
+          )
+        })}
       </div>
 
       <div style={{ background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 16, padding: '26px 24px', boxShadow: 'var(--shadow-sm)' }}>
@@ -84,6 +91,8 @@ export default function OnboardingWizard({ defaultName = '' }: { defaultName?: s
               {busy ? 'Creating…' : 'Continue'} {!busy && <ArrowRight size={15} />}
             </button>
           </form>
+        ) : step === 'business' ? (
+          <WorkspaceSetupStep onDone={() => setStep('team')} />
         ) : (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>

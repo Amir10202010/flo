@@ -30,7 +30,7 @@ export default async function OnboardingPage() {
             {firstName ? `Welcome, ${firstName}` : 'Welcome to Velnox'}
           </h1>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            Set up your team&apos;s shared inbox in a minute.
+            Tell us what you do — Velnox shapes itself around your business.
           </p>
         </div>
         <div style={{ display: 'flex', justifyContent: 'center' }}>
