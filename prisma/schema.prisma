@@ -38,6 +38,7 @@ model Organization {
   workspaceProfile  WorkspaceProfile?
   objectDefinitions ObjectDefinition[]
   crmRecords        CrmRecord[]
+  recordAutomations RecordAutomation[]
 }
 
 /// A user's seat in an organization, with a role. The unit billing counts as a seat.
@@ -701,6 +702,7 @@ model ObjectDefinition {
   organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   fields         FieldDefinition[]
   records        CrmRecord[]
+  automations    RecordAutomation[]
 
   @@unique([organizationId, key])
   @@index([organizationId, isArchived, order])
@@ -745,6 +747,7 @@ model CrmRecord {
   object            ObjectDefinition @relation(fields: [objectId], references: [id], onDelete: Cascade)
   contact           Contact?         @relation(fields: [contactId], references: [id])
   conversationLinks RecordConversationLink[]
+  automationFires   AutomationFire[]
 
   @@index([organizationId, objectId, updatedAt(sort: Desc)])
   @@index([objectId, stageKey])
@@ -787,4 +790,41 @@ model RecordConversationLink {
   @@unique([recordId, conversationId])
   @@index([conversationId])
   @@index([organizationId])
+}
+
+/// A blueprint-declared automation over one workspace object ("when a
+/// treatment plan enters Proposed, remind me in 7 days"). Trigger/action are
+/// blueprint-schema JSON re-validated on read; v1 fires stage_entered →
+/// create_reminder synchronously on stage transitions. Never sends mail.
+model RecordAutomation {
+  id             String           @id @default(cuid())
+  organizationId String
+  objectId       String
+  key            String
+  name           String
+  isActive       Boolean          @default(true)
+  trigger        Json
+  action         Json
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  object         ObjectDefinition @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  fires          AutomationFire[]
+
+  @@unique([objectId, key])
+  @@index([organizationId, isActive])
+}
+
+/// Fire-once guard: one row per (automation, record, fireKey) — the unique
+/// constraint makes concurrent stage moves race-free (loser skips).
+model AutomationFire {
+  id           String           @id @default(cuid())
+  automationId String
+  recordId     String
+  fireKey      String
+  firedAt      DateTime         @default(now())
+  automation   RecordAutomation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  record       CrmRecord        @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@unique([automationId, recordId, fireKey])
 }

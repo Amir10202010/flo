@@ -96,4 +96,13 @@ export const recruitingAgencyBlueprint: WorkspaceBlueprintInput = {
     'Send employers a weekly shortlist update',
     'Check in before a guarantee period ends',
   ],
+  automations: [
+    {
+      key: 'offer_status_check',
+      name: 'Chase candidates sitting at offer stage',
+      objectKey: 'candidate',
+      trigger: { kind: 'stage_entered', stageKey: 'offer' },
+      action: { kind: 'create_reminder', note: 'Check offer status for {title}', dueInDays: 3 },
+    },
+  ],
 }

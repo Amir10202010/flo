@@ -7,9 +7,67 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { validateRecordData } from '@/lib/workspace/field-types'
-import { StoredStagesSchema } from '@/lib/workspace/blueprint'
+import {
+  AutomationActionSchema,
+  AutomationTriggerSchema,
+  renderAutomationNote,
+  StoredStagesSchema,
+} from '@/lib/workspace/blueprint'
+import { createReminder } from '@/services/reminder.service'
 import { compactAgo } from '@/lib/time'
 import { getObjectById, getObjectByKey, type WorkspaceObjectModel } from './workspace.service'
+
+/**
+ * Fire stage_entered automations for a record that just ENTERED `stageKey`.
+ * Fire-once per (automation, record, stage) via AutomationFire's unique key
+ * (race-free: the losing concurrent writer hits the constraint and skips).
+ * Reminders go to the org OWNER. Failures are logged and never break the
+ * record write that triggered them.
+ */
+async function fireStageAutomations(
+  organizationId: string,
+  objectId: string,
+  record: { id: string; title: string },
+  stageKey: string,
+): Promise<void> {
+  try {
+    const automations = await prisma.recordAutomation.findMany({
+      where: { organizationId, objectId, isActive: true },
+    })
+    const matching = automations.filter((a) => {
+      const t = AutomationTriggerSchema.safeParse(a.trigger)
+      return t.success && t.data.kind === 'stage_entered' && t.data.stageKey === stageKey
+    })
+    if (!matching.length) return
+
+    const owner = await prisma.membership.findFirst({
+      where: { organizationId, role: 'OWNER', status: 'ACTIVE' },
+      orderBy: { createdAt: 'asc' },
+      select: { userId: true },
+    })
+    if (!owner) return
+
+    for (const automation of matching) {
+      const parsed = AutomationActionSchema.safeParse(automation.action)
+      if (!parsed.success) continue
+      try {
+        await prisma.automationFire.create({
+          data: { automationId: automation.id, recordId: record.id, fireKey: `stage:${stageKey}` },
+        })
+      } catch {
+        continue // already fired for this record + stage
+      }
+      await createReminder(organizationId, owner.userId, {
+        note: renderAutomationNote(parsed.data.note, record.title),
+        dueAt: new Date(Date.now() + parsed.data.dueInDays * 86_400_000),
+        conversationId: null,
+        contactName: null,
+      })
+    }
+  } catch (err) {
+    console.warn('[automations] stage fire failed (record write unaffected):', String(err))
+  }
+}
 
 export interface RecordModel {
   id: string
@@ -120,6 +178,8 @@ export async function createRecord(
       ownerMembershipId: actor.membershipId,
     },
   })
+  // A new record "enters" its initial stage — automations on that stage fire.
+  if (stageKey) await fireStageAutomations(organizationId, object.id, row, stageKey)
   return { ok: true, record: toModel(row) }
 }
 
@@ -167,6 +227,10 @@ export async function updateRecord(
   }
 
   const row = await prisma.crmRecord.update({ where: { id: existing.id }, data: update })
+  // Stage transition → stage_entered automations for the NEW stage.
+  if (typeof update.stageKey === 'string' && update.stageKey !== existing.stageKey) {
+    await fireStageAutomations(organizationId, object.id, row, update.stageKey)
+  }
   return { ok: true, record: toModel(row) }
 }
 

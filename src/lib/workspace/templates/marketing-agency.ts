@@ -113,4 +113,20 @@ export const marketingAgencyBlueprint: WorkspaceBlueprintInput = {
     'Flag deliverables stuck in client review for 5+ days',
     'Summarize meetings into the project record',
   ],
+  automations: [
+    {
+      key: 'chase_overdue_invoice',
+      name: 'Chase invoices the moment they go overdue',
+      objectKey: 'invoice',
+      trigger: { kind: 'stage_entered', stageKey: 'overdue' },
+      action: { kind: 'create_reminder', note: 'Chase overdue invoice {title}', dueInDays: 0 },
+    },
+    {
+      key: 'client_review_nudge',
+      name: 'Nudge deliverables stuck in client review',
+      objectKey: 'deliverable',
+      trigger: { kind: 'stage_entered', stageKey: 'client_review' },
+      action: { kind: 'create_reminder', note: 'Nudge the client about “{title}” if still unreviewed', dueInDays: 5 },
+    },
+  ],
 }

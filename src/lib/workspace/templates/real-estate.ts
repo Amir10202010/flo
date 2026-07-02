@@ -93,4 +93,13 @@ export const realEstateBlueprint: WorkspaceBlueprintInput = {
     'Send sellers a weekly activity report',
     'Alert when an offer is about to expire',
   ],
+  automations: [
+    {
+      key: 'offer_follow_up',
+      name: 'Follow up on submitted offers',
+      objectKey: 'offer',
+      trigger: { kind: 'stage_entered', stageKey: 'submitted' },
+      action: { kind: 'create_reminder', note: 'Follow up on offer: {title}', dueInDays: 2 },
+    },
+  ],
 }

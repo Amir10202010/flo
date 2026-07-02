@@ -19,6 +19,8 @@ export const MAX_FIELDS_PER_OBJECT = 30
 export const MAX_STAGES = 12
 export const MAX_WIDGETS = 8
 export const MAX_AUTOMATION_IDEAS = 8
+export const MAX_AUTOMATIONS = 12
+export const MAX_AUTOMATION_DUE_DAYS = 365
 
 /** Route segments and native surfaces a workspace object may not shadow. */
 export const RESERVED_OBJECT_KEYS = new Set([
@@ -108,6 +110,38 @@ const BlueprintWidgetSchema = z.discriminatedUnion('type', [
 export const StoredStagesSchema = z.array(BlueprintStageSchema).min(1)
 export const StoredWidgetsSchema = z.array(BlueprintWidgetSchema)
 
+/**
+ * Structured automations a blueprint declares for its objects. v1 surface:
+ * trigger `stage_entered` → action `create_reminder` (safe + reversible —
+ * automations never send mail). Stored per-row on RecordAutomation and
+ * re-validated on read with these same schemas.
+ */
+export const AutomationTriggerSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('stage_entered'), stageKey: Key }),
+])
+
+export const AutomationActionSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('create_reminder'),
+    /** Reminder text; `{title}` interpolates the record title. */
+    note: z.string().trim().min(1).max(200),
+    dueInDays: z.number().int().min(0).max(MAX_AUTOMATION_DUE_DAYS),
+  }),
+])
+
+const BlueprintAutomationSchema = z.object({
+  key: Key,
+  name: Label,
+  objectKey: Key,
+  trigger: AutomationTriggerSchema,
+  action: AutomationActionSchema,
+})
+
+/** Interpolate the record title into an automation note template. */
+export function renderAutomationNote(template: string, title: string): string {
+  return template.replaceAll('{title}', title).slice(0, 500)
+}
+
 export const BlueprintCopilotSchema = z.object({
   /** Persona headline, e.g. "Dental practice copilot". */
   title: z.string().trim().min(1).max(80),
@@ -141,6 +175,11 @@ export const WorkspaceBlueprintSchema = z.object({
   dashboard: z.array(BlueprintWidgetSchema).max(MAX_WIDGETS).default([]),
   copilot: BlueprintCopilotSchema.default({ title: 'Workspace copilot' }),
   automationIdeas: z.array(z.string().trim().min(1).max(200)).max(MAX_AUTOMATION_IDEAS).default([]),
+  automations: z
+    .array(BlueprintAutomationSchema)
+    .max(MAX_AUTOMATIONS)
+    .superRefine(uniqueKeys((a) => a.key, 'automation'))
+    .default([]),
 })
 
 export type WorkspaceBlueprint = z.infer<typeof WorkspaceBlueprintSchema>
@@ -151,6 +190,9 @@ export type BlueprintField = BlueprintObject['fields'][number]
 export type BlueprintStage = NonNullable<BlueprintObject['pipeline']>[number]
 export type BlueprintWidget = WorkspaceBlueprint['dashboard'][number]
 export type BlueprintCopilot = WorkspaceBlueprint['copilot']
+export type BlueprintAutomation = WorkspaceBlueprint['automations'][number]
+export type AutomationTrigger = z.infer<typeof AutomationTriggerSchema>
+export type AutomationAction = z.infer<typeof AutomationActionSchema>
 export type BlueprintTerminology = Record<string, Term>
 
 /**
@@ -166,7 +208,13 @@ function normalizeBlueprint(bp: WorkspaceBlueprint): WorkspaceBlueprint {
     if (w.type === 'stage-breakdown' && !target.pipeline?.length) return false
     return true
   })
-  return { ...bp, dashboard }
+  const automations = bp.automations.filter((a) => {
+    const target = byKey.get(a.objectKey)
+    if (!target) return false
+    if (a.trigger.kind === 'stage_entered' && !target.pipeline?.some((s) => s.key === a.trigger.stageKey)) return false
+    return true
+  })
+  return { ...bp, dashboard, automations }
 }
 
 export type BlueprintParseResult =

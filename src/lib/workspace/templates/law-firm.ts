@@ -115,4 +115,20 @@ export const lawFirmBlueprint: WorkspaceBlueprintInput = {
     'Draft engagement letters for cases leaving Intake',
     'Send clients a matter status note after every stage change',
   ],
+  automations: [
+    {
+      key: 'urgent_deadline_check',
+      name: 'Same-day check on urgent deadlines',
+      objectKey: 'deadline',
+      trigger: { kind: 'stage_entered', stageKey: 'urgent' },
+      action: { kind: 'create_reminder', note: 'URGENT deadline: {title}', dueInDays: 0 },
+    },
+    {
+      key: 'negotiation_follow_up',
+      name: 'Keep contract negotiations moving',
+      objectKey: 'contract',
+      trigger: { kind: 'stage_entered', stageKey: 'negotiation' },
+      action: { kind: 'create_reminder', note: 'Check negotiation progress on “{title}”', dueInDays: 7 },
+    },
+  ],
 }

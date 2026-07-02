@@ -167,6 +167,7 @@ export async function applyBlueprint(
     where: { organizationId },
     include: { fields: { select: { id: true, key: true } } },
   })
+  const objectIdByKey = new Map<string, string>()
 
   for (const [order, obj] of blueprint.objects.entries()) {
     const objData = {
@@ -238,7 +239,40 @@ export async function applyBlueprint(
       where: { objectId, key: { notIn: obj.fields.map((f) => f.key) }, isArchived: false },
       data: { isArchived: true },
     })
+    objectIdByKey.set(obj.key, objectId)
   }
+
+  // Materialize blueprint automations (upsert by (objectId, key)); ones the
+  // blueprint no longer declares are DEACTIVATED, never deleted (their fire
+  // history stays intact and they revive on re-apply).
+  const automationPairs: { objectId: string; key: string }[] = []
+  for (const a of blueprint.automations) {
+    const objectId = objectIdByKey.get(a.objectKey)
+    if (!objectId) continue
+    automationPairs.push({ objectId, key: a.key })
+    await prisma.recordAutomation.upsert({
+      where: { objectId_key: { objectId, key: a.key } },
+      create: {
+        organizationId,
+        objectId,
+        key: a.key,
+        name: a.name,
+        trigger: a.trigger as Prisma.InputJsonValue,
+        action: a.action as Prisma.InputJsonValue,
+        isActive: true,
+      },
+      update: {
+        name: a.name,
+        trigger: a.trigger as Prisma.InputJsonValue,
+        action: a.action as Prisma.InputJsonValue,
+        isActive: true,
+      },
+    })
+  }
+  await prisma.recordAutomation.updateMany({
+    where: { organizationId, isActive: true, NOT: { OR: automationPairs } },
+    data: { isActive: false },
+  })
 
   // Archive (never delete) objects the new blueprint no longer declares —
   // their records stay intact and reappear if the object comes back.
@@ -344,6 +378,23 @@ export async function getObjectByKey(
     include: { fields: ACTIVE_FIELDS },
   })
   return row ? rowToObjectModel(row) : null
+}
+
+export interface WorkspaceAutomationModel {
+  id: string
+  name: string
+  objectKey: string
+  objectSingular: string
+}
+
+/** Active automations with their object identity (for the setup page list). */
+export async function listActiveAutomations(organizationId: string): Promise<WorkspaceAutomationModel[]> {
+  const rows = await prisma.recordAutomation.findMany({
+    where: { organizationId, isActive: true },
+    include: { object: { select: { key: true, singular: true } } },
+    orderBy: { createdAt: 'asc' },
+  })
+  return rows.map((r) => ({ id: r.id, name: r.name, objectKey: r.object.key, objectSingular: r.object.singular }))
 }
 
 /** Object by id (archived included — records of archived objects stay editable). */

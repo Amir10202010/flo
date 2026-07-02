@@ -23,6 +23,9 @@ function check(name: string) {
 async function main() {
   const slug = `wse2e-${Date.now().toString(36)}`
   const org = await prisma.organization.create({ data: { name: 'Workspace E2E (temp)', slug } })
+  // Owner membership so stage automations have someone to remind.
+  const user = await prisma.user.create({ data: { email: `${slug}@e2e.local`, name: 'E2E Owner' } })
+  await prisma.membership.create({ data: { organizationId: org.id, userId: user.id, role: 'OWNER', status: 'ACTIVE' } })
   console.log(`workspace e2e — temp org ${org.id} (${slug})`)
 
   try {
@@ -80,7 +83,27 @@ async function main() {
     assert.equal(stats.get(apptObj!.id)?.byStage.confirmed, 1)
     check('listRecords + recordStats see the record')
 
-    // 4. Re-apply a shrunk blueprint — archive-only, records intact.
+    // 4. Stage automations: the dental template reminds on treatment_plan
+    // entering Proposed (its first stage) — creating one fires exactly once.
+    const auto = await prisma.recordAutomation.findFirst({ where: { organizationId: org.id, key: 'treatment_follow_up' } })
+    assert.ok(auto && auto.isActive, 'blueprint automation materialized active')
+    const plan = await createRecord(
+      org.id,
+      'treatment_plan',
+      { title: 'Braces — Aliya', data: { patient_name: 'Aliya', treatment: 'Braces' } },
+      { userId: user.id, membershipId: 'e2e' },
+    )
+    assert.ok(plan && plan.ok)
+    if (!plan || !plan.ok) return
+    assert.equal(await prisma.reminder.count({ where: { organizationId: org.id } }), 1, 'stage_entered automation created one reminder')
+    // Leaving and re-entering the stage must NOT re-fire (fire-once guard).
+    await updateRecord(org.id, plan.record.id, { stageKey: 'accepted' })
+    await updateRecord(org.id, plan.record.id, { stageKey: 'proposed' })
+    assert.equal(await prisma.reminder.count({ where: { organizationId: org.id } }), 1, 'fire-once per record+stage')
+    await deleteRecord(org.id, plan.record.id)
+    check('stage automation fires once and is idempotent on re-entry')
+
+    // 5. Re-apply a shrunk blueprint — archive-only, records intact.
     const shrunk = { ...parsed.blueprint, objects: parsed.blueprint.objects.filter((o) => o.key !== 'treatment_plan') }
     const reparsed = safeParseBlueprint(shrunk)
     assert.equal(reparsed.ok, true)
@@ -92,15 +115,18 @@ async function main() {
     assert.ok(archivedRow && archivedRow.isArchived, 'object archived, not deleted')
     const stillThere = await listRecords(org.id, 'appointment')
     assert.equal(stillThere!.records.length, 1, 'records untouched by re-apply')
+    const autoAfter = await prisma.recordAutomation.findFirst({ where: { organizationId: org.id, key: 'treatment_follow_up' } })
+    assert.ok(autoAfter && !autoAfter.isActive, 'automation of removed object deactivated, not deleted')
     check('re-apply archives (never deletes) and preserves records')
 
-    // 5. Delete record.
+    // 6. Delete record.
     assert.equal(await deleteRecord(org.id, created.record.id), true)
     assert.equal((await listRecords(org.id, 'appointment'))!.records.length, 0)
     check('deleteRecord removes the row')
   } finally {
     await prisma.organization.delete({ where: { id: org.id } })
-    console.log('  ✓ temp org cascaded away')
+    await prisma.user.delete({ where: { id: user.id } })
+    console.log('  ✓ temp org + user cascaded away')
     await prisma.$disconnect()
   }
 

@@ -64,4 +64,13 @@ export const genericBlueprint: WorkspaceBlueprintInput = {
     'Summarize new inbound leads into deal records',
     'Send a Monday pipeline overview',
   ],
+  automations: [
+    {
+      key: 'proposal_follow_up',
+      name: 'Follow up on sent proposals',
+      objectKey: 'deal',
+      trigger: { kind: 'stage_entered', stageKey: 'proposal' },
+      action: { kind: 'create_reminder', note: 'Follow up on proposal for “{title}”', dueInDays: 5 },
+    },
+  ],
 }

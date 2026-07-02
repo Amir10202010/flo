@@ -92,4 +92,20 @@ export const dentalClinicBlueprint: WorkspaceBlueprintInput = {
     'Flag no-shows for a reschedule call the same day',
     'Draft insurance responses from the patient record',
   ],
+  automations: [
+    {
+      key: 'treatment_follow_up',
+      name: 'Follow up on proposed treatment plans',
+      objectKey: 'treatment_plan',
+      trigger: { kind: 'stage_entered', stageKey: 'proposed' },
+      action: { kind: 'create_reminder', note: 'Follow up on treatment plan “{title}” — still awaiting acceptance', dueInDays: 7 },
+    },
+    {
+      key: 'no_show_reschedule',
+      name: 'Reschedule no-shows the same day',
+      objectKey: 'appointment',
+      trigger: { kind: 'stage_entered', stageKey: 'no_show' },
+      action: { kind: 'create_reminder', note: 'Call to reschedule: {title}', dueInDays: 0 },
+    },
+  ],
 }

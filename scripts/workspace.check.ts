@@ -8,7 +8,7 @@
  * generator customization.
  */
 import assert from 'node:assert/strict'
-import { safeParseBlueprint, MAX_OBJECTS } from '@/lib/workspace/blueprint'
+import { safeParseBlueprint, renderAutomationNote, MAX_OBJECTS } from '@/lib/workspace/blueprint'
 import { validateRecordData, FIELD_TYPES, type FieldSpec } from '@/lib/workspace/field-types'
 import { isWorkspaceIcon, WORKSPACE_ICON_NAMES } from '@/lib/workspace/icons'
 import { resolveTerm } from '@/lib/workspace/terminology'
@@ -262,6 +262,47 @@ check('keyword picker matches en+ru descriptions and falls back to generic', () 
   assert.equal(pickTemplateByKeywords('агентство недвижимости, продаём квартиры'), 'real-estate')
   assert.equal(pickTemplateByKeywords('performance marketing agency running paid ads'), 'marketing-agency')
   assert.equal(pickTemplateByKeywords('zzz qqq unrelated words'), 'generic')
+})
+
+console.log('blueprint — automations:')
+check('valid stage automation parses; unknown object/stage automations dropped', () => {
+  const b = baseBlueprint()
+  b.automations = [
+    {
+      key: 'follow_up_won',
+      name: 'Follow up after a win',
+      objectKey: 'deal',
+      trigger: { kind: 'stage_entered', stageKey: 'won' },
+      action: { kind: 'create_reminder', note: 'Check in on {title}', dueInDays: 7 },
+    },
+    { key: 'ghost', name: 'Ghost', objectKey: 'nope', trigger: { kind: 'stage_entered', stageKey: 'won' }, action: { kind: 'create_reminder', note: 'x', dueInDays: 1 } },
+    { key: 'bad_stage', name: 'Bad stage', objectKey: 'deal', trigger: { kind: 'stage_entered', stageKey: 'missing' }, action: { kind: 'create_reminder', note: 'x', dueInDays: 1 } },
+  ]
+  const r = safeParseBlueprint(b)
+  assert.equal(r.ok, true, r.ok ? '' : r.error)
+  if (r.ok) {
+    assert.equal(r.blueprint.automations.length, 1, 'unknown object/stage automations dropped by normalize')
+    assert.equal(r.blueprint.automations[0].key, 'follow_up_won')
+    assert.equal(r.blueprint.automations[0].action.dueInDays, 7)
+  }
+})
+
+check('automation bounds: dueInDays clamped range, duplicate keys rejected', () => {
+  const b = baseBlueprint()
+  b.automations = [
+    { key: 'a1', name: 'A', objectKey: 'deal', trigger: { kind: 'stage_entered', stageKey: 'won' }, action: { kind: 'create_reminder', note: 'x', dueInDays: 9999 } },
+  ]
+  assert.equal(safeParseBlueprint(b).ok, false, 'out-of-range dueInDays rejected')
+  b.automations = [
+    { key: 'a1', name: 'A', objectKey: 'deal', trigger: { kind: 'stage_entered', stageKey: 'won' }, action: { kind: 'create_reminder', note: 'x', dueInDays: 3 } },
+    { key: 'a1', name: 'B', objectKey: 'deal', trigger: { kind: 'stage_entered', stageKey: 'lead' }, action: { kind: 'create_reminder', note: 'y', dueInDays: 3 } },
+  ]
+  assert.equal(safeParseBlueprint(b).ok, false, 'duplicate automation keys rejected')
+})
+
+check('renderAutomationNote interpolates the record title', () => {
+  assert.equal(renderAutomationNote('Check in on {title} soon', 'Aliya — braces'), 'Check in on Aliya — braces soon')
+  assert.equal(renderAutomationNote('No placeholder', 'X'), 'No placeholder')
 })
 
 console.log('generator — customization application:')
