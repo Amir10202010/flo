@@ -13,6 +13,7 @@
 import { getTextProvider } from '@/services/ai'
 import type { AiJsonSchema } from '@/services/ai/types'
 import {
+  keyFromLabel,
   MAX_AUTOMATION_IDEAS,
   MAX_FIELDS_PER_OBJECT,
   MAX_OBJECTS,
@@ -96,18 +97,10 @@ export interface GeneratedBlueprint {
 
 // ── Sanitizers (deterministic — everything AI-shaped passes through these) ──
 
-const KEY_RE = /^[a-z][a-z0-9_-]{1,31}$/
-
 /** Coerce arbitrary text into a valid slug key ("School Grade" → "school_grade"). */
 function sanitizeKey(raw: unknown): string | null {
   if (typeof raw !== 'string') return null
-  const key = raw
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '_')
-    .replace(/[^a-z0-9_-]/g, '')
-    .slice(0, 32)
-  return KEY_RE.test(key) ? key : null
+  return keyFromLabel(raw)
 }
 
 function cleanLabel(raw: unknown, max = 60): string | null {

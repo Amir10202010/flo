@@ -8,10 +8,11 @@
  */
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Kanban, Plus, Search, Table2 } from 'lucide-react'
+import { Kanban, ListPlus, Plus, Search, Table2 } from 'lucide-react'
 import { formatFieldValue, type FieldSpec } from '@/lib/workspace/field-types'
 import type { WorkspaceObjectModel } from '@/services/workspace/workspace.service'
 import type { RecordModel } from '@/services/workspace/record.service'
+import AddFieldModal from './AddFieldModal'
 import RecordModal from './RecordModal'
 
 const MAX_LIST_FIELDS = 4
@@ -33,6 +34,7 @@ export default function ObjectPage({
   const [view, setView] = useState<'table' | 'board'>(hasBoard ? 'board' : 'table')
   const [query, setQuery] = useState('')
   const [modal, setModal] = useState<{ record: RecordModel | null } | null>(null)
+  const [fieldModal, setFieldModal] = useState(false)
   const [movingId, setMovingId] = useState<string | null>(null)
 
   const listFields = useMemo(
@@ -100,6 +102,15 @@ export default function ObjectPage({
         </div>
       )}
       <div style={{ flex: 1 }} />
+      <button
+        type="button"
+        className="btn-ghost"
+        onClick={() => setFieldModal(true)}
+        title="Add a field to this object (admins)"
+        style={{ fontSize: 12.5, padding: '7px 12px' }}
+      >
+        <ListPlus size={13} /> Add field
+      </button>
       <button type="button" className="btn-primary" onClick={() => setModal({ record: null })} style={{ fontSize: 13 }}>
         <Plus size={14} /> New {object.singular.toLowerCase()}
       </button>
@@ -146,6 +157,7 @@ export default function ObjectPage({
       )}
 
       {modal && <RecordModal object={object} record={modal.record} onClose={() => setModal(null)} />}
+      {fieldModal && <AddFieldModal object={object} onClose={() => setFieldModal(false)} />}
     </div>
   )
 }

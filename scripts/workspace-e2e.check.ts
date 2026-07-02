@@ -11,7 +11,7 @@ import assert from 'node:assert/strict'
 import { prisma } from '@/lib/prisma'
 import { safeParseBlueprint } from '@/lib/workspace/blueprint'
 import { INDUSTRY_TEMPLATES } from '@/lib/workspace/templates'
-import { applyBlueprint, getObjectByKey, getWorkspaceSchema } from '@/services/workspace/workspace.service'
+import { addFieldToObject, applyBlueprint, getObjectByKey, getWorkspaceSchema } from '@/services/workspace/workspace.service'
 import { createRecord, deleteRecord, getRecord, listRecords, recordStats, sweepRecordAutomations, updateRecord } from '@/services/workspace/record.service'
 
 let passed = 0
@@ -122,6 +122,26 @@ async function main() {
     if (appt && appt.ok) await deleteRecord(org.id, appt.record.id)
     check('date_approaching sweep fires once per record+date')
 
+    // 4c. Manual schema editing: add a field, then store a value in it.
+    const added = await addFieldToObject(org.id, 'patient', { label: 'Referral Source', type: 'TEXT' })
+    assert.ok(added && added.ok, added && !added.ok ? added.error : 'field added')
+    if (added && added.ok) assert.equal(added.field.key, 'referral_source')
+    const dup = await addFieldToObject(org.id, 'patient', { label: 'Referral Source', type: 'TEXT' })
+    assert.ok(dup && !dup.ok, 'duplicate label rejected')
+    const templateDup = await addFieldToObject(org.id, 'patient', { label: 'Insurance Policy Number', type: 'TEXT' })
+    assert.ok(templateDup && !templateDup.ok, 'collision with a template field rejected')
+    const badSelect = await addFieldToObject(org.id, 'patient', { label: 'Plan tier', type: 'SELECT', options: ['Only one'] })
+    assert.ok(badSelect && !badSelect.ok, 'select needs 2+ options')
+    const withValue = await createRecord(
+      org.id,
+      'patient',
+      { title: 'Marat', data: { referral_source: 'Instagram' } },
+      { userId: user.id, membershipId: 'e2e' },
+    )
+    assert.ok(withValue && withValue.ok && withValue.record.data.referral_source === 'Instagram')
+    if (withValue && withValue.ok) await deleteRecord(org.id, withValue.record.id)
+    check('addFieldToObject: slug key, uniqueness, option rules, usable immediately')
+
     // 5. Re-apply a shrunk blueprint — archive-only, records intact.
     const shrunk = { ...parsed.blueprint, objects: parsed.blueprint.objects.filter((o) => o.key !== 'treatment_plan') }
     const reparsed = safeParseBlueprint(shrunk)
@@ -136,7 +156,12 @@ async function main() {
     assert.equal(stillThere!.records.length, 1, 'records untouched by re-apply')
     const autoAfter = await prisma.recordAutomation.findFirst({ where: { organizationId: org.id, key: 'treatment_follow_up' } })
     assert.ok(autoAfter && !autoAfter.isActive, 'automation of removed object deactivated, not deleted')
-    check('re-apply archives (never deletes) and preserves records')
+    const patientAfter = await getObjectByKey(org.id, 'patient')
+    assert.ok(
+      patientAfter!.fields.some((f) => f.key === 'referral_source'),
+      'manually-added fields survive blueprint re-application',
+    )
+    check('re-apply archives (never deletes) and preserves records + manual fields')
 
     // 6. Delete record.
     assert.equal(await deleteRecord(org.id, created.record.id), true)

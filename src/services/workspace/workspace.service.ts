@@ -16,6 +16,8 @@ import { Prisma, type WorkspaceSource } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { recordAudit } from '@/services/audit.service'
 import {
+  keyFromLabel,
+  MAX_FIELDS_PER_OBJECT,
   StoredStagesSchema,
   StoredWidgetsSchema,
   TerminologySchema,
@@ -25,7 +27,7 @@ import {
   type BlueprintCopilot,
   type WorkspaceBlueprint,
 } from '@/lib/workspace/blueprint'
-import type { FieldSpec, FieldTypeKey } from '@/lib/workspace/field-types'
+import { FIELD_TYPE_KEYS, type FieldSpec, type FieldTypeKey } from '@/lib/workspace/field-types'
 import type { TerminologyMap } from '@/lib/workspace/terminology'
 import type { OnboardingAnswers } from './blueprint.generator'
 
@@ -234,9 +236,16 @@ export async function applyBlueprint(
       })
     }
 
-    // Archive (never delete) fields the new blueprint no longer declares.
+    // Archive (never delete) fields the new blueprint no longer declares —
+    // EXCEPT manually-added ones (config.source='manual'): the user's own
+    // schema edits survive every regeneration.
     await prisma.fieldDefinition.updateMany({
-      where: { objectId, key: { notIn: obj.fields.map((f) => f.key) }, isArchived: false },
+      where: {
+        objectId,
+        key: { notIn: obj.fields.map((f) => f.key) },
+        isArchived: false,
+        NOT: { config: { path: ['source'], equals: 'manual' } },
+      },
       data: { isArchived: true },
     })
     objectIdByKey.set(obj.key, objectId)
@@ -378,6 +387,99 @@ export async function getObjectByKey(
     include: { fields: ACTIVE_FIELDS },
   })
   return row ? rowToObjectModel(row) : null
+}
+
+export type AddFieldResult =
+  | { ok: true; field: FieldSpec }
+  | { ok: false; error: string }
+
+/**
+ * Manually add ONE field to an object — the Phase-4 schema-editing entry
+ * point. Blueprint bounds apply (max fields, option rules); the key derives
+ * from the label (synthetic `field_N` fallback keeps non-latin labels
+ * working) and the field is provenance-tagged `source:'manual'` in config —
+ * the raw signal continuous learning will read later. Null = unknown object.
+ */
+export async function addFieldToObject(
+  organizationId: string,
+  objectKey: string,
+  input: {
+    label: string
+    type: FieldTypeKey
+    options?: string[]
+    currency?: string
+    required?: boolean
+    showInList?: boolean
+  },
+): Promise<AddFieldResult | null> {
+  const object = await getObjectByKey(organizationId, objectKey)
+  if (!object) return null
+
+  const label = input.label.replace(/\s+/g, ' ').trim().slice(0, 60)
+  if (!label) return { ok: false, error: 'Field label is required' }
+  if (!FIELD_TYPE_KEYS.includes(input.type)) return { ok: false, error: 'Unknown field type' }
+
+  // Include archived fields in the bounds/uniqueness checks (keys must stay
+  // unique across archived fields too — they can be revived by a re-apply).
+  const allFields = await prisma.fieldDefinition.findMany({
+    where: { objectId: object.id },
+    select: { key: true, order: true },
+  })
+  if (allFields.length >= MAX_FIELDS_PER_OBJECT) {
+    return { ok: false, error: `This object already has the maximum of ${MAX_FIELDS_PER_OBJECT} fields` }
+  }
+
+  const taken = new Set(allFields.map((f) => f.key))
+  let key = keyFromLabel(label)
+  if (!key) {
+    let n = allFields.length + 1
+    while (taken.has(`field_${n}`)) n++
+    key = `field_${n}`
+  }
+  if (taken.has(key)) return { ok: false, error: `A “${label}” field already exists` }
+
+  const wantsOptions = input.type === 'SELECT' || input.type === 'MULTI_SELECT'
+  const options = wantsOptions
+    ? (input.options ?? []).map((o) => o.trim().slice(0, 60)).filter(Boolean).slice(0, 24)
+    : undefined
+  if (wantsOptions && (!options || options.length < 2)) {
+    return { ok: false, error: 'Select fields need at least two options' }
+  }
+  const currency =
+    input.type === 'MONEY' && typeof input.currency === 'string' && /^[A-Za-z]{3}$/.test(input.currency.trim())
+      ? input.currency.trim().toUpperCase()
+      : undefined
+
+  const config: Record<string, unknown> = { source: 'manual' }
+  if (options) config.options = options
+  if (currency) config.currency = currency
+
+  const order = Math.max(-1, ...allFields.map((f) => f.order)) + 1
+  const row = await prisma.fieldDefinition.create({
+    data: {
+      objectId: object.id,
+      key,
+      label,
+      type: input.type,
+      config: config as Prisma.InputJsonValue,
+      required: input.required ?? false,
+      showInList: input.showInList ?? true,
+      order,
+    },
+  })
+  return {
+    ok: true,
+    field: {
+      key: row.key,
+      label: row.label,
+      type: row.type as FieldTypeKey,
+      required: row.required,
+      showInList: row.showInList,
+      order: row.order,
+      options,
+      currency,
+    },
+  }
 }
 
 export interface WorkspaceAutomationModel {

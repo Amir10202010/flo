@@ -8,7 +8,7 @@
  * generator customization.
  */
 import assert from 'node:assert/strict'
-import { safeParseBlueprint, renderAutomationNote, MAX_OBJECTS } from '@/lib/workspace/blueprint'
+import { safeParseBlueprint, renderAutomationNote, keyFromLabel, MAX_OBJECTS } from '@/lib/workspace/blueprint'
 import { validateRecordData, FIELD_TYPES, type FieldSpec } from '@/lib/workspace/field-types'
 import { isWorkspaceIcon, WORKSPACE_ICON_NAMES } from '@/lib/workspace/icons'
 import { resolveTerm } from '@/lib/workspace/terminology'
@@ -322,6 +322,14 @@ check('sweep triggers parse; date_approaching requires a real date field', () =>
     { key: 's', name: 'S', objectKey: 'deal', trigger: { kind: 'stale_in_stage', stageKey: 'lead', days: 0 }, action: { kind: 'create_reminder', note: 'x', dueInDays: 0 } },
   ]
   assert.equal(safeParseBlueprint(b).ok, false, 'days must be >= 1')
+})
+
+check('keyFromLabel derives stable slugs and rejects unusable labels', () => {
+  assert.equal(keyFromLabel('Insurance Policy Number'), 'insurance_policy_number')
+  assert.equal(keyFromLabel('  Страховой номер  '), null) // non-latin → no usable slug
+  assert.equal(keyFromLabel('X-Ray #2 (left)'), 'x-ray_2_left')
+  assert.equal(keyFromLabel('!!!'), null)
+  assert.equal(keyFromLabel('a'.repeat(80))?.length, 32)
 })
 
 check('renderAutomationNote interpolates the record title', () => {

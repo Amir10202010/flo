@@ -146,6 +146,22 @@ export function renderAutomationNote(template: string, title: string): string {
   return template.replaceAll('{title}', title).slice(0, 500)
 }
 
+/**
+ * Derive a stable slug key from a human label ("Insurance Policy Number" →
+ * "insurance_policy_number"). Null when no usable latin slug remains
+ * (callers may synthesize a fallback key and keep the label as-is).
+ */
+export function keyFromLabel(label: string): string | null {
+  const key = label
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_-]/g, '')
+    .replace(/_+/g, '_')
+    .slice(0, 32)
+  return KEY_RE.test(key) ? key : null
+}
+
 export const BlueprintCopilotSchema = z.object({
   /** Persona headline, e.g. "Dental practice copilot". */
   title: z.string().trim().min(1).max(80),
