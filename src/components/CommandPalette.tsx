@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createElement, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import {
@@ -20,6 +20,9 @@ import {
   Users,
 } from 'lucide-react'
 import { useUiStore } from '@/stores/ui.store'
+import { useWorkspaceSchema } from '@/lib/workspace/use-workspace-schema'
+import { iconFor } from '@/lib/workspace/icons'
+import { resolveTerm } from '@/lib/workspace/terminology'
 import type { ConversationListItem, SearchResponse, SearchResultItem } from '@/types'
 import ContactAvatar from '@/components/dashboard/ContactAvatar'
 
@@ -140,6 +143,7 @@ function PaletteDialog({
   const [rawIndex, setRawIndex] = useState(0)
   const [syncState, setSyncState] = useState<'idle' | 'starting' | 'started' | 'failed'>('idle')
   const listRef = useRef<HTMLDivElement>(null)
+  const { schema } = useWorkspaceSchema()
 
   // Server-side AI search for the Conversations group. Falls back to the
   // locally cached list (substring match) when the request fails.
@@ -192,7 +196,22 @@ function PaletteDialog({
   const entries = useMemo<PaletteEntry[]>(() => {
     const q = query.trim().toLowerCase()
 
-    const pages = PAGES.map((p) => ({ p, score: matches(q, p.label, p.keywords) }))
+    // Static anchors + the workspace's own objects (Patients, Cases, …) with
+    // the org's word for "Clients" — the palette mirrors the adaptive sidebar.
+    const contactTerm = resolveTerm(schema?.terminology, 'contact')
+    const navPages = [
+      ...PAGES.map((p) =>
+        p.href === '/clients' ? { ...p, label: contactTerm.plural, keywords: `${p.keywords} clients` } : p,
+      ),
+      ...(schema?.nav ?? []).map((n) => ({
+        href: n.href,
+        label: n.label,
+        icon: createElement(iconFor(n.icon), { size: 15 }),
+        keywords: 'workspace records crm pipeline',
+      })),
+    ]
+
+    const pages = navPages.map((p) => ({ p, score: matches(q, p.label, p.keywords) }))
       .filter((x) => x.score > 0)
       .sort((a, b) => b.score - a.score)
       .map<PaletteEntry>(({ p }) => ({
@@ -303,7 +322,7 @@ function PaletteDialog({
             }))
 
     return [...pages, ...actions, ...conversations]
-  }, [query, convs, aiResults, go, startSync, syncState, onClose, setComposeOpen, setAssistantOpen, setAlertsOpen])
+  }, [query, convs, aiResults, go, startSync, syncState, onClose, setComposeOpen, setAssistantOpen, setAlertsOpen, schema])
 
   // Clamp at render time instead of syncing state in an effect.
   const index = Math.min(rawIndex, Math.max(0, entries.length - 1))
