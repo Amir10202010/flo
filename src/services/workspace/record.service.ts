@@ -17,12 +17,51 @@ import { createReminder } from '@/services/reminder.service'
 import { compactAgo } from '@/lib/time'
 import { getObjectById, getObjectByKey, type WorkspaceObjectModel } from './workspace.service'
 
+const DAY_MS = 86_400_000
+
+/** Org OWNER user id (reminder recipient for automations), null when absent. */
+async function automationOwner(organizationId: string): Promise<string | null> {
+  const m = await prisma.membership.findFirst({
+    where: { organizationId, role: 'OWNER', status: 'ACTIVE' },
+    orderBy: { createdAt: 'asc' },
+    select: { userId: true },
+  })
+  return m?.userId ?? null
+}
+
+/**
+ * Fire ONE automation for ONE record, exactly once per fireKey: the unique
+ * AutomationFire row makes concurrent/repeat evaluation race-free (the loser
+ * hits the constraint and skips). Returns true when a reminder was created.
+ */
+async function fireAutomationForRecord(
+  automation: { id: string; action: Prisma.JsonValue },
+  organizationId: string,
+  ownerUserId: string,
+  record: { id: string; title: string },
+  fireKey: string,
+): Promise<boolean> {
+  const parsed = AutomationActionSchema.safeParse(automation.action)
+  if (!parsed.success) return false
+  try {
+    await prisma.automationFire.create({
+      data: { automationId: automation.id, recordId: record.id, fireKey },
+    })
+  } catch {
+    return false // already fired for this record + key
+  }
+  await createReminder(organizationId, ownerUserId, {
+    note: renderAutomationNote(parsed.data.note, record.title),
+    dueAt: new Date(Date.now() + parsed.data.dueInDays * DAY_MS),
+    conversationId: null,
+    contactName: null,
+  })
+  return true
+}
+
 /**
  * Fire stage_entered automations for a record that just ENTERED `stageKey`.
- * Fire-once per (automation, record, stage) via AutomationFire's unique key
- * (race-free: the losing concurrent writer hits the constraint and skips).
- * Reminders go to the org OWNER. Failures are logged and never break the
- * record write that triggered them.
+ * Failures are logged and never break the record write that triggered them.
  */
 async function fireStageAutomations(
   organizationId: string,
@@ -39,34 +78,83 @@ async function fireStageAutomations(
       return t.success && t.data.kind === 'stage_entered' && t.data.stageKey === stageKey
     })
     if (!matching.length) return
-
-    const owner = await prisma.membership.findFirst({
-      where: { organizationId, role: 'OWNER', status: 'ACTIVE' },
-      orderBy: { createdAt: 'asc' },
-      select: { userId: true },
-    })
+    const owner = await automationOwner(organizationId)
     if (!owner) return
-
     for (const automation of matching) {
-      const parsed = AutomationActionSchema.safeParse(automation.action)
-      if (!parsed.success) continue
-      try {
-        await prisma.automationFire.create({
-          data: { automationId: automation.id, recordId: record.id, fireKey: `stage:${stageKey}` },
-        })
-      } catch {
-        continue // already fired for this record + stage
-      }
-      await createReminder(organizationId, owner.userId, {
-        note: renderAutomationNote(parsed.data.note, record.title),
-        dueAt: new Date(Date.now() + parsed.data.dueInDays * 86_400_000),
-        conversationId: null,
-        contactName: null,
-      })
+      await fireAutomationForRecord(automation, organizationId, owner, record, `stage:${stageKey}`)
     }
   } catch (err) {
     console.warn('[automations] stage fire failed (record write unaffected):', String(err))
   }
+}
+
+export interface AutomationSweepResult {
+  checked: number
+  fired: number
+}
+
+/**
+ * Daily sweep for the time-based triggers (called from the maintenance cron):
+ *   stale_in_stage    — record untouched in a stage for N days
+ *   date_approaching  — a DATE/DATETIME field lands within N days
+ * Bounded (≤500 automations, ≤500 candidate records each), strictly
+ * sequential, fire-once per fireKey (a changed date value re-arms the
+ * date trigger because the value is part of the key).
+ */
+export async function sweepRecordAutomations(now = new Date()): Promise<AutomationSweepResult> {
+  const automations = await prisma.recordAutomation.findMany({
+    where: { isActive: true },
+    take: 500,
+    orderBy: { createdAt: 'asc' },
+  })
+  const owners = new Map<string, string | null>()
+  let checked = 0
+  let fired = 0
+
+  for (const automation of automations) {
+    const parsed = AutomationTriggerSchema.safeParse(automation.trigger)
+    if (!parsed.success || parsed.data.kind === 'stage_entered') continue
+    const trigger = parsed.data
+    checked++
+
+    let owner = owners.get(automation.organizationId)
+    if (owner === undefined) {
+      owner = await automationOwner(automation.organizationId)
+      owners.set(automation.organizationId, owner)
+    }
+    if (!owner) continue
+
+    if (trigger.kind === 'stale_in_stage') {
+      const cutoff = new Date(now.getTime() - trigger.days * DAY_MS)
+      const records = await prisma.crmRecord.findMany({
+        where: { objectId: automation.objectId, stageKey: trigger.stageKey, updatedAt: { lte: cutoff } },
+        select: { id: true, title: true },
+        take: 100,
+      })
+      for (const record of records) {
+        if (await fireAutomationForRecord(automation, automation.organizationId, owner, record, `stale:${trigger.stageKey}`)) fired++
+      }
+    } else {
+      // date_approaching: window = [a day ago, now + daysBefore + 1d) so a
+      // same-day DATE (parsed as UTC midnight) still qualifies.
+      const records = await prisma.crmRecord.findMany({
+        where: { objectId: automation.objectId },
+        select: { id: true, title: true, data: true },
+        orderBy: { updatedAt: 'desc' },
+        take: 500,
+      })
+      const lo = now.getTime() - DAY_MS
+      const hi = now.getTime() + (trigger.daysBefore + 1) * DAY_MS
+      for (const record of records) {
+        const raw = (record.data as Record<string, unknown>)[trigger.fieldKey]
+        if (typeof raw !== 'string') continue
+        const when = Date.parse(raw)
+        if (Number.isNaN(when) || when < lo || when > hi) continue
+        if (await fireAutomationForRecord(automation, automation.organizationId, owner, record, `date:${trigger.fieldKey}:${raw}`)) fired++
+      }
+    }
+  }
+  return { checked, fired }
 }
 
 export interface RecordModel {

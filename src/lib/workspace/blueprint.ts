@@ -118,6 +118,10 @@ export const StoredWidgetsSchema = z.array(BlueprintWidgetSchema)
  */
 export const AutomationTriggerSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('stage_entered'), stageKey: Key }),
+  /** Record untouched in a stage for N days (evaluated by the daily sweep). */
+  z.object({ kind: z.literal('stale_in_stage'), stageKey: Key, days: z.number().int().min(1).max(365) }),
+  /** A DATE/DATETIME field lands within N days (evaluated by the daily sweep). */
+  z.object({ kind: z.literal('date_approaching'), fieldKey: Key, daysBefore: z.number().int().min(0).max(365) }),
 ])
 
 export const AutomationActionSchema = z.discriminatedUnion('kind', [
@@ -211,7 +215,14 @@ function normalizeBlueprint(bp: WorkspaceBlueprint): WorkspaceBlueprint {
   const automations = bp.automations.filter((a) => {
     const target = byKey.get(a.objectKey)
     if (!target) return false
-    if (a.trigger.kind === 'stage_entered' && !target.pipeline?.some((s) => s.key === a.trigger.stageKey)) return false
+    const t = a.trigger
+    if ((t.kind === 'stage_entered' || t.kind === 'stale_in_stage') && !target.pipeline?.some((s) => s.key === t.stageKey)) {
+      return false
+    }
+    if (t.kind === 'date_approaching') {
+      const field = target.fields.find((f) => f.key === t.fieldKey)
+      if (!field || (field.type !== 'DATE' && field.type !== 'DATETIME')) return false
+    }
     return true
   })
   return { ...bp, dashboard, automations }

@@ -12,7 +12,7 @@ import { prisma } from '@/lib/prisma'
 import { safeParseBlueprint } from '@/lib/workspace/blueprint'
 import { INDUSTRY_TEMPLATES } from '@/lib/workspace/templates'
 import { applyBlueprint, getObjectByKey, getWorkspaceSchema } from '@/services/workspace/workspace.service'
-import { createRecord, deleteRecord, getRecord, listRecords, recordStats, updateRecord } from '@/services/workspace/record.service'
+import { createRecord, deleteRecord, getRecord, listRecords, recordStats, sweepRecordAutomations, updateRecord } from '@/services/workspace/record.service'
 
 let passed = 0
 function check(name: string) {
@@ -102,6 +102,25 @@ async function main() {
     assert.equal(await prisma.reminder.count({ where: { organizationId: org.id } }), 1, 'fire-once per record+stage')
     await deleteRecord(org.id, plan.record.id)
     check('stage automation fires once and is idempotent on re-entry')
+
+    // 4b. Sweep triggers: the dental template confirms appointments the day
+    // before (date_approaching scheduled_at, 1 day). Tomorrow qualifies.
+    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 16)
+    const appt = await createRecord(
+      org.id,
+      'appointment',
+      { title: 'Cleaning — Marat', data: { patient_name: 'Marat', scheduled_at: tomorrow } },
+      { userId: user.id, membershipId: 'e2e' },
+    )
+    assert.ok(appt && appt.ok)
+    const before = await prisma.reminder.count({ where: { organizationId: org.id } })
+    const sweep1 = await sweepRecordAutomations()
+    const afterFirst = await prisma.reminder.count({ where: { organizationId: org.id } })
+    assert.ok(afterFirst > before, `date_approaching fired (sweep fired=${sweep1.fired})`)
+    await sweepRecordAutomations()
+    assert.equal(await prisma.reminder.count({ where: { organizationId: org.id } }), afterFirst, 'sweep is idempotent')
+    if (appt && appt.ok) await deleteRecord(org.id, appt.record.id)
+    check('date_approaching sweep fires once per record+date')
 
     // 5. Re-apply a shrunk blueprint — archive-only, records intact.
     const shrunk = { ...parsed.blueprint, objects: parsed.blueprint.objects.filter((o) => o.key !== 'treatment_plan') }

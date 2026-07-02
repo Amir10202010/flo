@@ -104,5 +104,12 @@ export const recruitingAgencyBlueprint: WorkspaceBlueprintInput = {
       trigger: { kind: 'stage_entered', stageKey: 'offer' },
       action: { kind: 'create_reminder', note: 'Check offer status for {title}', dueInDays: 3 },
     },
+    {
+      key: 'stuck_in_interviews',
+      name: 'Move candidates stuck in interviews',
+      objectKey: 'candidate',
+      trigger: { kind: 'stale_in_stage', stageKey: 'interviewing', days: 7 },
+      action: { kind: 'create_reminder', note: '{title} has been in interviews for a week — move them along', dueInDays: 0 },
+    },
   ],
 }

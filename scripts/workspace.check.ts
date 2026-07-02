@@ -300,6 +300,30 @@ check('automation bounds: dueInDays clamped range, duplicate keys rejected', () 
   assert.equal(safeParseBlueprint(b).ok, false, 'duplicate automation keys rejected')
 })
 
+check('sweep triggers parse; date_approaching requires a real date field', () => {
+  const b = baseBlueprint()
+  const deal = (b.objects as Record<string, unknown>[])[0] as { fields: unknown[] }
+  deal.fields = [
+    ...(deal.fields as object[]),
+    { key: 'close_date', label: 'Close date', type: 'DATE' },
+  ]
+  b.automations = [
+    { key: 'stale_lead', name: 'Nudge stale leads', objectKey: 'deal', trigger: { kind: 'stale_in_stage', stageKey: 'lead', days: 7 }, action: { kind: 'create_reminder', note: 'Nudge {title}', dueInDays: 0 } },
+    { key: 'close_soon', name: 'Closing soon', objectKey: 'deal', trigger: { kind: 'date_approaching', fieldKey: 'close_date', daysBefore: 3 }, action: { kind: 'create_reminder', note: 'Close {title}', dueInDays: 0 } },
+    { key: 'bad_field', name: 'Bad', objectKey: 'deal', trigger: { kind: 'date_approaching', fieldKey: 'notes', daysBefore: 3 }, action: { kind: 'create_reminder', note: 'x', dueInDays: 0 } },
+    { key: 'bad_stage2', name: 'Bad2', objectKey: 'deal', trigger: { kind: 'stale_in_stage', stageKey: 'missing', days: 7 }, action: { kind: 'create_reminder', note: 'x', dueInDays: 0 } },
+  ]
+  const r = safeParseBlueprint(b)
+  assert.equal(r.ok, true, r.ok ? '' : r.error)
+  if (r.ok) {
+    assert.deepEqual(r.blueprint.automations.map((a) => a.key).sort(), ['close_soon', 'stale_lead'], 'non-date field + unknown stage dropped')
+  }
+  b.automations = [
+    { key: 's', name: 'S', objectKey: 'deal', trigger: { kind: 'stale_in_stage', stageKey: 'lead', days: 0 }, action: { kind: 'create_reminder', note: 'x', dueInDays: 0 } },
+  ]
+  assert.equal(safeParseBlueprint(b).ok, false, 'days must be >= 1')
+})
+
 check('renderAutomationNote interpolates the record title', () => {
   assert.equal(renderAutomationNote('Check in on {title} soon', 'Aliya — braces'), 'Check in on Aliya — braces soon')
   assert.equal(renderAutomationNote('No placeholder', 'X'), 'No placeholder')

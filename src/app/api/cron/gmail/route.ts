@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authorizeCron } from '@/lib/cron'
 import { enqueueMaintenanceForUsers } from '@/services/jobs/queue'
+import { sweepRecordAutomations } from '@/services/workspace/record.service'
 import { kickJobQueue } from '@/services/jobs/kick'
 
 export const dynamic = 'force-dynamic'
@@ -92,11 +93,22 @@ async function handle(req: NextRequest) {
     errors.push(`billing-reconcile: ${String(e)}`)
   }
 
+  // Workspace automation sweep: time-based triggers (stale_in_stage,
+  // date_approaching) across all orgs. Bounded + fire-once inside the service;
+  // a failure here never blocks the mail maintenance above.
+  let automationsFired = 0
+  try {
+    const sweep = await sweepRecordAutomations()
+    automationsFired = sweep.fired
+  } catch (e) {
+    errors.push(`automation-sweep: ${String(e)}`)
+  }
+
   // Start draining immediately (post-response); the worker / jobs-process cron
   // mop up the rest. Safe to overlap — claimNext uses FOR UPDATE SKIP LOCKED.
   kickJobQueue()
 
-  return NextResponse.json({ integrations, maintenanceQueued, prunedJobs, downgraded, errors })
+  return NextResponse.json({ integrations, maintenanceQueued, prunedJobs, downgraded, automationsFired, errors })
 }
 
 export async function GET(req: NextRequest) {

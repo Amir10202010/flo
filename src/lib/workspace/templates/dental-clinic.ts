@@ -107,5 +107,12 @@ export const dentalClinicBlueprint: WorkspaceBlueprintInput = {
       trigger: { kind: 'stage_entered', stageKey: 'no_show' },
       action: { kind: 'create_reminder', note: 'Call to reschedule: {title}', dueInDays: 0 },
     },
+    {
+      key: 'appointment_reminder',
+      name: 'Confirm appointments the day before',
+      objectKey: 'appointment',
+      trigger: { kind: 'date_approaching', fieldKey: 'scheduled_at', daysBefore: 1 },
+      action: { kind: 'create_reminder', note: 'Confirm tomorrow’s appointment: {title}', dueInDays: 0 },
+    },
   ],
 }
