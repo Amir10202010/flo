@@ -5,6 +5,8 @@ import { getDashboardData, type DashboardData } from './dashboard.service'
 import { parseAction, type AssistantAction } from './assistant.actions'
 import { listReminders } from './reminder.service'
 import { listRecentNotes, type RecentNote } from './note.service'
+import { getWorkspaceSchema, type WorkspaceSchemaModel } from './workspace/workspace.service'
+import { resolveTerm } from '@/lib/workspace/terminology'
 import { shortDate } from '@/lib/time'
 
 /**
@@ -261,9 +263,25 @@ function buildBriefing(data: DashboardData, reminders: Reminder[], notes: Recent
   return lines.join('\n')
 }
 
-function buildPrompt(question: string, briefing: string): string {
-  return `You are Velnox's AI workspace assistant for a service-business client manager. You answer questions about the manager's clients, email threads and pipeline.
+/**
+ * Industry persona from the adaptive workspace profile — copilot title, voice
+ * and vocabulary (Patients vs Clients). Empty string for unconfigured orgs.
+ */
+function personaBlock(workspace: WorkspaceSchemaModel | null): string {
+  if (!workspace) return ''
+  const contact = resolveTerm(workspace.terminology, 'contact')
+  const parts = [
+    `You act as “${workspace.copilot.title}” for a ${workspace.profile.industryLabel.toLowerCase()}.`,
+    `The team calls the people who contact them “${contact.plural.toLowerCase()}” — use their vocabulary.`,
+  ]
+  if (workspace.copilot.style) parts.push(workspace.copilot.style)
+  if (workspace.copilot.focus?.length) parts.push(`Watch especially: ${workspace.copilot.focus.join('; ')}.`)
+  return `\nWORKSPACE PERSONA: ${parts.join(' ')}\n`
+}
 
+function buildPrompt(question: string, briefing: string, persona = ''): string {
+  return `You are Velnox's AI workspace assistant for a service-business client manager. You answer questions about the manager's clients, email threads and pipeline.
+${persona}
 Rules:
 - Answer ONLY from the BRIEFING below. It is the live, real state of the workspace. Never invent clients, numbers, threads or events.
 - If the briefing does not contain enough to answer, say so honestly and suggest what the manager could do (e.g. sync, open a page).
@@ -419,6 +437,8 @@ export async function answerWorkspaceQuestion(organizationId: string, question: 
 
   const reminders = await listReminders(organizationId)
   const notes = await listRecentNotes(organizationId)
+  // Adaptive persona (null-safe): industry voice + terminology for the prompt.
+  const workspace = await getWorkspaceSchema(organizationId).catch(() => null)
 
   const provider = getTextProvider()
   // Reason we'd show offline output: no key, or (set in catch) a failed call.
@@ -429,7 +449,7 @@ export async function answerWorkspaceQuestion(organizationId: string, question: 
       const briefing = buildBriefing(data, reminders, notes, now)
       const allowed = buildSourceMap(data)
       const raw = await provider.generateJson<Record<string, unknown>>({
-        prompt: buildPrompt(question, briefing),
+        prompt: buildPrompt(question, briefing, personaBlock(workspace)),
         schema: ANSWER_SCHEMA,
         maxOutputTokens: 900,
       })

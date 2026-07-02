@@ -6,6 +6,9 @@ import { Flame, Inbox, Mail, ShieldAlert } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
 import { getOrgContext } from '@/lib/org'
 import { getDashboardData, type DashboardData } from '@/services/dashboard.service'
+import { getWorkspaceSchema } from '@/services/workspace/workspace.service'
+import { resolveTerm } from '@/lib/workspace/terminology'
+import IndustryPulse from '@/components/workspace/IndustryPulse'
 import { longDate } from '@/lib/time'
 import { Reveal } from '@/components/dashboard/Motion'
 import StatCard from '@/components/dashboard/StatCard'
@@ -75,6 +78,11 @@ async function DashboardBody({ organizationId }: { organizationId: string }) {
     return <DashboardEmpty hasIntegration={data.hasIntegration} />
   }
 
+  // Adaptive layer: industry widgets + the org's own terminology. Sequential
+  // after the metrics fetch (small pool); a failure only hides the strip.
+  const schema = await getWorkspaceSchema(organizationId).catch(() => null)
+  const contactTerm = resolveTerm(schema?.terminology, 'contact')
+
   const s = data.stats
 
   return (
@@ -107,10 +115,10 @@ async function DashboardBody({ organizationId }: { organizationId: string }) {
           delay={0}
         />
         <StatCard
-          label="Clients at risk"
+          label={`${contactTerm.plural} at risk`}
           icon={<ShieldAlert size={13} />}
           value={String(s.clientsAtRisk.value)}
-          sub={`of ${s.clientsAtRisk.totalClients} tracked clients`}
+          sub={`of ${s.clientsAtRisk.totalClients} tracked ${contactTerm.plural.toLowerCase()}`}
           tone={s.clientsAtRisk.value > 0 ? 'critical' : 'success'}
           href="/inbox?risk=HIGH"
           delay={0.05}
@@ -129,6 +137,15 @@ async function DashboardBody({ organizationId }: { organizationId: string }) {
           delay={0.1}
         />
       </div>
+
+      {/* Industry pulse — the workspace's own objects, from its schema */}
+      {schema && schema.dashboard.length > 0 && (
+        <Reveal delay={0.11}>
+          <div style={{ marginBottom: 14 }}>
+            <IndustryPulse schema={schema} organizationId={organizationId} />
+          </div>
+        </Reveal>
+      )}
 
       {/* The act-now queue takes the floor; awareness widgets sit in the rail */}
       <div className="dash-main-grid">
