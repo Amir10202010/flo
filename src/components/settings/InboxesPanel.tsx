@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CheckCircle2, Lock, Mail, Plug, Plus, TriangleAlert } from 'lucide-react'
 import RequestAccessForm from '@/components/integrations/RequestAccessForm'
+import { track } from '@/lib/analytics'
 
 type Integration = { type: string; isActive: boolean; syncedAt: string | null; email: string | null }
 
@@ -88,7 +89,7 @@ function InboxesPanelInner({ canManage }: { canManage: boolean }) {
 
       {/* Already connected + can manage → straight to connecting another mailbox. */}
       {canManage && hasActive && (
-        <a href="/api/auth/gmail" className="btn-primary" style={{ alignSelf: 'flex-start', gap: 7, fontSize: 13.5, padding: '10px 16px' }}>
+        <a href="/api/auth/gmail" onClick={() => track('gmail_connect_clicked', { context: 'add-another' })} className="btn-primary" style={{ alignSelf: 'flex-start', gap: 7, fontSize: 13.5, padding: '10px 16px' }}>
           <Plus size={15} /> Connect another inbox
         </a>
       )}
@@ -101,7 +102,7 @@ function InboxesPanelInner({ canManage }: { canManage: boolean }) {
           </button>
           <p style={{ margin: '10px 2px 0', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55, maxWidth: 540 }}>
             Velnox is invite-only while we finish Google verification. Request access with the Gmail you want to connect — or{' '}
-            <a href="/api/auth/gmail" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
+            <a href="/api/auth/gmail" onClick={() => track('gmail_connect_clicked', { context: 'approved' })} style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
               connect if you&apos;re already approved
             </a>
             .

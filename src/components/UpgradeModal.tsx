@@ -32,7 +32,7 @@ export default function UpgradeModal() {
 
   return (
     <div
-      className="compose-overlay"
+      className="compose-overlay upgrade-overlay"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) close()
       }}

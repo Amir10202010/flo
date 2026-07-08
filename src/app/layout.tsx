@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import PostHogProvider from '@/components/analytics/PostHogProvider'
 import './globals.css'
 
 // Single typeface for the whole product (UI + marketing). Variable font, so every
@@ -13,11 +14,26 @@ const inter = Inter({
   display: 'swap',
 })
 
+const TITLE = 'Velnox — The AI shared inbox for teams'
+const DESCRIPTION =
+  'Velnox turns your team’s shared Gmail into one AI-triaged queue — assign threads, leave internal notes, and send AI-drafted replies. Built for support, sales and ops teams.'
+
 export const metadata: Metadata = {
-  title: 'Velnox — The AI shared inbox for teams',
-  description:
-    'Velnox turns your team’s shared Gmail into one AI-triaged queue — assign threads, leave internal notes, and send AI-drafted replies. Built for support, sales and ops teams.',
+  title: TITLE,
+  description: DESCRIPTION,
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
+  openGraph: {
+    type: 'website',
+    siteName: 'Velnox',
+    title: TITLE,
+    description: DESCRIPTION,
+    url: '/',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -25,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // data-scroll-behavior suppresses Next.js router warning about smooth scroll
     <html lang="en" data-scroll-behavior="smooth" className={`${inter.variable} h-full`}>
       <body className="min-h-full">
-        {children}
+        <PostHogProvider>{children}</PostHogProvider>
         <Analytics />
       </body>
     </html>

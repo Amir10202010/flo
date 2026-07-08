@@ -14,6 +14,7 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import ProductDemo from '@/components/marketing/ProductDemo'
 import HeroMockup from '@/components/marketing/HeroMockup'
+import IntegrationsMarquee from '@/components/marketing/IntegrationsMarquee'
 
 /* One calm reveal, reused everywhere. Subtle fade + lift; respects reduced motion
    via the page-level <MotionConfig reducedMotion="user">. No magnetic cursors,
@@ -48,10 +49,11 @@ const FEATURES: { icon: LucideIcon; title: string; desc: string }[] = [
   { icon: ShieldCheck, title: 'Roles & audit log', desc: 'Owner, Admin, Member and Viewer roles, with an audit log of every action across the workspace.' },
 ]
 
-const STEPS = [
-  { n: 1, title: 'Connect a shared inbox', desc: 'An admin connects a shared Gmail mailbox with Google OAuth and invites teammates with roles — in minutes.' },
-  { n: 2, title: 'Velnox triages & routes', desc: 'Every thread gets a priority and risk read; routing rules auto-assign and tag incoming mail to the right person.' },
-  { n: 3, title: 'Assign, discuss, reply', desc: 'Your team works one queue — assign, leave internal notes, and send AI-drafted replies. Nothing slips.' },
+// Honest product points — no fabricated metrics for an invite-only launch.
+const POINTS: { title: string; desc: string }[] = [
+  { title: 'An owner on every thread', desc: 'Assign any conversation and move it through Open, Snoozed and Closed — no collisions, nothing dropped.' },
+  { title: 'AI triage & drafted replies', desc: 'Every thread gets a clear priority, risk flags and a review-before-send draft in your team’s voice.' },
+  { title: 'Live in minutes', desc: 'Connect a shared Gmail with OAuth and start clearing the queue — no migration, no new tool to learn.' },
 ]
 
 // crm = legacy help desk, manual = a plain shared Gmail mailbox
@@ -69,7 +71,7 @@ const FAQS = [
   { q: 'How does the team work together on one inbox?', a: 'Every conversation can be assigned to a teammate, moved through Open / Snoozed / Closed, tagged, and discussed with internal notes only your team sees.' },
   { q: 'What does the AI actually do?', a: 'It reads each thread, assigns a clear priority, flags accounts going at-risk, and drafts a reply in your team’s voice — review-before-send, never auto-sent. Routing rules can auto-assign and tag incoming mail.' },
   { q: 'How do roles and permissions work?', a: 'Four roles — Owner, Admin, Member, Viewer. Members work the inbox; Admins manage members, inboxes, rules and billing; Viewers get read-only access. Every change is recorded in the audit log.' },
-  { q: 'Is our data private and secure?', a: 'OAuth tokens are encrypted at rest (AES-256-GCM), data is scoped per organization, and conversations are only ever used to power your own workspace. We never sell or share your data.' },
+  { q: 'Is our data private and secure?', a: 'OAuth tokens are encrypted at rest (AES-256-GCM) and data is scoped per organization. To power AI features, message content is processed by our AI provider (Google’s Gemini API); we never sell your data — see our Privacy Policy for exactly how it’s handled.' },
 ]
 
 function Cell({ on }: { on: boolean }) {
@@ -153,8 +155,8 @@ export default function LandingPage() {
                   transition={{ duration: 0.55, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
                   style={{ fontSize: 18, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 28px', maxWidth: 480 }}
                 >
-                  Velnox turns your team’s shared Gmail into one AI-triaged queue — assign threads, leave
-                  internal notes, and send AI-drafted replies. Built for support, sales and ops teams.
+                  The AI shared inbox that runs on the Gmail you already use — every thread gets an owner
+                  and an AI-drafted reply. Flat pricing, no per-seat, live in minutes, no migration.
                 </motion.p>
 
                 <motion.div
@@ -165,7 +167,7 @@ export default function LandingPage() {
                   style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 22 }}
                 >
                   <Link href="/signup" className="btn-primary" style={{ fontSize: 15 }}>
-                    Get early access <ArrowRight size={16} />
+                    Start free <ArrowRight size={16} />
                   </Link>
                   <a href="#demo" className="btn-ghost" style={{ fontSize: 15 }}>See how it works</a>
                 </motion.div>
@@ -176,7 +178,7 @@ export default function LandingPage() {
                   transition={{ duration: 0.6, delay: 0.2 }}
                   style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}
                 >
-                  Invite-only while we finish Google verification · AES-256 encrypted · we never store your password.
+                  AES-256 encrypted · connect with Google OAuth · we never store your password.
                 </motion.p>
               </div>
 
@@ -195,16 +197,8 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── Integrations line ───────────────────────────────────────────── */}
-        <section style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
-          <div className="mkt-x" style={{ maxWidth: 1140, margin: '0 auto', padding: '28px 32px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, flexWrap: 'wrap' }}>
-            <img src="/icons/gmail.svg" alt="" width={20} height={20} style={{ display: 'block' }} />
-            <span style={{ fontSize: 14.5, color: 'var(--text-secondary)' }}>
-              Works on the <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Gmail</strong> your team already uses.
-            </span>
-            <span style={{ fontSize: 13.5, color: 'var(--text-muted)' }}>Telegram, WhatsApp & Instagram coming soon.</span>
-          </div>
-        </section>
+        {/* ── Integrations marquee ────────────────────────────────────────── */}
+        <IntegrationsMarquee />
 
         {/* ── Product demo ────────────────────────────────────────────────── */}
         <section id="demo" className="section-padded mkt-x" style={{ padding: '96px 32px', background: 'var(--bg-base)' }}>
@@ -238,18 +232,36 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── How it works ────────────────────────────────────────────────── */}
+        {/* ── Results / trust ─────────────────────────────────────────────── */}
         <section className="section-padded mkt-x" style={{ padding: '96px 32px', background: 'var(--bg-base)', borderTop: '1px solid var(--border)' }}>
-          <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-            <SectionHead title="Three steps to a calmer inbox" />
-            <div className="lp-steps">
-              {STEPS.map(s => (
-                <Reveal key={s.n} className="lp-step">
-                  <span className="lp-step-n">{s.n}</span>
-                  <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 6px', letterSpacing: '-0.01em' }}>{s.title}</h3>
-                  <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>{s.desc}</p>
-                </Reveal>
-              ))}
+          <div style={{ maxWidth: 1080, margin: '0 auto' }}>
+            <div className="proof-grid">
+              <Reveal className="proof-photo">
+                <img src="/photos/team.jpg" alt="A team working together over a shared inbox" />
+              </Reveal>
+
+              <Reveal className="proof-copy">
+                <h2 className="display-title" style={{ fontSize: 'clamp(28px, 3.6vw, 40px)', margin: '0 0 14px' }}>
+                  Move faster on every conversation
+                </h2>
+                <p style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 28px', maxWidth: 460 }}>
+                  Velnox turns a shared inbox into a queue your team actually clears — sorted by priority, with an owner on every thread.
+                </p>
+                <ul className="proof-points">
+                  {POINTS.map(p => (
+                    <li key={p.title} className="proof-point">
+                      <Check size={16} className="proof-point-ic" />
+                      <div>
+                        <div className="proof-point-t">{p.title}</div>
+                        <div className="proof-point-d">{p.desc}</div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '26px 0 0', lineHeight: 1.6 }}>
+                  Private by design — AES-256 encrypted · OAuth, no passwords stored.
+                </p>
+              </Reveal>
             </div>
           </div>
         </section>
@@ -329,9 +341,9 @@ export default function LandingPage() {
                 Connect a shared inbox, invite your team, and give every thread an owner — set up in minutes.
               </p>
               <Link href="/signup" className="lp-cta-btn">
-                Get early access <ArrowRight size={16} />
+                Start your team&apos;s inbox — free <ArrowRight size={16} />
               </Link>
-              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', margin: '16px 0 0' }}>No credit card · Free to start</p>
+              <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)', margin: '16px 0 0' }}>Free to start · upgrade when your team grows</p>
             </div>
           </Reveal>
         </section>

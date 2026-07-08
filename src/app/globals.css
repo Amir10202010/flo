@@ -980,17 +980,60 @@
 @media (max-width: 860px) { .lp-features { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px) { .lp-features { grid-template-columns: 1fr; } }
 
-.lp-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
-@media (max-width: 760px) { .lp-steps { grid-template-columns: 1fr; gap: 22px; } }
-.lp-step-n {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 30px; height: 30px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
+/* ── Results / trust band ─────────────────────────────────────────────────── */
+.proof-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 56px;
+  align-items: stretch;
+}
+.proof-copy { display: flex; flex-direction: column; justify-content: center; }
+
+/* honest product points — replaces the fabricated stat triplet */
+.proof-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.proof-point { display: flex; gap: 12px; align-items: flex-start; }
+.proof-point-ic { color: var(--accent); flex-shrink: 0; margin-top: 2px; }
+.proof-point-t {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
-  font-size: 14px; font-weight: 600;
-  margin-bottom: 14px;
+}
+.proof-point-d {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin-top: 3px;
+}
+
+/* team photo — light & clean: natural bright tone, no dark indigo duotone,
+   large enough to anchor the section rather than sit as a small tinted card. */
+.proof-photo {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  min-height: 400px;
+}
+.proof-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(1.04) contrast(1.02) saturate(0.96);
+}
+@media (max-width: 860px) {
+  .proof-grid { grid-template-columns: 1fr; gap: 28px; }
+  .proof-photo { min-height: 0; }
+  .proof-photo img { aspect-ratio: 3 / 2; height: auto; }
 }
 
 .lp-cta {
@@ -1049,6 +1092,43 @@
   mask-image: radial-gradient(ellipse 72% 58% at 50% 26%, #000 6%, transparent 68%);
 }
 @media (max-width: 900px) { .hero-grid-faint { display: none; } }
+
+/* ── Integrations marquee ─────────────────────────────────────────────────── */
+/* Seamless CSS loop: the service set is rendered twice, and translateX(-50%)
+   scrolls exactly one copy. Edges fade via a mask; the track pauses on hover.
+   Reduced motion is handled in the component (renders .marquee-static instead),
+   with a CSS belt-and-suspenders below. */
+.marquee {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 11%, #000 89%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 11%, #000 89%, transparent);
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: marqueeScroll 42s linear infinite;
+}
+.marquee:hover .marquee-track { animation-play-state: paused; }
+@keyframes marqueeScroll { to { transform: translateX(-50%); } }
+
+.marquee-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 28px;
+  white-space: nowrap;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.marquee-static {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: 12px;
+}
+@media (prefers-reduced-motion: reduce) { .marquee-track { animation: none; } }
 
 /* ── Scripted demo (cinematic) ──────────────────────────────────────────── */
 .scene {
@@ -1467,6 +1547,10 @@
 .compose-sent { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 40px; color: var(--cold); font-size: 15px; font-weight: 700; }
 
 /* ── Upgrade-to-Pro modal ───────────────────────────────────────────────── */
+/* Global plan-gate prompt — summonable from any surface (the Ask AI overlay
+   z-950, the ⌘K palette z-120, Smart Compose z-100), so it must sit above them
+   all. Without this the upgrade prompt renders behind the assistant modal. */
+.upgrade-overlay { z-index: 1100; }
 .upgrade-modal {
   position: relative;
   width: 100%;

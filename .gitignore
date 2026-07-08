@@ -60,3 +60,6 @@ ehthumbs.db
 .env
 .env*.local
 .gstack/
+
+# ...but do track the committed placeholder template (last match wins)
+!.env.example

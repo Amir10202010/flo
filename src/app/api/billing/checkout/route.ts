@@ -15,7 +15,9 @@ export async function GET(req: NextRequest) {
   const self = req.nextUrl.pathname + req.nextUrl.search
 
   const user = await getCurrentUser()
-  if (!user) return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(self)}`, appUrl))
+  // Cold buyers don't have an account yet — send them to sign up (not sign in),
+  // carrying `next` so we can resume checkout right after they register.
+  if (!user) return NextResponse.redirect(new URL(`/signup?next=${encodeURIComponent(self)}`, appUrl))
 
   const ctx = await getOrgContext()
   if (!ctx) return NextResponse.redirect(new URL(`/onboarding?next=${encodeURIComponent(self)}`, appUrl))

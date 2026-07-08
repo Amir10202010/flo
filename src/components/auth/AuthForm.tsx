@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase'
+import { track } from '@/lib/analytics'
 import Link from 'next/link'
 import { ArrowRight, Eye, EyeOff, Mail, TriangleAlert } from 'lucide-react'
 
@@ -34,15 +34,36 @@ function GoogleIcon() {
   )
 }
 
-export default function AuthForm({ mode = 'login' }: { mode?: 'login' | 'signup' }) {
-  const router = useRouter()
+export default function AuthForm({
+  mode = 'login',
+  next = '/dashboard',
+  initialError,
+}: {
+  mode?: 'login' | 'signup'
+  /** Where to land after auth — carried through OAuth/magic-link/confirm. */
+  next?: string
+  /** A raw error surfaced by the /callback route (e.g. a failed exchange). */
+  initialError?: string
+}) {
   const [method, setMethod] = useState<Method>('password')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [status, setStatus] = useState<Status>('idle')
-  const [errorMsg, setErrorMsg] = useState('')
+  const [status, setStatus] = useState<Status>(initialError ? 'error' : 'idle')
+  const [errorMsg, setErrorMsg] = useState(initialError ? friendlyError(initialError) : '')
   const [showPassword, setShowPassword] = useState(false)
+  // Set when a login is blocked because the email isn't confirmed yet — lets us
+  // offer a one-click "resend confirmation" instead of a dead end.
+  const [showResend, setShowResend] = useState(false)
+  const [resent, setResent] = useState(false)
+
+  // Absolute callback URL that carries `next`, so the server /callback handler
+  // can send the user on to their intended destination after confirming.
+  const callbackUrl = () => `${window.location.origin}/callback?next=${encodeURIComponent(next)}`
+  // Hard navigation after auth: works for both pages and API routes (e.g. a
+  // resumed /api/billing/checkout) and guarantees the fresh server request sees
+  // the new session cookie.
+  const go = () => { window.location.assign(next) }
 
   async function handlePasswordSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -52,26 +73,31 @@ export default function AuthForm({ mode = 'login' }: { mode?: 'login' | 'signup'
     if (mode === 'signup' && password.length < 8) { setErrorMsg('Password must be at least 8 characters.'); setStatus('error'); return }
     setStatus('loading')
     setErrorMsg('')
+    setShowResend(false)
     try {
       const supabase = getSupabaseClient()
       if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({
+        track('signup_submitted', { method: 'password' })
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: { full_name: name },
-            emailRedirectTo: `${window.location.origin}/callback`,
+            emailRedirectTo: callbackUrl(),
           },
         })
         if (error) { setErrorMsg(friendlyError(error.message)); setStatus('error'); return }
-        // Projects with email confirmation disabled get a session immediately;
-        // otherwise the user needs to click the confirmation link we just sent.
+        // Projects with email confirmation disabled get a session immediately —
+        // go straight to `next`. Otherwise show "check your inbox".
+        if (data.session) { go(); return }
         setStatus('sent')
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) { setErrorMsg(friendlyError(error.message)); setStatus('error'); return }
-        router.push('/dashboard')
-        router.refresh()
+        if (error) {
+          if (error.message.toLowerCase().includes('email not confirmed')) setShowResend(true)
+          setErrorMsg(friendlyError(error.message)); setStatus('error'); return
+        }
+        go()
       }
     } catch {
       setErrorMsg('Something went wrong. Please try again.')
@@ -88,7 +114,7 @@ export default function AuthForm({ mode = 'login' }: { mode?: 'login' | 'signup'
       const supabase = getSupabaseClient()
       const { error } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: `${window.location.origin}/callback` },
+        options: { emailRedirectTo: callbackUrl() },
       })
       if (error) { setErrorMsg(friendlyError(error.message)); setStatus('error') }
       else setStatus('sent')
@@ -103,10 +129,21 @@ export default function AuthForm({ mode = 'login' }: { mode?: 'login' | 'signup'
     const supabase = getSupabaseClient()
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/callback` },
+      options: { redirectTo: callbackUrl() },
     })
     if (error) { setErrorMsg(error.message); setStatus('error') }
     // On success, Supabase redirects the browser to Google — nothing else to do here.
+  }
+
+  async function handleResend() {
+    if (!EMAIL_RE.test(email.trim())) return
+    const supabase = getSupabaseClient()
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: callbackUrl() },
+    })
+    if (!error) { setResent(true); setShowResend(false) }
   }
 
   if (status === 'sent') {
@@ -196,10 +233,29 @@ export default function AuthForm({ mode = 'login' }: { mode?: 'login' | 'signup'
             </div>
           </div>
 
+          {mode === 'login' && (
+            <div style={{ textAlign: 'right', marginTop: -6 }}>
+              <Link href="/forgot-password" style={{ fontSize: 12.5, color: 'var(--text-muted)', textDecoration: 'none' }}>
+                Forgot password?
+              </Link>
+            </div>
+          )}
+
           {status === 'error' && (
             <p className="form-error" role="alert">
               <TriangleAlert size={14} style={{ flexShrink: 0, marginTop: 2 }} />
               {errorMsg}
+            </p>
+          )}
+
+          {showResend && (
+            <button type="button" className="auth-alt-link" onClick={handleResend} style={{ textAlign: 'left' }}>
+              Resend confirmation email
+            </button>
+          )}
+          {resent && (
+            <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', margin: 0 }}>
+              Confirmation sent — check your inbox.
             </p>
           )}
 

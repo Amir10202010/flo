@@ -1,18 +1,9 @@
-import { redirect } from 'next/navigation'
-import { getSupabaseServerClient } from '@/lib/supabase-server'
 import Brand from '@/components/layout/Brand'
 
-export default async function AuthLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await getSupabaseServerClient()
-
-  // getSession() reads the session from the cookie without making a network
-  // request to Supabase (~5ms vs ~500ms for getUser()). This is safe here
-  // because we only use it to redirect already-authenticated users away from
-  // the login/signup pages. The real auth guard in (dashboard)/layout.tsx
-  // calls getUser() which verifies the token with Supabase.
-  const { data: { session } } = await supabase.auth.getSession()
-  if (session) redirect('/dashboard')
-
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  // The "already signed in → redirect" guard lives in the login/signup pages
+  // (not here), so recovery flows like /reset-password — which legitimately
+  // carry a session — aren't bounced away before the user can act.
   return (
     <div
       style={{

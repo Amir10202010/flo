@@ -1,53 +1,58 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import type { EmailOtpType } from '@supabase/supabase-js'
+import { safeNextPath } from '@/lib/constants'
 
-// Server-side handler for the Supabase magic-link callback.
+// Server-side handler for Supabase email flows: magic-link / OAuth (PKCE
+// `code`), email confirmation and password recovery (`token_hash` + `type`).
 //
 // Why server-side instead of a client page:
-// When signInWithOtp() runs in the browser, @supabase/ssr stores the PKCE
-// code verifier in document.cookie. When the magic link redirects back to
-// /callback?code=..., those cookies arrive in the HTTP request. The server
-// can read the verifier from the request cookies and call
-// exchangeCodeForSession() successfully.
-//
-// The previous client-side approach failed because a new JavaScript context
-// (new page load / email WebView) couldn't reliably read the verifier from
-// storage — especially when the link was opened via an email client or on a
-// different browser context on the same device.
+// When signInWithOtp()/resetPasswordForEmail() run in the browser,
+// @supabase/ssr stores the PKCE code verifier in document.cookie. When the
+// link redirects back here with ?code=..., those cookies arrive in the HTTP
+// request. The server reads the verifier from the request cookies and calls
+// exchangeCodeForSession() successfully, then sets the session cookies on the
+// response before redirecting.
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
+  const tokenHash = searchParams.get('token_hash')
+  const type = searchParams.get('type') as EmailOtpType | null
+  const next = safeNextPath(searchParams.get('next'))
 
-  if (code) {
-    const cookieStore = await cookies()
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
-            )
-          },
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options),
+          )
         },
       },
-    )
+    },
+  )
 
+  // PKCE flow (magic link, OAuth).
+  if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
-
-    if (!error) {
-      // Hard redirect — the session cookies are now set in the response,
-      // and /dashboard will receive them on the fresh server request.
-      return NextResponse.redirect(`${origin}/dashboard`)
-    }
+    if (!error) return NextResponse.redirect(`${origin}${next}`)
+    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`)
   }
 
-  // No code param, or exchange failed — send back to login.
-  return NextResponse.redirect(`${origin}/login`)
+  // Token-hash flow (email confirmation, password recovery, email change).
+  if (tokenHash && type) {
+    const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash })
+    if (!error) return NextResponse.redirect(`${origin}${next}`)
+    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`)
+  }
+
+  // Nothing to exchange — surface it rather than bouncing silently.
+  return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent('Invalid or expired link. Please try again.')}`)
 }
