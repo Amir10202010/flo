@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 import LegalLayout, { LegalSection, P, UL, LI, Strong } from '@/components/marketing/LegalLayout'
+import { SUPPORT_EMAIL } from '@/lib/constants'
 
 const UPDATED = 'June 11, 2026'
-const CONTACT_EMAIL = 'sagindiktar@gmail.com'
+const CONTACT_EMAIL = SUPPORT_EMAIL
 
 export const metadata: Metadata = {
   title: 'Terms of Service — Velnox',
@@ -203,10 +204,12 @@ export default function TermsPage() {
       </LegalSection>
 
       <LegalSection id="governing-law" title="Governing law">
+        {/* TODO: set the real governing-law jurisdiction after incorporating the entity — see LAUNCH_CHECKLIST.md */}
         <P>
-          These Terms are governed by and construed in accordance with applicable law, without regard to conflict-of-laws
-          principles. Any disputes arising from these Terms or the Service will be resolved in the competent courts of the
-          jurisdiction in which Velnox operates, except where mandatory local law grants you the right to bring a claim elsewhere.
+          These Terms are governed by and construed in accordance with the laws of{' '}
+          <Strong>[JURISDICTION]</Strong>, without regard to conflict-of-laws principles. Any
+          disputes arising from these Terms or the Service will be resolved in the competent courts of that jurisdiction, except
+          where mandatory local law grants you the right to bring a claim elsewhere.
         </P>
       </LegalSection>
 

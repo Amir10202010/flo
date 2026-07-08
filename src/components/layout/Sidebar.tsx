@@ -1,9 +1,10 @@
 'use client'
 
-import { useSyncExternalStore } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { Inbox, LayoutDashboard, Search, Settings, Sparkles, Users } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { Inbox, LayoutDashboard, LogOut, Search, Settings, Sparkles, Users } from 'lucide-react'
+import { getSupabaseClient } from '@/lib/supabase'
 import { useUiStore } from '@/stores/ui.store'
 import { useWorkspaceSchema } from '@/lib/workspace/use-workspace-schema'
 import { iconFor } from '@/lib/workspace/icons'
@@ -60,8 +61,16 @@ const serverIsApple = () => false
 
 export default function Sidebar({ userName, userEmail }: { userName?: string | null; userEmail?: string | null }) {
   const pathname = usePathname()
+  const router = useRouter()
+  const [signingOut, setSigningOut] = useState(false)
   const togglePalette = useUiStore((s) => s.togglePalette)
   const openAssistant = useUiStore((s) => s.setAssistantOpen)
+
+  async function handleSignOut() {
+    setSigningOut(true)
+    await getSupabaseClient().auth.signOut()
+    router.replace('/login')
+  }
   const metaKey = useSyncExternalStore(emptySubscribe, isApplePlatform, serverIsApple) ? '⌘' : 'Ctrl'
   const { schema } = useWorkspaceSchema()
 
@@ -170,7 +179,7 @@ export default function Sidebar({ userName, userEmail }: { userName?: string | n
         >
           {initials}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, flex: 1 }}>
           <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {userName ?? userEmail ?? 'User'}
           </span>
@@ -180,6 +189,17 @@ export default function Sidebar({ userName, userEmail }: { userName?: string | n
             </span>
           )}
         </div>
+        <button
+          type="button"
+          onClick={handleSignOut}
+          disabled={signingOut}
+          title="Sign out"
+          aria-label="Sign out"
+          className="sidebar-signout"
+          style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: signingOut ? 'default' : 'pointer' }}
+        >
+          <LogOut size={14} />
+        </button>
       </div>
     </aside>
   )

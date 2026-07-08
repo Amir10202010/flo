@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Globe, Mail } from 'lucide-react'
 import Brand from './Brand'
+import { SUPPORT_EMAIL } from '@/lib/constants'
 
 const linkStyle: React.CSSProperties = { fontSize: 13.5, color: 'var(--text-secondary)', textDecoration: 'none', transition: 'color 0.15s' }
 
@@ -27,13 +28,13 @@ const columns: { title: string; links: { label: string; href: string }[] }[] = [
     links: [
       { label: 'Privacy Policy', href: '/privacy' },
       { label: 'Terms of Service', href: '/terms' },
-      { label: 'Privacy & security', href: '/about' },
+      { label: 'Privacy & security', href: '/privacy' },
     ],
   },
 ]
 
 const SOCIAL = [
-  { label: 'Email', href: 'mailto:sagindiktar@gmail.com', Icon: Mail },
+  { label: 'Email', href: `mailto:${SUPPORT_EMAIL}`, Icon: Mail },
   { label: 'Website', href: '/', Icon: Globe },
 ]
 

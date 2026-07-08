@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 import LegalLayout, { LegalSection, P, UL, LI, Strong } from '@/components/marketing/LegalLayout'
+import { SUPPORT_EMAIL } from '@/lib/constants'
 
 const UPDATED = 'June 11, 2026'
-const CONTACT_EMAIL = 'sagindiktar@gmail.com'
+const CONTACT_EMAIL = SUPPORT_EMAIL
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — Velnox',
@@ -109,7 +110,9 @@ export default function PrivacyPage() {
         </UL>
         <P>
           We do <Strong>not</Strong> sell your personal information or your email content, and we do not use the content of your
-          emails for advertising or to train generally available AI models.
+          emails for advertising. Velnox does not train its own AI models on your data — see{' '}
+          <a href="#ai-processing" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>AI processing of email content</a>{' '}
+          below for how our AI provider handles the content we send it.
         </P>
       </LegalSection>
 
@@ -117,12 +120,24 @@ export default function PrivacyPage() {
         <P>
           To analyze your conversations, the relevant message content is sent to our AI provider, Google&rsquo;s Gemini API, which
           returns the analysis (priority, risk, sentiment, summaries, and suggested replies). This processing happens only to
-          provide features within your own workspace.
+          provide features within your own workspace, and we send only the data needed to perform the requested analysis.
         </P>
+        {/* TODO: migrate AI to a no-training paid tier (Vertex/Gemini paid) before scaling — see LAUNCH_CHECKLIST.md */}
         <P>
-          Email content processed through the Gemini API is handled under Google&rsquo;s applicable API terms and is not used to
-          train Google&rsquo;s generally available models when accessed via the paid API tier. We send only the data needed to
-          perform the requested analysis.
+          Velnox currently runs on Google&rsquo;s <Strong>free Gemini API tier</Strong> (Google AI Studio). Under
+          Google&rsquo;s terms for this unpaid tier, content submitted through the API <Strong>may be used by Google</Strong>{' '}
+          to provide and improve its products and services &mdash; including to develop and improve its machine-learning
+          models &mdash; and a limited amount may be reviewed by trained reviewers. This handling is governed by{' '}
+          <a
+            href="https://ai.google.dev/gemini-api/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}
+          >
+            Google&rsquo;s Gemini API Additional Terms of Service
+          </a>
+          . Before we scale, we intend to move AI processing to a paid tier whose terms do not use customer content to train
+          models, and we will update this policy when we do.
         </P>
       </LegalSection>
 
@@ -234,8 +249,11 @@ export default function PrivacyPage() {
           </a>
           , including its Limited Use requirements. Specifically, we only use Google user data to provide and improve
           user-facing features of Velnox; we do not transfer or sell this data for advertising, and we do not use it for any
-          purpose unrelated to the Service. Humans do not read your Gmail data except where you explicitly request support, where
-          required for security or to comply with the law, or in aggregated, anonymized form.
+          purpose unrelated to the Service. Velnox staff do not read your Gmail data except where you explicitly request support,
+          where required for security or to comply with the law, or in aggregated, anonymized form. Message content sent to our AI
+          provider is processed separately, as described in{' '}
+          <a href="#ai-processing" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>AI processing of email content</a>{' '}
+          above.
         </P>
       </LegalSection>
 
