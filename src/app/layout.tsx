@@ -14,9 +14,9 @@ const inter = Inter({
   display: 'swap',
 })
 
-const TITLE = 'Velnox — The AI shared inbox for teams'
+const TITLE = 'Velnox — The AI assistant for your inbox'
 const DESCRIPTION =
-  'Velnox turns your team’s shared Gmail into one AI-triaged queue — assign threads, leave internal notes, and send AI-drafted replies. Built for support, sales and ops teams.'
+  'Velnox reads your Gmail and tells you who to reply to and follow up with today — and drafts the reply. Connect in 30 seconds. It’s your own inbox.'
 
 export const metadata: Metadata = {
   title: TITLE,

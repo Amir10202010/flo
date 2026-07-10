@@ -3,10 +3,10 @@
 import React from 'react'
 import Link from 'next/link'
 import { motion, type Variants, MotionConfig } from 'framer-motion'
-import { ArrowRight, Check, Search, Bot, Mail, LayoutDashboard, type LucideIcon } from 'lucide-react'
+import { ArrowRight, Check, Search, Mail, LayoutDashboard, type LucideIcon } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
-import { SearchDemo, RoutingRulesDemo, GmailConnectDemo, DashboardDemo } from '@/components/marketing/FeatureDemos'
+import { SearchDemo, GmailConnectDemo, DashboardDemo } from '@/components/marketing/FeatureDemos'
 
 const fadeUp: Variants = {
   hidden:  { opacity: 0, y: 22 },
@@ -26,35 +26,27 @@ type Row = {
 const ROWS: Row[] = [
   {
     icon: Mail,
-    eyebrow: 'Shared inbox',
-    title: 'One mailbox, your whole team',
-    desc: 'Connect a shared Gmail mailbox and invite teammates with roles. Every thread becomes a queue item your team can assign, snooze, close, tag and discuss together.',
-    points: ['Assign threads to a teammate', 'Open / Snoozed / Closed states', 'Internal notes the customer never sees'],
+    eyebrow: 'Your Gmail',
+    title: 'Your inbox, made smarter',
+    desc: 'Connect your own Gmail in two clicks with Google OAuth. Velnox reads your threads and gets to work — no new tool to learn, no mailbox to migrate.',
+    points: ['Connect in 30 seconds with Google OAuth', 'Your own personal inbox — nothing shared', 'Tokens encrypted, disconnect any time'],
     demo: <GmailConnectDemo />,
   },
   {
     icon: LayoutDashboard,
-    eyebrow: 'Team command center',
-    title: 'Your team’s queue on one screen',
-    desc: 'Open Velnox and instantly see inbox health, who’s waiting, which accounts are at-risk and who’s handling what — with AI ranking the next best action.',
-    points: ['See who’s on what, at a glance', 'AI-ranked next best actions', 'Risk alerts before an account goes quiet'],
+    eyebrow: 'Daily command center',
+    title: 'Your whole inbox on one screen',
+    desc: 'Open Velnox and instantly see who’s waiting on you, which relationships are going cold, and what to do next — with AI ranking your next best action.',
+    points: ['Who’s waiting, who’s going cold, what’s urgent', 'AI-ranked next best action', 'Reminders and a weekly digest so nothing slips'],
     demo: <DashboardDemo />,
   },
   {
     icon: Search,
     eyebrow: 'AI triage & search',
     title: 'Find any thread by meaning',
-    desc: 'Ask in plain words — “who asked about the enterprise plan?” — and Velnox surfaces the right thread instantly, then drafts a reply in your team’s voice.',
-    points: ['Semantic search across the shared inbox', 'Priority, risk and sentiment on every thread', 'Review-before-send AI drafts'],
+    desc: 'Ask in plain words — “who asked about the proposal?” — and Velnox surfaces the right thread instantly, then drafts a reply in your voice.',
+    points: ['Semantic search across your inbox', 'Priority, going-cold and sentiment on every thread', 'Review-before-send AI drafts'],
     demo: <SearchDemo />,
-  },
-  {
-    icon: Bot,
-    eyebrow: 'Rules & automations',
-    title: 'Route every message automatically',
-    desc: 'Set rules that auto-assign and tag incoming mail by inbox, sender, domain or subject — so the right person picks it up without anyone triaging by hand.',
-    points: ['Auto-assign by inbox or sender', 'Auto-tag and set priority', 'Roles, permissions & a full audit log'],
-    demo: <RoutingRulesDemo />,
   },
 ]
 
@@ -113,10 +105,10 @@ export default function FeaturesContent() {
               className="display-title"
               style={{ fontSize: 'clamp(34px, 5vw, 54px)', margin: '0 0 18px' }}
             >
-              Everything your team needs to stay on top of the inbox
+              Everything you need to stay on top of your inbox
             </motion.h1>
             <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1], delay: 0.08 }} style={{ fontSize: 18, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 auto', maxWidth: 520 }}>
-              Shared handling, AI triage, routing and search — built to turn a busy mailbox into a coordinated team queue.
+              AI triage, a going-cold radar, drafted replies and search — built to turn a busy Gmail into a short daily list.
             </motion.p>
           </div>
         </section>
@@ -133,12 +125,12 @@ export default function FeaturesContent() {
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} style={{ maxWidth: 760, margin: '0 auto' }}>
             <div className="lp-cta">
               <h2 className="display-title" style={{ fontSize: 'clamp(24px, 3vw, 34px)', color: '#fff', margin: '0 0 12px' }}>
-                Bring your team onto one inbox
+                Get on top of your inbox
               </h2>
               <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.72)', margin: '0 0 28px', lineHeight: 1.6 }}>
-                Set up in minutes. Free to start, invite your whole team.
+                Connect your Gmail in 30 seconds. Free to start.
               </p>
-              <Link href="/signup" className="lp-cta-btn">Get started free <ArrowRight size={16} /></Link>
+              <Link href="/signup" className="lp-cta-btn">Connect your Gmail — free <ArrowRight size={16} /></Link>
             </div>
           </motion.div>
         </section>

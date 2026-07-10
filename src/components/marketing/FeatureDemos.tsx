@@ -490,7 +490,6 @@ export function GmailConnectDemo() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{r.name}</div>
                         <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.snippet}</p>
-                        <span className="cat-tag" style={{ marginTop: 4, color: 'var(--text-secondary)' }}><UserRound size={10} /> {r.assignee}</span>
                       </div>
                       <span className={`priority-badge ${r.cls}`} style={{ fontSize: 8.5, flexShrink: 0, alignSelf: 'flex-start' }}>{r.badge}</span>
                     </motion.div>
@@ -582,7 +581,7 @@ export function DashboardDemo() {
         <motion.div variants={sceneItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <div>
             <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Good to see you, Amir</div>
-            <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 2 }}>Thursday, June 11 · 3 teammates online</div>
+            <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 2 }}>Thursday, June 11 · synced 2m ago</div>
           </div>
           <AnimatePresence>
             {statsIn && (
@@ -670,7 +669,6 @@ export function DashboardDemo() {
                       <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Alex Peterson</div>
                       <div style={{ fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Project kickoff — full package</div>
                     </div>
-                    <span className="cat-tag" style={{ flexShrink: 0, color: 'var(--text-secondary)' }}><UserRound size={10} /> Unassigned</span>
                     <span className="priority-badge priority-hot" style={{ fontSize: 8.5, flexShrink: 0 }}>Urgent</span>
                   </div>
                   <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>

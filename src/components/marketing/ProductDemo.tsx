@@ -24,13 +24,13 @@ const CONVS = [
   },
   {
     grad: 'linear-gradient(135deg,#C2620A,#F6A23B)', ini: 'KL', name: 'Karina Lee',
-    subject: 'Proposal follow-up', preview: 'Still checking with my team…',
-    time: '3h', badge: 'High', cls: 'priority-attention', unread: 0, assignee: 'Priya',
+    subject: 'Proposal follow-up', preview: 'Still checking on my end…',
+    time: '3h', badge: 'High', cls: 'priority-attention', unread: 0, assignee: null,
   },
   {
     grad: 'linear-gradient(135deg,#4F5CF4,#7C4DFF)', ini: 'MJ', name: 'Mark Johnson',
     subject: 'Invoice #214', preview: "Thanks, I'll follow up later.",
-    time: '1d', badge: null, cls: '', unread: 0, assignee: 'You',
+    time: '1d', badge: null, cls: '', unread: 0, assignee: null,
   },
 ]
 
@@ -473,7 +473,7 @@ export default function ProductDemo() {
               <h3 className="rail-label" style={{ marginBottom: 9 }}>Properties</h3>
 
               <div className="rail-prop" style={{ marginBottom: 8 }}>
-                <span className="rail-prop-k" style={{ width: 48, fontSize: 11 }}>Assignee</span>
+                <span className="rail-prop-k" style={{ width: 48, fontSize: 11 }}>Owner</span>
                 <div className="rail-prop-v">
                   <div className="rail-select" style={{ padding: '5px 9px', fontSize: 11.5 }}>
                     <UserRound size={12} />
@@ -514,9 +514,9 @@ export default function ProductDemo() {
               </div>
             </section>
 
-            {/* Internal notes — team only */}
+            {/* Velnox's private note to you */}
             <section className="rail-section" style={{ padding: '13px 14px', borderBottom: 'none' }}>
-              <h3 className="rail-label" style={{ marginBottom: 9 }}>Internal notes <span className="rail-label-hint">· only your team</span></h3>
+              <h3 className="rail-label" style={{ marginBottom: 9 }}>Velnox note <span className="rail-label-hint">· private to you</span></h3>
               <AnimatePresence>
                 {noteShown ? (
                   <motion.div
@@ -526,7 +526,7 @@ export default function ProductDemo() {
                     className="rail-note" style={{ padding: '7px 9px' }}
                   >
                     <div className="rail-note-head">
-                      <span className="rail-note-author" style={{ fontSize: 11 }}>Priya</span>
+                      <span className="rail-note-author" style={{ fontSize: 11 }}>Velnox</span>
                       <span className="rail-note-time" style={{ fontSize: 10 }}>just now</span>
                     </div>
                     <p className="rail-note-body" style={{ fontSize: 11.5 }}>Pricing approved ✅ — green light to close.</p>

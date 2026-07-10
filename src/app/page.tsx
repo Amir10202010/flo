@@ -7,14 +7,13 @@ import {
   useMotionValue, useMotionTemplate, useSpring, useTransform, useReducedMotion,
 } from 'framer-motion'
 import {
-  ArrowRight, Check, X, Inbox, UserPlus, MessageSquare,
-  SlidersHorizontal, Sparkles, ShieldCheck, Plus, type LucideIcon,
+  ArrowRight, Check, Inbox, MessageSquare, Bell,
+  Snowflake, Sparkles, ShieldCheck, Plus, type LucideIcon,
 } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import ProductDemo from '@/components/marketing/ProductDemo'
 import HeroMockup from '@/components/marketing/HeroMockup'
-import IntegrationsMarquee from '@/components/marketing/IntegrationsMarquee'
 
 /* One calm reveal, reused everywhere. Subtle fade + lift; respects reduced motion
    via the page-level <MotionConfig reducedMotion="user">. No magnetic cursors,
@@ -41,44 +40,27 @@ function Reveal({ children, className, style }: { children: React.ReactNode; cla
 
 /* ── Content ─────────────────────────────────────────────────────────────── */
 const FEATURES: { icon: LucideIcon; title: string; desc: string }[] = [
-  { icon: Inbox, title: 'One shared inbox', desc: 'Your whole team works a single Gmail queue — sorted by priority, with the assignee right on the row.' },
-  { icon: UserPlus, title: 'Assignment & ownership', desc: 'Assign any thread, move it through Open / Snoozed / Closed, and always see who’s handling what. No collisions.' },
-  { icon: MessageSquare, title: 'Internal notes', desc: 'Discuss a thread with your team right inside it — private notes the customer never sees.' },
-  { icon: SlidersHorizontal, title: 'Routing rules', desc: 'Auto-assign and tag incoming mail by sender, subject or inbox, so every message lands on the right person.' },
-  { icon: Sparkles, title: 'AI triage & drafts', desc: 'A clear priority, risk flags, and a drafted reply on every thread — review-before-send, never auto-sent.' },
-  { icon: ShieldCheck, title: 'Roles & audit log', desc: 'Owner, Admin, Member and Viewer roles, with an audit log of every action across the workspace.' },
+  { icon: Inbox, title: 'Ranked, not chronological', desc: 'Your Gmail sorted by who actually matters today — the important thread never sits below a newsletter.' },
+  { icon: Sparkles, title: 'Reply already written', desc: 'An AI draft waiting on your urgent threads — in your voice, review-before-send, never auto-sent.' },
+  { icon: Snowflake, title: 'Going-cold radar', desc: 'Velnox spots the people slipping away and tells you who to follow up with before it’s too late.' },
+  { icon: MessageSquare, title: 'Catch me up', desc: 'A one-line summary of any long thread, so you reply with the full picture in seconds.' },
+  { icon: Bell, title: 'Nothing falls through', desc: 'Reminders and a weekly digest keep the follow-ups you meant to send from quietly disappearing.' },
+  { icon: ShieldCheck, title: 'Private by design', desc: 'Runs on your own Gmail with Google OAuth — tokens encrypted, no passwords stored, disconnect any time.' },
 ]
 
-// Honest product points — no fabricated metrics for an invite-only launch.
+// Honest, results-first points — no fabricated metrics for an invite-only launch.
 const POINTS: { title: string; desc: string }[] = [
-  { title: 'An owner on every thread', desc: 'Assign any conversation and move it through Open, Snoozed and Closed — no collisions, nothing dropped.' },
-  { title: 'AI triage & drafted replies', desc: 'Every thread gets a clear priority, risk flags and a review-before-send draft in your team’s voice.' },
-  { title: 'Live in minutes', desc: 'Connect a shared Gmail with OAuth and start clearing the queue — no migration, no new tool to learn.' },
-]
-
-// crm = legacy help desk, manual = a plain shared Gmail mailbox
-const COMPARE: { label: string; flo: boolean; crm: boolean; manual: boolean }[] = [
-  { label: 'Works on the Gmail your team already uses', flo: true, crm: false, manual: true },
-  { label: 'Assign threads to a teammate', flo: true, crm: true, manual: false },
-  { label: 'Internal notes & collision-free handling', flo: true, crm: true, manual: false },
-  { label: 'AI triage, risk flags & drafted replies', flo: true, crm: false, manual: false },
-  { label: 'Roles, permissions & audit log', flo: true, crm: true, manual: false },
-  { label: 'Live in minutes, no migration', flo: true, crm: false, manual: true },
+  { title: 'Reply today', desc: 'The threads that matter, ranked to the top — so the important client never sits under a newsletter.' },
+  { title: 'Spot who’s going cold', desc: 'Velnox watches every relationship and flags the ones slipping before they’re gone.' },
+  { title: 'Reply already written', desc: 'A review-before-send draft in your voice waits on your urgent threads. Read, tweak, send.' },
 ]
 
 const FAQS = [
-  { q: 'How does Velnox connect to our mailbox?', a: 'An admin connects a shared Gmail mailbox (support@, sales@, hello@…) in two clicks with Google’s secure OAuth — Velnox never sees or stores a password. Threads start syncing within minutes.' },
-  { q: 'How does the team work together on one inbox?', a: 'Every conversation can be assigned to a teammate, moved through Open / Snoozed / Closed, tagged, and discussed with internal notes only your team sees.' },
-  { q: 'What does the AI actually do?', a: 'It reads each thread, assigns a clear priority, flags accounts going at-risk, and drafts a reply in your team’s voice — review-before-send, never auto-sent. Routing rules can auto-assign and tag incoming mail.' },
-  { q: 'How do roles and permissions work?', a: 'Four roles — Owner, Admin, Member, Viewer. Members work the inbox; Admins manage members, inboxes, rules and billing; Viewers get read-only access. Every change is recorded in the audit log.' },
-  { q: 'Is our data private and secure?', a: 'OAuth tokens are encrypted at rest (AES-256-GCM) and data is scoped per organization. To power AI features, message content is processed by our AI provider (Google’s Gemini API); we never sell your data — see our Privacy Policy for exactly how it’s handled.' },
+  { q: 'How does Velnox connect to my Gmail?', a: 'You connect your own Gmail in two clicks with Google’s secure OAuth — Velnox never sees or stores your password. Your threads start syncing within minutes.' },
+  { q: 'What does the AI actually do?', a: 'It reads every thread, ranks what needs you today, flags the people going cold, and drafts a reply in your voice — review-before-send, never auto-sent.' },
+  { q: 'Is it really just my inbox?', a: 'Yes. Velnox is single-user and reads one personal Gmail. There’s no team to set up and no shared mailbox — it’s your own inbox, made smarter.' },
+  { q: 'Is my data private and secure?', a: 'OAuth tokens are encrypted at rest (AES-256-GCM). To power AI features, message content is processed by our AI provider (Google’s Gemini API); we never sell your data — see our Privacy Policy for exactly how it’s handled.' },
 ]
-
-function Cell({ on }: { on: boolean }) {
-  return on
-    ? <Check size={17} style={{ color: 'var(--text-primary)' }} />
-    : <X size={15} style={{ color: 'var(--text-muted)', opacity: 0.55 }} />
-}
 
 /* Shared section heading */
 function SectionHead({ title, sub, align = 'center' }: { title: string; sub?: string; align?: 'center' | 'left' }) {
@@ -146,7 +128,7 @@ export default function LandingPage() {
                   transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
                   style={{ fontSize: 'clamp(38px, 5.6vw, 60px)', margin: '0 0 20px' }}
                 >
-                  One shared inbox for your whole team
+                  Stop losing clients in your inbox.
                 </motion.h1>
 
                 <motion.p
@@ -155,8 +137,8 @@ export default function LandingPage() {
                   transition={{ duration: 0.55, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
                   style={{ fontSize: 18, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 28px', maxWidth: 480 }}
                 >
-                  The AI shared inbox that runs on the Gmail you already use — every thread gets an owner
-                  and an AI-drafted reply. Flat pricing, no per-seat, live in minutes, no migration.
+                  Velnox reads your Gmail and tells you who to reply to and follow up with today —
+                  and drafts the reply. Connect in 30 seconds. It’s your own inbox.
                 </motion.p>
 
                 <motion.div
@@ -167,7 +149,7 @@ export default function LandingPage() {
                   style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 22 }}
                 >
                   <Link href="/signup" className="btn-primary" style={{ fontSize: 15 }}>
-                    Start free <ArrowRight size={16} />
+                    Connect your Gmail — free <ArrowRight size={16} />
                   </Link>
                   <a href="#demo" className="btn-ghost" style={{ fontSize: 15 }}>See how it works</a>
                 </motion.div>
@@ -197,15 +179,12 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── Integrations marquee ────────────────────────────────────────── */}
-        <IntegrationsMarquee />
-
         {/* ── Product demo ────────────────────────────────────────────────── */}
-        <section id="demo" className="section-padded mkt-x" style={{ padding: '96px 32px', background: 'var(--bg-base)' }}>
+        <section id="demo" className="section-padded mkt-x" style={{ padding: '96px 32px', background: 'var(--bg-base)', borderTop: '1px solid var(--border)' }}>
           <div style={{ maxWidth: 1140, margin: '0 auto' }}>
             <SectionHead
-              title="Your team’s inbox, in one place"
-              sub="Velnox sorts the shared mailbox by what needs attention — and shows who’s handling what, so nothing gets dropped or double-answered."
+              title="Your inbox, triaged for you"
+              sub="Velnox sorts your Gmail by what actually needs you today — and flags who’s going cold, so nothing important slips."
             />
             <Reveal><ProductDemo /></Reveal>
           </div>
@@ -214,7 +193,7 @@ export default function LandingPage() {
         {/* ── Features ────────────────────────────────────────────────────── */}
         <section className="section-padded mkt-x" style={{ padding: '96px 32px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}>
           <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-            <SectionHead title="Built for how teams actually work" sub="One shared queue, clear ownership on every thread, and a head start on every reply." />
+            <SectionHead title="Everything you need to stay on top of it" sub="Ranked replies, a going-cold radar, and a head start on every message." />
             <div className="lp-features">
               {FEATURES.map(({ icon: Icon, title, desc }) => (
                 <Reveal key={title} className="lp-feature">
@@ -237,15 +216,16 @@ export default function LandingPage() {
           <div style={{ maxWidth: 1080, margin: '0 auto' }}>
             <div className="proof-grid">
               <Reveal className="proof-photo">
-                <img src="/photos/team.jpg" alt="A team working together over a shared inbox" />
+                <img src="/photos/team.jpg" alt="Working through an inbox" />
               </Reveal>
 
               <Reveal className="proof-copy">
                 <h2 className="display-title" style={{ fontSize: 'clamp(28px, 3.6vw, 40px)', margin: '0 0 14px' }}>
-                  Move faster on every conversation
+                  Never lose a client to a missed reply
                 </h2>
                 <p style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 28px', maxWidth: 460 }}>
-                  Velnox turns a shared inbox into a queue your team actually clears — sorted by priority, with an owner on every thread.
+                  Velnox turns your inbox into a short daily list: who to reply to, who’s going cold, and who to
+                  follow up with — each with the reply already drafted.
                 </p>
                 <ul className="proof-points">
                   {POINTS.map(p => (
@@ -266,37 +246,8 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── Comparison ──────────────────────────────────────────────────── */}
-        <section className="section-padded mkt-x" style={{ padding: '96px 32px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}>
-          <div style={{ maxWidth: 880, margin: '0 auto' }}>
-            <SectionHead title="Not another help desk to migrate to" />
-            <Reveal style={{ overflowX: 'auto' }}>
-              <table className="compare">
-                <thead>
-                  <tr>
-                    <th style={{ width: '46%' }}></th>
-                    <th className="col-flo" style={{ textAlign: 'center' }}>Velnox</th>
-                    <th style={{ textAlign: 'center' }}>Help desk</th>
-                    <th style={{ textAlign: 'center' }}>Shared Gmail</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {COMPARE.map(row => (
-                    <tr key={row.label}>
-                      <td>{row.label}</td>
-                      <td className="col-flo" style={{ textAlign: 'center' }}><span style={{ display: 'inline-flex' }}><Cell on={row.flo} /></span></td>
-                      <td style={{ textAlign: 'center' }}><span style={{ display: 'inline-flex' }}><Cell on={row.crm} /></span></td>
-                      <td style={{ textAlign: 'center' }}><span style={{ display: 'inline-flex' }}><Cell on={row.manual} /></span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Reveal>
-          </div>
-        </section>
-
         {/* ── FAQ ─────────────────────────────────────────────────────────── */}
-        <section className="section-padded mkt-x" style={{ padding: '96px 32px', background: 'var(--bg-base)', borderTop: '1px solid var(--border)' }}>
+        <section className="section-padded mkt-x" style={{ padding: '96px 32px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}>
           <div style={{ maxWidth: 720, margin: '0 auto' }}>
             <SectionHead title="Questions, answered" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -335,15 +286,15 @@ export default function LandingPage() {
           <Reveal style={{ maxWidth: 880, margin: '0 auto' }}>
             <div className="lp-cta">
               <h2 className="display-title" style={{ fontSize: 'clamp(26px, 3.4vw, 38px)', color: '#fff', margin: '0 0 12px' }}>
-                Ready to get your team’s inbox under control?
+                Stop losing clients in your inbox.
               </h2>
               <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.72)', margin: '0 0 28px', lineHeight: 1.6, maxWidth: 460 }}>
-                Connect a shared inbox, invite your team, and give every thread an owner — set up in minutes.
+                Connect your Gmail and see who to reply to and follow up with today — with the reply already drafted. 30 seconds to set up.
               </p>
               <Link href="/signup" className="lp-cta-btn">
-                Start your team&apos;s inbox — free <ArrowRight size={16} />
+                Connect your Gmail — free <ArrowRight size={16} />
               </Link>
-              <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)', margin: '16px 0 0' }}>Free to start · upgrade when your team grows</p>
+              <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)', margin: '16px 0 0' }}>Free to start · your own inbox · no credit card</p>
             </div>
           </Reveal>
         </section>

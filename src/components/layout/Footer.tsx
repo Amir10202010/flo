@@ -46,7 +46,7 @@ export default function Footer() {
           <div style={{ maxWidth: 300 }}>
             <Brand size={24} style={{ marginBottom: 14 }} />
             <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.65 }}>
-              The AI Gmail inbox for client-facing teams. Every client thread, sorted by who needs you first — so no warm deal ever goes cold.
+              The AI assistant for your Gmail. Every thread sorted by who needs you first — so no client ever goes cold.
             </p>
             <div className="footer-social">
               {SOCIAL.map(({ label, href, Icon }) => (
@@ -77,7 +77,7 @@ export default function Footer() {
 
         <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
-            © 2026 Velnox · AI Gmail inbox for client-facing teams
+            © 2026 Velnox · the AI assistant for your inbox
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, fontSize: 12.5, color: 'var(--text-muted)' }}>
             <Link href="/privacy" style={{ ...linkStyle, fontSize: 12.5 }} className="footer-link">Privacy</Link>

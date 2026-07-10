@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 // Site-wide social share image (inherited by every route without its own).
-export const alt = 'Velnox — The AI shared inbox for teams'
+export const alt = 'Velnox — The AI assistant for your inbox'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -27,15 +27,15 @@ export default function OpengraphImage() {
 
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontSize: 70, fontWeight: 700, lineHeight: 1.05, letterSpacing: '-0.03em', maxWidth: 920 }}>
-            The AI shared inbox for teams
+            Stop losing clients in your inbox.
           </div>
           <div style={{ display: 'flex', fontSize: 30, color: '#A0A0AE', marginTop: 28, maxWidth: 900, lineHeight: 1.4 }}>
-            Every thread gets an owner and an AI-drafted reply — on the Gmail you already use.
+            Velnox tells you who to reply to and follow up with today — and drafts the reply.
           </div>
         </div>
 
         <div style={{ display: 'flex', fontSize: 24, color: '#6E6E7A' }}>
-          Flat pricing · no per-seat · live in minutes
+          Your own Gmail · connect in 30 seconds · free to start
         </div>
       </div>
     ),
