@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { ensurePlainText } from '@/lib/html'
 import { generateReplyDraft, getTextProvider } from './ai'
-import { orgHasFeature } from './billing.service'
+import { autoDraftsRemaining } from './billing.service'
 import type { DraftOutcome, DraftTone } from '@/types'
 
 /**
@@ -120,7 +120,9 @@ export async function upsertAutoDraft(
   })
   if (!conv) return { generated: false, reason: 'not-found' }
   if (!conv.organizationId) return { generated: false, reason: 'no-org' }
-  if (!(await orgHasFeature(conv.organizationId, 'aiDrafts'))) return { generated: false, reason: 'plan' }
+  // Free gets a taste — a capped number of auto-drafts per month; paid is
+  // unlimited. 0 remaining (cap hit, or a plan with no allowance) skips.
+  if ((await autoDraftsRemaining(conv.organizationId)) <= 0) return { generated: false, reason: 'quota' }
 
   const latest = conv.messages[0]
   if (!latest || latest.direction !== 'INBOUND') return { generated: false, reason: 'not-awaiting' }

@@ -7,7 +7,11 @@ import { ArrowRight, Check } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { track } from '@/lib/analytics'
-import { PLAN_CATALOG, PLAN_ORDER, planPrice, type BillingPlan, type BillingPeriod } from '@/lib/billing'
+import { PLAN_CATALOG, planPrice, type BillingPlan, type BillingPeriod } from '@/lib/billing'
+
+// Velnox is a single-user product: only Free and Pro are offered. The other
+// tiers stay in the catalog (billing.ts) but are intentionally not rendered.
+const VISIBLE_PLANS: BillingPlan[] = ['FREE', 'PRO']
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 20 },
@@ -107,7 +111,7 @@ export default function PricingContent() {
               className="display-title"
               style={{ fontSize: 'clamp(32px, 4.6vw, 46px)', margin: '0 0 16px' }}
             >
-              Start solo, grow into a team
+              Simple pricing for your inbox
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
@@ -115,7 +119,7 @@ export default function PricingContent() {
               transition={{ duration: 0.55, ease: 'easeOut', delay: 0.1 }}
               style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.65, margin: '0 0 22px' }}
             >
-              Flat pricing, no setup fees. Free for one mailbox; upgrade for full AI and your team.
+              Flat pricing, no setup fees. Start free on your own Gmail; upgrade for unlimited AI.
             </motion.p>
 
             <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 999, border: '1px solid var(--border)', background: '#fff' }}>
@@ -149,17 +153,17 @@ export default function PricingContent() {
             viewport={{ once: true, margin: '-80px' }}
             variants={stagger}
             className="pricing-grid"
-            style={{ maxWidth: 1240, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, alignItems: 'stretch' }}
+            style={{ maxWidth: 720, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, alignItems: 'stretch' }}
           >
-            {PLAN_ORDER.map((p) => <PlanCard key={p} plan={p} period={period} />)}
+            {VISIBLE_PLANS.map((p) => <PlanCard key={p} plan={p} period={period} />)}
           </motion.div>
         </section>
 
         <section className="mkt-x mkt-pb" style={{ padding: '0 32px 120px' }}>
           <div style={{ maxWidth: 680, margin: '0 auto', textAlign: 'center' }}>
             <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-              Need SSO, custom retention or a security review?{' '}
-              <Link href="/contact" style={{ color: 'var(--accent)', fontWeight: 500, textDecoration: 'none' }}>Talk to our team</Link>.
+              Questions about privacy, data retention or security?{' '}
+              <Link href="/contact" style={{ color: 'var(--accent)', fontWeight: 500, textDecoration: 'none' }}>Get in touch</Link>.
             </p>
           </div>
         </section>

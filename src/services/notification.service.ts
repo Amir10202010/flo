@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { mergeIntegrationMetadata } from '@/lib/integration-metadata'
 import { integrationEmail, sendGmailMessage } from './gmail.service'
+import { orgHasFeature } from './billing.service'
 import { dueReminders, markRemindersFired } from './reminder.service'
 import { shortDate } from '@/lib/time'
 import type { RiskLevel } from '@/types'
@@ -240,7 +241,11 @@ export async function notifyNewAlerts(organizationId: string): Promise<NotifyAle
   const now = Date.now()
   const throttled = isThrottled(typeof meta.lastAlertEmailAt === 'string' ? meta.lastAlertEmailAt : null, now)
 
-  const alertRows = throttled
+  // Going-cold alert EMAILS are a Pro perk; the in-app radar stays free. Due
+  // reminders below ride the same mail and are sent on every plan.
+  const alertsAllowed = await orgHasFeature(organizationId, 'alerts')
+
+  const alertRows = throttled || !alertsAllowed
     ? []
     : await prisma.riskAlert.findMany({
         where: {
