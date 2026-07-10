@@ -21,10 +21,9 @@ function Banner({ tone, icon, children }: { tone: 'info' | 'error'; icon: React.
   )
 }
 
-/** Connected shared inboxes for the org + the invite-only request-access flow.
- * Connect starts the Gmail OAuth flow; disconnect deactivates the integration.
- * Replaces the standalone /integrations page (the OAuth callback redirects here
- * with ?connected / ?error). */
+/** The user's connected Gmail + the invite-only request-access flow. Connect
+ * starts the Gmail OAuth flow; disconnect deactivates the integration. The OAuth
+ * callback redirects back here with ?connected / ?error. */
 function InboxesPanelInner({ canManage }: { canManage: boolean }) {
   const searchParams = useSearchParams()
   const justConnected = searchParams.get('connected')
@@ -45,7 +44,7 @@ function InboxesPanelInner({ canManage }: { canManage: boolean }) {
   }, [])
 
   async function disconnect(type: string) {
-    if (!confirm('Disconnect this shared inbox? Its threads will be hidden until reconnected.')) return
+    if (!confirm('Disconnect this Gmail? Its threads will be hidden until you reconnect.')) return
     await fetch('/api/integrations', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type }) })
     load()
   }
@@ -65,8 +64,8 @@ function InboxesPanelInner({ canManage }: { canManage: boolean }) {
       <div className="card" style={{ padding: '6px 8px' }}>
         {loaded && !hasActive && (
           <div style={{ padding: '22px 14px', textAlign: 'center' }}>
-            <p style={{ margin: '0 0 4px', fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>No shared inbox connected</p>
-            <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted)' }}>Connect a Gmail mailbox your team works out of.</p>
+            <p style={{ margin: '0 0 4px', fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>No Gmail connected</p>
+            <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted)' }}>Connect the Gmail you want Velnox to read.</p>
           </div>
         )}
         {active.map((i) => (
@@ -90,7 +89,7 @@ function InboxesPanelInner({ canManage }: { canManage: boolean }) {
       {/* Already connected + can manage → straight to connecting another mailbox. */}
       {canManage && hasActive && (
         <a href="/api/auth/gmail" onClick={() => track('gmail_connect_clicked', { context: 'add-another' })} className="btn-primary" style={{ alignSelf: 'flex-start', gap: 7, fontSize: 13.5, padding: '10px 16px' }}>
-          <Plus size={15} /> Connect another inbox
+          <Plus size={15} /> Connect a different Gmail
         </a>
       )}
 
@@ -113,7 +112,7 @@ function InboxesPanelInner({ canManage }: { canManage: boolean }) {
 
       {!canManage && (
         <p style={{ fontSize: 12, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <Plug size={13} /> Only admins can connect or disconnect inboxes.
+          <Plug size={13} /> You don’t have permission to change this connection.
         </p>
       )}
 

@@ -14,10 +14,7 @@ export default async function SettingsPage() {
 
   const sub = await prisma.subscription.findUnique({
     where: { organizationId: ctx.organization.id },
-    select: { plan: true, seats: true, interval: true, currentPeriodEnd: true, cancelAtPeriodEnd: true },
-  })
-  const memberCount = await prisma.membership.count({
-    where: { organizationId: ctx.organization.id, status: 'ACTIVE' },
+    select: { plan: true, interval: true, currentPeriodEnd: true, cancelAtPeriodEnd: true },
   })
   const renewalLabel = sub?.currentPeriodEnd
     ? sub.currentPeriodEnd.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
@@ -35,7 +32,7 @@ export default async function SettingsPage() {
               Settings
             </h1>
             <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
-              Manage your organization, team, connections, billing and notifications.
+              Manage your account, Gmail connection, billing and notifications.
             </p>
           </div>
         </div>
@@ -44,14 +41,11 @@ export default async function SettingsPage() {
       <Reveal delay={0.05}>
         <Suspense>
         <SettingsTabs
-          orgName={ctx.organization.name}
           role={ctx.role}
           plan={sub?.plan ?? 'FREE'}
-          seats={sub?.seats ?? 1}
           interval={sub?.interval ?? null}
           renewalLabel={renewalLabel}
           cancelAtPeriodEnd={sub?.cancelAtPeriodEnd ?? false}
-          memberCount={memberCount}
           userName={userName}
           userEmail={userEmail}
         />

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Inbox, Sparkles, UserRound } from 'lucide-react'
+import { Inbox, Sparkles } from 'lucide-react'
 import { avatarGradient, initialsOf } from '@/components/dashboard/avatar'
 import EmptyNote from '@/components/dashboard/EmptyNote'
 import { priorityMeta } from '@/lib/priority'
@@ -111,17 +111,6 @@ export default function ConversationList({ conversations }: { conversations: Con
                 >
                   <Sparkles size={10} />
                   Draft ready
-                </span>
-              )}
-
-              {c.assigneeName && (
-                <span
-                  className="cat-tag"
-                  title={`Assigned to ${c.assigneeName}`}
-                  style={{ marginTop: 4, marginLeft: cat || c.hasDraft ? 6 : 0 }}
-                >
-                  <UserRound size={10} />
-                  {c.assigneeName}
                 </span>
               )}
 

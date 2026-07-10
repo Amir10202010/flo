@@ -66,8 +66,7 @@ export default async function TrendsBody({ organizationId }: { organizationId: s
         />
       </div>
 
-      {/* Composition: a full-width trend on top, a balanced two-up row, then a
-          full-width team list — so no half-width widget sits next to an empty cell. */}
+      {/* Composition: a full-width trend on top, then a balanced two-up row. */}
       <div className="ana-grid">
         <Reveal delay={0.08} className="ana-span2">
           <WidgetShell
@@ -119,35 +118,6 @@ export default async function TrendsBody({ organizationId }: { organizationId: s
           </WidgetShell>
         </Reveal>
 
-        <Reveal delay={0.2} className="ana-span2">
-          <WidgetShell
-            icon={<Users size={14} />}
-            title="Team workload"
-            sub="Assigned threads per member — open · awaiting reply"
-            status="live"
-            bodyStyle={{ padding: '16px 20px 18px' }}
-          >
-            {data.team.members.length === 0 ? (
-              <EmptyNote icon={<Users size={17} />} title="No members yet" hint="Invite teammates in Settings → Members." />
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-                {data.team.members.map((m) => (
-                  <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-                    <span style={{ fontSize: 11.5, fontWeight: 500, color: 'var(--text-secondary)', width: 56, textAlign: 'right' }}>{m.open} open</span>
-                    <span style={{ fontSize: 11.5, fontWeight: 500, color: 'var(--text-muted)', width: 76, textAlign: 'right' }}>{m.awaiting > 0 ? `${m.awaiting} awaiting` : ''}</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 56, textAlign: 'right' }}>{m.assigned} total</span>
-                  </div>
-                ))}
-                {data.team.unassignedOpen > 0 && (
-                  <div style={{ marginTop: 4, paddingTop: 9, borderTop: '1px solid var(--border-light)', fontSize: 12, color: 'var(--text-muted)' }}>
-                    <strong style={{ color: 'var(--text-primary)' }}>{data.team.unassignedOpen}</strong> open thread{data.team.unassignedOpen === 1 ? '' : 's'} unassigned
-                  </div>
-                )}
-              </div>
-            )}
-          </WidgetShell>
-        </Reveal>
       </div>
 
       <p style={{ margin: '18px 4px 0', fontSize: 11.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
