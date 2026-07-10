@@ -114,7 +114,6 @@ export default async function ConversationPage({
   const rail = (
     <ThreadContextRail
       conversationId={conv.id}
-      initialAssigneeId={conv.assigneeId}
       initialState={conv.state as 'OPEN' | 'SNOOZED' | 'CLOSED'}
       category={conv.category as EmailCategory}
       analysis={

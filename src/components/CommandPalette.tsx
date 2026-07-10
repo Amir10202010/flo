@@ -1,6 +1,6 @@
 'use client'
 
-import { createElement, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import {
@@ -16,13 +16,10 @@ import {
   RefreshCw,
   Search,
   Settings,
-  ShieldAlert,
+  Snowflake,
   Users,
 } from 'lucide-react'
 import { useUiStore } from '@/stores/ui.store'
-import { useWorkspaceSchema } from '@/lib/workspace/use-workspace-schema'
-import { iconFor } from '@/lib/workspace/icons'
-import { resolveTerm } from '@/lib/workspace/terminology'
 import type { ConversationListItem, SearchResponse, SearchResultItem } from '@/types'
 import ContactAvatar from '@/components/dashboard/ContactAvatar'
 
@@ -39,7 +36,7 @@ interface PaletteEntry {
 const PAGES: { href: string; label: string; icon: React.ReactNode; keywords: string }[] = [
   { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={15} />, keywords: 'home overview command center' },
   { href: '/inbox', label: 'Inbox', icon: <Inbox size={15} />, keywords: 'mail conversations threads' },
-  { href: '/clients', label: 'Clients', icon: <Users size={15} />, keywords: 'contacts directory crm' },
+  { href: '/clients', label: 'Contacts', icon: <Users size={15} />, keywords: 'contacts directory clients people' },
   { href: '/dashboard?tab=trends', label: 'Trends', icon: <ChartColumn size={15} />, keywords: 'analytics charts metrics response time volume' },
   { href: '/settings', label: 'Settings', icon: <Settings size={15} />, keywords: 'account profile plan' },
 ]
@@ -143,7 +140,6 @@ function PaletteDialog({
   const [rawIndex, setRawIndex] = useState(0)
   const [syncState, setSyncState] = useState<'idle' | 'starting' | 'started' | 'failed'>('idle')
   const listRef = useRef<HTMLDivElement>(null)
-  const { schema } = useWorkspaceSchema()
 
   // Server-side AI search for the Conversations group. Falls back to the
   // locally cached list (substring match) when the request fails.
@@ -196,22 +192,7 @@ function PaletteDialog({
   const entries = useMemo<PaletteEntry[]>(() => {
     const q = query.trim().toLowerCase()
 
-    // Static anchors + the workspace's own objects (Patients, Cases, …) with
-    // the org's word for "Clients" — the palette mirrors the adaptive sidebar.
-    const contactTerm = resolveTerm(schema?.terminology, 'contact')
-    const navPages = [
-      ...PAGES.map((p) =>
-        p.href === '/clients' ? { ...p, label: contactTerm.plural, keywords: `${p.keywords} clients` } : p,
-      ),
-      ...(schema?.nav ?? []).map((n) => ({
-        href: n.href,
-        label: n.label,
-        icon: createElement(iconFor(n.icon), { size: 15 }),
-        keywords: 'workspace records crm pipeline',
-      })),
-    ]
-
-    const pages = navPages.map((p) => ({ p, score: matches(q, p.label, p.keywords) }))
+    const pages = PAGES.map((p) => ({ p, score: matches(q, p.label, p.keywords) }))
       .filter((x) => x.score > 0)
       .sort((a, b) => b.score - a.score)
       .map<PaletteEntry>(({ p }) => ({
@@ -246,9 +227,9 @@ function PaletteDialog({
       {
         id: 'action-alerts',
         group: 'Actions',
-        label: 'View risk alerts',
-        icon: <ShieldAlert size={15} />,
-        keywords: 'alerts risk churn acknowledge resolve at risk monitor',
+        label: 'Who needs a follow-up',
+        icon: <Snowflake size={15} />,
+        keywords: 'follow up going cold waiting on you relationships slipping remind',
         run: () => {
           onClose()
           setAlertsOpen(true)
@@ -322,7 +303,7 @@ function PaletteDialog({
             }))
 
     return [...pages, ...actions, ...conversations]
-  }, [query, convs, aiResults, go, startSync, syncState, onClose, setComposeOpen, setAssistantOpen, setAlertsOpen, schema])
+  }, [query, convs, aiResults, go, startSync, syncState, onClose, setComposeOpen, setAssistantOpen, setAlertsOpen])
 
   // Clamp at render time instead of syncing state in an effect.
   const index = Math.min(rawIndex, Math.max(0, entries.length - 1))

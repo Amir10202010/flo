@@ -2,14 +2,10 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Flame, Inbox, Mail, ShieldAlert } from 'lucide-react'
+import { Flame, Inbox, Mail, Snowflake } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
 import { getOrgContext } from '@/lib/org'
 import { getDashboardData, type DashboardData } from '@/services/dashboard.service'
-import { getWorkspaceSchema } from '@/services/workspace/workspace.service'
-import { resolveTerm } from '@/lib/workspace/terminology'
-import IndustryPulse from '@/components/workspace/IndustryPulse'
-import SetupPromptCard from '@/components/workspace/SetupPromptCard'
 import { longDate } from '@/lib/time'
 import { Reveal } from '@/components/dashboard/Motion'
 import StatCard from '@/components/dashboard/StatCard'
@@ -75,20 +71,8 @@ async function DashboardBody({ organizationId }: { organizationId: string }) {
     return <MetricsUnavailable />
   }
 
-  // Adaptive layer: industry widgets + the org's own terminology. Sequential
-  // after the metrics fetch (small pool); a failure only hides the strip.
-  // Fetched before the empty-state return so unconfigured orgs get the
-  // workspace-setup prompt even with no mail synced yet.
-  const schema = await getWorkspaceSchema(organizationId).catch(() => null)
-  const contactTerm = resolveTerm(schema?.terminology, 'contact')
-
   if (!data.hasData) {
-    return (
-      <>
-        {!schema && <SetupPromptCard />}
-        <DashboardEmpty hasIntegration={data.hasIntegration} />
-      </>
-    )
+    return <DashboardEmpty hasIntegration={data.hasIntegration} />
   }
 
   const s = data.stats
@@ -123,10 +107,14 @@ async function DashboardBody({ organizationId }: { organizationId: string }) {
           delay={0}
         />
         <StatCard
-          label={`${contactTerm.plural} at risk`}
-          icon={<ShieldAlert size={13} />}
+          label="Going cold"
+          icon={<Snowflake size={13} />}
           value={String(s.clientsAtRisk.value)}
-          sub={`of ${s.clientsAtRisk.totalClients} tracked ${contactTerm.plural.toLowerCase()}`}
+          sub={
+            s.clientsAtRisk.value === 0
+              ? 'Every relationship warm'
+              : `of ${s.clientsAtRisk.totalClients} contacts slipping`
+          }
           tone={s.clientsAtRisk.value > 0 ? 'critical' : 'success'}
           href="/inbox?risk=HIGH"
           delay={0.05}
@@ -145,22 +133,6 @@ async function DashboardBody({ organizationId }: { organizationId: string }) {
           delay={0.1}
         />
       </div>
-
-      {/* No profile yet → offer industry specialization right on the dashboard */}
-      {!schema && (
-        <Reveal delay={0.11}>
-          <SetupPromptCard />
-        </Reveal>
-      )}
-
-      {/* Industry pulse — the workspace's own objects, from its schema */}
-      {schema && schema.dashboard.length > 0 && (
-        <Reveal delay={0.11}>
-          <div style={{ marginBottom: 14 }}>
-            <IndustryPulse schema={schema} organizationId={organizationId} />
-          </div>
-        </Reveal>
-      )}
 
       {/* The act-now queue takes the floor; awareness widgets sit in the rail */}
       <div className="dash-main-grid">
@@ -204,7 +176,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <div className="dash-header-row" style={{ marginBottom: 20 }}>
           <div>
             <h1 className="page-title" style={{ margin: '0 0 5px' }}>
-              {firstName ? `Good to see you, ${firstName}` : 'Your workspace'}
+              {firstName ? `Good to see you, ${firstName}` : 'Your inbox'}
             </h1>
             <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>{longDate(new Date())}</p>
           </div>

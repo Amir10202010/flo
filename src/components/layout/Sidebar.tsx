@@ -6,10 +6,6 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Inbox, LayoutDashboard, LogOut, Search, Settings, Sparkles, Users } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase'
 import { useUiStore } from '@/stores/ui.store'
-import { useWorkspaceSchema } from '@/lib/workspace/use-workspace-schema'
-import { iconFor } from '@/lib/workspace/icons'
-import { resolveTerm } from '@/lib/workspace/terminology'
-import OrgSwitcher from '@/components/org/OrgSwitcher'
 import Brand from './Brand'
 
 interface NavEntry {
@@ -21,14 +17,13 @@ interface NavEntry {
   tour?: string
 }
 
-// The nav is generated per-workspace: Dashboard + Inbox are system anchors,
-// then the org's own CRM objects (from the workspace schema — Patients,
-// Cases, Campaigns…), then the contact directory under the org's own word
-// for "Clients". Before the schema loads (or without a profile) it renders
-// exactly the classic trio. Everything else is reachable via ⌘K.
-const ANCHORS: NavEntry[] = [
+// A fixed, personal-inbox nav: Dashboard (home), Inbox, and the contact
+// directory. Search + Ask AI sit above it as actions; everything else is
+// reachable via ⌘K.
+const NAV: NavEntry[] = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/inbox', icon: Inbox, label: 'Inbox', tour: 'inbox' },
+  { href: '/clients', icon: Users, label: 'Contacts', tour: 'clients' },
 ]
 
 const SYSTEM: NavEntry[] = [
@@ -72,20 +67,6 @@ export default function Sidebar({ userName, userEmail }: { userName?: string | n
     router.replace('/login')
   }
   const metaKey = useSyncExternalStore(emptySubscribe, isApplePlatform, serverIsApple) ? '⌘' : 'Ctrl'
-  const { schema } = useWorkspaceSchema()
-
-  // Workspace-generated nav: the org's own objects + its word for "Clients".
-  const objectEntries: NavEntry[] = (schema?.nav ?? []).map((n) => ({
-    href: n.href,
-    icon: iconFor(n.icon),
-    label: n.label,
-  }))
-  const contactsLabel = resolveTerm(schema?.terminology, 'contact').plural
-  const sections: { label: string | null; items: NavEntry[] }[] = [
-    { label: null, items: ANCHORS },
-    ...(objectEntries.length ? [{ label: schema?.profile.industryLabel ?? 'Workspace', items: objectEntries }] : []),
-    { label: null, items: [{ href: '/clients', icon: Users, label: contactsLabel, tour: 'clients' }] },
-  ]
 
   const initials = userName
     ? userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -112,9 +93,6 @@ export default function Sidebar({ userName, userEmail }: { userName?: string | n
       {/* Logo — hidden on mobile via .sidebar-logo-link (sidebar collapses to an icon rail) */}
       <Brand size={22} href="/dashboard" className="sidebar-logo-link" style={{ padding: '6px 8px', marginBottom: 6 }} />
 
-      {/* Active organization picker — self-fetches so the layout stays DB-free */}
-      <OrgSwitcher />
-
       {/* Command palette trigger */}
       <button type="button" className="sidebar-search-btn" onClick={togglePalette} title="Search (Ctrl/⌘ K)" data-tour="search">
         <Search size={14} />
@@ -128,16 +106,13 @@ export default function Sidebar({ userName, userEmail }: { userName?: string | n
         <span className="sidebar-nav-label">Ask AI</span>
       </button>
 
-      {/* Navigation — generated from the workspace schema */}
-      {sections.map((section, si) => (
-        <nav key={si} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {section.label && <div className="sidebar-section-label">{section.label}</div>}
-          {!section.label && si === 0 && <div style={{ height: 6 }} />}
-          {section.items.map((entry) => (
-            <NavItem key={entry.href} entry={entry} active={isActive(entry.href)} />
-          ))}
-        </nav>
-      ))}
+      {/* Navigation */}
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div style={{ height: 6 }} />
+        {NAV.map((entry) => (
+          <NavItem key={entry.href} entry={entry} active={isActive(entry.href)} />
+        ))}
+      </nav>
 
       <div style={{ flex: 1 }} />
 

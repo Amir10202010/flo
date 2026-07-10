@@ -60,7 +60,7 @@ export default async function ClientsPage() {
               <ModulePill status="live" />
             </div>
             <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
-              Every contact in your workspace, scored by real engagement and AI risk.
+              Everyone you email, scored by real engagement — and who&apos;s going cold.
             </p>
           </div>
         </div>

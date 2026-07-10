@@ -5,8 +5,6 @@ import { getDashboardData, type DashboardData } from './dashboard.service'
 import { parseAction, type AssistantAction } from './assistant.actions'
 import { listReminders } from './reminder.service'
 import { listRecentNotes, type RecentNote } from './note.service'
-import { getWorkspaceSchema, type WorkspaceSchemaModel } from './workspace/workspace.service'
-import { resolveTerm } from '@/lib/workspace/terminology'
 import { shortDate } from '@/lib/time'
 
 /**
@@ -92,9 +90,9 @@ const ANSWER_SCHEMA: AiJsonSchema = {
     proposedAction: {
       type: 'object',
       description:
-        'OPTIONAL. Include ONLY when the user is clearly asking you to DO one of these: draft replies in bulk, triage an at-risk alert, set a follow-up reminder, save a note about a contact, or create a workspace record. Omit entirely for informational questions. This is a PROPOSAL the user must confirm — it is never executed automatically.',
+        'OPTIONAL. Include ONLY when the user is clearly asking you to DO one of these: draft replies in bulk, follow up on someone going cold, set a follow-up reminder, or save a note about a contact. Omit entirely for informational questions. This is a PROPOSAL the user must confirm — it is never executed automatically.',
       properties: {
-        type: { type: 'string', enum: ['bulk_draft', 'triage_alert', 'create_reminder', 'create_note', 'create_record'] },
+        type: { type: 'string', enum: ['bulk_draft', 'triage_alert', 'create_reminder', 'create_note'] },
         summary: {
           type: 'string',
           description:
@@ -126,31 +124,13 @@ const ANSWER_SCHEMA: AiJsonSchema = {
             },
             conversationHref: {
               type: 'string',
-              description: 'create_reminder / create_record: optional /inbox/<id> href (verbatim from briefing) the action relates to.',
+              description: 'create_reminder only: optional /inbox/<id> href (verbatim from briefing) the reminder relates to.',
             },
             contactHref: {
               type: 'string',
               description: 'create_note only: /inbox/<id> href (verbatim from briefing) of the person the note is about.',
             },
             body: { type: 'string', description: 'create_note only: the note text to save about that contact.' },
-            objectKey: {
-              type: 'string',
-              description: 'create_record only: the object key, EXACTLY as listed under WORKSPACE OBJECTS in the briefing.',
-            },
-            title: { type: 'string', description: 'create_record only: the record title (e.g. the patient/case/deal name).' },
-            stageKey: {
-              type: 'string',
-              description: 'create_record only: optional starting stage key from that object’s stage list in the briefing.',
-            },
-            fields: {
-              type: 'array',
-              description: 'create_record only: up to 8 field values; keys EXACTLY as listed for that object in the briefing.',
-              items: {
-                type: 'object',
-                properties: { key: { type: 'string' }, value: { type: 'string' } },
-                required: ['key', 'value'],
-              },
-            },
           },
         },
       },
@@ -164,7 +144,7 @@ const STATIC_SOURCES: { href: string; label: string }[] = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/inbox', label: 'Inbox' },
   { href: '/dashboard?tab=trends', label: 'Trends' },
-  { href: '/clients', label: 'Clients' },
+  { href: '/clients', label: 'Contacts' },
   { href: '/settings', label: 'Settings' },
 ]
 
@@ -204,7 +184,6 @@ function buildBriefing(
   reminders: Reminder[],
   notes: RecentNote[],
   now: number,
-  workspace: WorkspaceSchemaModel | null = null,
 ): string {
   const lines: string[] = []
   const s = data.stats
@@ -284,44 +263,18 @@ function buildBriefing(
     }
   }
 
-  if (workspace && workspace.objects.length) {
-    lines.push('')
-    lines.push('WORKSPACE OBJECTS (create_record uses these EXACT keys)')
-    for (const obj of workspace.objects.slice(0, 12)) {
-      const fields = obj.fields.slice(0, 10).map((f) => f.key).join(', ')
-      const stages = obj.pipeline?.map((st) => st.key).join(' → ')
-      lines.push(`- ${obj.key} (${obj.singular})${fields ? ` · fields: ${fields}` : ''}${stages ? ` · stages: ${stages}` : ''}`)
-    }
-  }
-
   return lines.join('\n')
 }
 
-/**
- * Industry persona from the adaptive workspace profile — copilot title, voice
- * and vocabulary (Patients vs Clients). Empty string for unconfigured orgs.
- */
-function personaBlock(workspace: WorkspaceSchemaModel | null): string {
-  if (!workspace) return ''
-  const contact = resolveTerm(workspace.terminology, 'contact')
-  const parts = [
-    `You act as “${workspace.copilot.title}” for a ${workspace.profile.industryLabel.toLowerCase()}.`,
-    `The team calls the people who contact them “${contact.plural.toLowerCase()}” — use their vocabulary.`,
-  ]
-  if (workspace.copilot.style) parts.push(workspace.copilot.style)
-  if (workspace.copilot.focus?.length) parts.push(`Watch especially: ${workspace.copilot.focus.join('; ')}.`)
-  return `\nWORKSPACE PERSONA: ${parts.join(' ')}\n`
-}
+function buildPrompt(question: string, briefing: string): string {
+  return `You are Velnox's AI inbox assistant for one person managing their own email. You answer questions about their contacts, email threads and follow-ups.
 
-function buildPrompt(question: string, briefing: string, persona = ''): string {
-  return `You are Velnox's AI workspace assistant for a service-business client manager. You answer questions about the manager's clients, email threads and pipeline.
-${persona}
 Rules:
-- Answer ONLY from the BRIEFING below. It is the live, real state of the workspace. Never invent clients, numbers, threads or events.
-- If the briefing does not contain enough to answer, say so honestly and suggest what the manager could do (e.g. sync, open a page).
-- Be concise and specific. Prefer naming real clients/threads from the briefing over generic advice.
+- Answer ONLY from the BRIEFING below. It is the live, real state of their inbox. Never invent contacts, numbers, threads or events.
+- If the briefing does not contain enough to answer, say so honestly and suggest what they could do (e.g. sync, open a page).
+- Be concise and specific. Prefer naming real contacts/threads from the briefing over generic advice.
 - When you reference a thread or page, add it to "sources" using an href copied verbatim from the briefing (the [/...] tokens).
-- You can DO five things when (and only when) the user clearly asks you to act: draft replies in bulk (bulk_draft), triage an at-risk alert (triage_alert), set a follow-up reminder (create_reminder), save a note about a contact (create_note — put the note text in params.body and the person's /inbox href in params.contactHref), or create a workspace record (create_record — params.objectKey/stageKey/fields keys must come EXACTLY from the WORKSPACE OBJECTS section; params.conversationHref links the record to that thread). In that case fill "proposedAction" — it is a PROPOSAL the user confirms, never auto-executed. For any informational question, OMIT proposedAction. Use only hrefs and the "Current time" from the briefing for action params.
+- You can DO four things when (and only when) the user clearly asks you to act: draft replies in bulk (bulk_draft), follow up on someone going cold (triage_alert), set a follow-up reminder (create_reminder), or save a note about a contact (create_note — put the note text in params.body and the person's /inbox href in params.contactHref). In that case fill "proposedAction" — it is a PROPOSAL the user confirms, never auto-executed. For any informational question, OMIT proposedAction. Use only hrefs and the "Current time" from the briefing for action params.
 - Reply in the SAME LANGUAGE as the question.
 
 BRIEFING:
@@ -368,7 +321,7 @@ function validateProposedAction(raw: unknown, allowed: Map<string, string>, now:
   const refId =
     action.type === 'triage_alert' || action.type === 'create_note'
       ? action.conversationId
-      : action.type === 'create_reminder' || action.type === 'create_record'
+      : action.type === 'create_reminder'
         ? action.conversationId
         : null
   if (refId && !allowed.has(`/inbox/${refId}`)) return null
@@ -424,7 +377,7 @@ function localAnswer(question: string, data: DashboardData): { answer: string; s
     push('/dashboard', 'Dashboard')
   } else {
     // General status overview.
-    lines.push(`Here's where your workspace stands:`)
+    lines.push(`Here's where things stand:`)
     lines.push(`- ${s.conversations.value} active conversations, ${s.unanswered.value} awaiting your reply.`)
     lines.push(`- ${s.clientsAtRisk.value} client${s.clientsAtRisk.value === 1 ? '' : 's'} at risk, ${s.followUps.value} follow-up${s.followUps.value === 1 ? '' : 's'} suggested.`)
     if (data.nextBestAction) {
@@ -471,8 +424,6 @@ export async function answerWorkspaceQuestion(organizationId: string, question: 
 
   const reminders = await listReminders(organizationId)
   const notes = await listRecentNotes(organizationId)
-  // Adaptive persona (null-safe): industry voice + terminology for the prompt.
-  const workspace = await getWorkspaceSchema(organizationId).catch(() => null)
 
   const provider = getTextProvider()
   // Reason we'd show offline output: no key, or (set in catch) a failed call.
@@ -480,10 +431,10 @@ export async function answerWorkspaceQuestion(organizationId: string, question: 
   if (provider) {
     try {
       const now = Date.now()
-      const briefing = buildBriefing(data, reminders, notes, now, workspace)
+      const briefing = buildBriefing(data, reminders, notes, now)
       const allowed = buildSourceMap(data)
       const raw = await provider.generateJson<Record<string, unknown>>({
-        prompt: buildPrompt(question, briefing, personaBlock(workspace)),
+        prompt: buildPrompt(question, briefing),
         schema: ANSWER_SCHEMA,
         maxOutputTokens: 900,
       })
