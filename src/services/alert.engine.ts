@@ -83,8 +83,8 @@ export function computeAlerts(ws: Workspace): AlertCandidate[] {
         severity: aiRisk,
         conversationId: conv.id,
         dedupeScope: conv.id,
-        title: `${aiRisk === 'CRITICAL' ? 'Critical' : 'High'} churn risk · ${name}`,
-        reason: (a?.riskReasons?.[0] ?? a?.summary ?? 'AI flagged elevated churn risk.') + waitNote,
+        title: `${aiRisk === 'CRITICAL' ? 'Going cold' : 'At risk'} · ${name}`,
+        reason: (a?.riskReasons?.[0] ?? a?.summary ?? 'AI flagged this relationship slipping.') + waitNote,
         suggestedAction: a?.nextAction ?? `Reach out to ${name} today.`,
       })
     } else if (awaiting && waitHours >= OVERDUE_MEDIUM_HOURS && engaged) {

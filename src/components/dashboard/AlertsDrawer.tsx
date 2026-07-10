@@ -7,10 +7,9 @@ import AlertsPanel from './AlertsPanel'
 import type { RiskAlertItem } from '@/types'
 
 /**
- * Risk-alerts slide-over. Replaces the standalone /risk page's alert lifecycle:
- * opened globally (RiskMonitor "View alerts" + the ⌘K palette), it fetches the
- * actionable alert set on open and hands it to AlertsPanel (acknowledge /
- * resolve in place). Risk *clients* still live on the dashboard RiskMonitor.
+ * Follow-ups slide-over: the relationships going cold and threads waiting on a
+ * reply. Opened globally (the ⌘K palette), it fetches the actionable set on open
+ * and hands it to AlertsPanel (dismiss / snooze in place).
  */
 export default function AlertsDrawer() {
   const open = useUiStore((s) => s.alertsOpen)
@@ -55,7 +54,7 @@ export default function AlertsDrawer() {
       <aside
         role="dialog"
         aria-modal="true"
-        aria-label="Risk alerts"
+        aria-label="Follow-ups"
         style={{
           position: 'fixed',
           top: 0,
@@ -72,7 +71,7 @@ export default function AlertsDrawer() {
       >
         <header style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 18px', borderBottom: '1px solid var(--border-light)' }}>
           <h2 className="section-title" style={{ margin: 0, fontSize: 18 }}>
-            Risk alerts
+            Who needs a follow-up
           </h2>
           <button
             type="button"
@@ -85,7 +84,7 @@ export default function AlertsDrawer() {
         </header>
         <div style={{ flex: 1, overflowY: 'auto', padding: 14 }}>
           {alerts === null ? (
-            <p style={{ padding: '24px 6px', fontSize: 13, color: 'var(--text-muted)' }}>Loading alerts…</p>
+            <p style={{ padding: '24px 6px', fontSize: 13, color: 'var(--text-muted)' }}>Loading…</p>
           ) : (
             <AlertsPanel initial={alerts} />
           )}

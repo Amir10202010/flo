@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Activity, ShieldAlert, UserPlus, Users } from 'lucide-react'
+import { Activity, Snowflake, UserPlus, Users } from 'lucide-react'
 import { requireOrgPage } from '@/lib/org'
 import { getClientDirectory, type ClientRow } from '@/services/clients.service'
 import type { RelationshipHealth as RelData, RelationshipItem } from '@/services/dashboard.service'
@@ -34,7 +34,7 @@ function buildRelationships(rows: ClientRow[]): RelData {
     .sort((a, b) => a.engagement - b.engagement)
     .slice(0, 4)
     .map((r) =>
-      item(r, r.risk === 'HIGH' || r.risk === 'CRITICAL' ? 'flagged at risk · reach out' : `cooling off · last seen ${r.lastActivityAgo ?? 'a while ago'}`),
+      item(r, r.risk === 'HIGH' || r.risk === 'CRITICAL' ? 'going cold · reach out' : `cooling off · last seen ${r.lastActivityAgo ?? 'a while ago'}`),
     )
   const opportunities = rows
     .filter((r) => r.isNew)
@@ -80,10 +80,10 @@ export default async function ClientsPage() {
               delay={0.05}
             />
             <StatCard
-              label="At risk"
-              icon={<ShieldAlert size={12} />}
+              label="Going cold"
+              icon={<Snowflake size={12} />}
               value={String(data.totals.atRisk)}
-              sub="High or critical AI risk level"
+              sub="Relationships slipping — reach out"
               tone={data.totals.atRisk > 0 ? 'critical' : 'success'}
               delay={0.1}
             />

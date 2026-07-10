@@ -258,8 +258,8 @@ function buildCommandItems(facts: ConvFacts[], now: number): CommandItem[] {
     const reasons: string[] = []
     const waiting = f.awaiting ? waitDuration(lastInboundAt(f.conv), now) : null
     if (f.awaiting) reasons.push(waiting ? `Awaiting your reply · ${waiting}` : 'Awaiting your reply')
-    if (f.risk === 'CRITICAL') reasons.push('Critical churn risk')
-    else if (f.risk === 'HIGH') reasons.push('High churn risk')
+    if (f.risk === 'CRITICAL') reasons.push('Going cold')
+    else if (f.risk === 'HIGH') reasons.push('At risk')
     if (a?.sentiment === 'NEGATIVE') reasons.push('Negative tone')
     if (!f.awaiting && a?.nextAction) reasons.push('AI follow-up suggested')
 
@@ -340,7 +340,7 @@ function buildRiskClients(facts: ConvFacts[], ws: Workspace): RiskClientItem[] {
       agg.reasons[0] ??
       (overdueRisk
         ? `No reply sent for ${waitDuration(new Date(ws.now - agg.worstWaitHours * 3_600_000), ws.now)}`
-        : 'Elevated churn risk')
+        : 'Relationship slipping')
 
     items.push({
       contactId: agg.contact.id,
@@ -488,7 +488,7 @@ function buildTimeline(ws: Workspace): TimelineEvent[] {
       e: {
         id: `ai-${c.id}`,
         kind: risky ? 'risk' : 'analysis',
-        title: risky ? `Churn risk flagged · ${c.contact.name}` : `AI analyzed ${c.contact.name}`,
+        title: risky ? `Going cold · ${c.contact.name}` : `AI analyzed ${c.contact.name}`,
         detail: truncate(risky ? a.riskReasons[0] ?? a.summary : a.summary, 90),
         href: `/inbox/${c.id}`,
         at: a.updatedAt,
@@ -534,10 +534,10 @@ function buildInsights(facts: ConvFacts[], ws: Workspace, stats: ExecStats): Ins
       id: 'clients-at-risk',
       tone: 'critical',
       icon: 'risk',
-      title: `${stats.clientsAtRisk.value} ${plural(stats.clientsAtRisk.value, 'client needs', 'clients need')} attention`,
-      description: 'AI flagged elevated churn risk or replies overdue 48h+ across their threads.',
+      title: `${stats.clientsAtRisk.value} ${plural(stats.clientsAtRisk.value, 'relationship is', 'relationships are')} going cold`,
+      description: 'AI flagged these slipping — or a reply has been overdue 48h+ across their threads.',
       href: '/inbox?risk=HIGH',
-      cta: 'Review at-risk',
+      cta: 'Review',
     })
   }
 

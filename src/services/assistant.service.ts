@@ -332,7 +332,7 @@ function validateProposedAction(raw: unknown, allowed: Map<string, string>, now:
 
 const DEFAULT_FOLLOWUPS = [
   'Who should I follow up with today?',
-  'Which clients are at risk?',
+  'Who’s going cold?',
   'What changed this week?',
 ]
 
@@ -372,14 +372,14 @@ function localAnswer(question: string, data: DashboardData): { answer: string; s
     lines.push(`This week's snapshot:`)
     lines.push(`- ${s.conversations.activeThisWeek} active conversation${s.conversations.activeThisWeek === 1 ? '' : 's'}, ${s.highPriority.value} high priority.`)
     lines.push(`- ${s.unanswered.value} awaiting your reply (${s.unanswered.overdue24h} overdue 24h+).`)
-    lines.push(`- ${s.clientsAtRisk.value} of ${s.clientsAtRisk.totalClients} clients flagged at risk.`)
+    lines.push(`- ${s.clientsAtRisk.value} of ${s.clientsAtRisk.totalClients} contacts going cold.`)
     if (s.health.score !== null) lines.push(`- Inbox health is ${s.health.score}/100${s.health.topFactor ? ` (biggest drag: ${s.health.topFactor})` : ''}.`)
     push('/dashboard', 'Dashboard')
   } else {
     // General status overview.
     lines.push(`Here's where things stand:`)
     lines.push(`- ${s.conversations.value} active conversations, ${s.unanswered.value} awaiting your reply.`)
-    lines.push(`- ${s.clientsAtRisk.value} client${s.clientsAtRisk.value === 1 ? '' : 's'} at risk, ${s.followUps.value} follow-up${s.followUps.value === 1 ? '' : 's'} suggested.`)
+    lines.push(`- ${s.clientsAtRisk.value} contact${s.clientsAtRisk.value === 1 ? '' : 's'} going cold, ${s.followUps.value} follow-up${s.followUps.value === 1 ? '' : 's'} suggested.`)
     if (data.nextBestAction) {
       const a = data.nextBestAction
       lines.push(`- Top priority: ${a.contactName}${a.waiting ? ` (waiting ${a.waiting})` : ''} — ${clamp(a.reasons[0] ?? a.nextAction ?? 'review thread', 110)}.`)

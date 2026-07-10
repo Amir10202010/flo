@@ -17,10 +17,10 @@ const STATES: { value: State; label: string }[] = [
 
 // Relationship framing for the per-thread AI read (no "risk" jargon).
 const HEALTH: Record<string, { label: string; color: string }> = {
-  LOW:      { label: 'Healthy',     color: 'var(--cold)' },
-  MEDIUM:   { label: 'Keep an eye', color: 'var(--attention)' },
-  HIGH:     { label: 'At risk',     color: 'var(--hot)' },
-  CRITICAL: { label: 'Going cold',  color: 'var(--hot)' },
+  LOW:      { label: 'Healthy',    color: 'var(--cold)' },
+  MEDIUM:   { label: 'Watch',      color: 'var(--attention)' },
+  HIGH:     { label: 'At risk',    color: 'var(--hot)' },
+  CRITICAL: { label: 'Going cold', color: 'var(--hot)' },
 }
 
 /**

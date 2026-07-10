@@ -49,8 +49,8 @@ export default function AlertsPanel({ initial }: { initial: RiskAlertItem[] }) {
     <WidgetShell
       icon={<BellRing size={14} />}
       iconTone="ai"
-      title="Active alerts"
-      sub="Rule + AI detections with a clear reason and next step — acknowledge or resolve as you work"
+      title="Needs a follow-up"
+      sub="People going cold and threads waiting on you — each with a reason and a next step. Snooze or dismiss as you work"
       status="live"
     >
       {error && (
@@ -61,8 +61,8 @@ export default function AlertsPanel({ initial }: { initial: RiskAlertItem[] }) {
       {alerts.length === 0 ? (
         <EmptyNote
           icon={<ShieldCheck size={17} />}
-          title="No active alerts"
-          hint="New risk conditions raise alerts here automatically after every sync."
+          title="Everyone's warm"
+          hint="When a relationship starts slipping or a reply goes overdue, it shows up here after the next sync."
         />
       ) : (
         <div style={{ padding: '10px 14px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>

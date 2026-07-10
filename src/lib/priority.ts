@@ -19,7 +19,7 @@ export const PRIORITY_META: Record<
     label: 'Urgent',
     className: 'priority-hot',
     color: 'var(--hot)',
-    description: 'Needs action now — client waiting, fresh activity, or churn risk',
+    description: 'Needs action now — someone waiting, fresh activity, or going cold',
   },
   ATTENTION: {
     label: 'High',

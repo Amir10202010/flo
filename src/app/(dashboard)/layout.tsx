@@ -45,7 +45,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Ask Velnox AI — summonable overlay (sidebar "Ask AI" + ⌘K), not a bubble */}
       <AssistantModal />
 
-      {/* Risk-alerts slide-over (RiskMonitor "View alerts" + ⌘K) — replaces /risk */}
+      {/* Follow-ups slide-over (⌘K → "Who needs a follow-up") */}
       <AlertsDrawer />
 
       {/* Upgrade-to-Pro modal — summoned whenever a Pro-gated action returns 402 */}

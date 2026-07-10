@@ -40,14 +40,14 @@ export default function CommandCenter({ hero, items }: { hero: CommandItem | nul
       icon={<Sparkles size={14} />}
       iconTone="ai"
       title="AI Command Center"
-      sub="Ranked by priority, churn risk and waiting time"
+      sub="Ranked by who matters, who's going cold and how long they've waited"
       status="live"
     >
       {!hero ? (
         <EmptyNote
           icon={<CircleCheck size={17} />}
           title="No pending actions"
-          hint="When clients are waiting on you or AI detects risk, your next moves appear here."
+          hint="When someone's waiting on you or a relationship starts slipping, your next moves appear here."
         />
       ) : (
         <div style={{ padding: '14px 16px 10px' }}>
