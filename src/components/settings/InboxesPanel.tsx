@@ -100,7 +100,7 @@ function InboxesPanelInner({ canManage }: { canManage: boolean }) {
             <Plus size={15} /> Request access
           </button>
           <p style={{ margin: '10px 2px 0', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55, maxWidth: 540 }}>
-            Velnox is invite-only while we finish Google verification. Request access with the Gmail you want to connect — or{' '}
+            Velnox is in limited access while we finish Google verification. Request access with the Gmail you want to connect — or{' '}
             <a href="/api/auth/gmail" onClick={() => track('gmail_connect_clicked', { context: 'approved' })} style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
               connect if you&apos;re already approved
             </a>

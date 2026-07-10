@@ -23,7 +23,7 @@ export default async function LoginPage({
           Welcome back
         </h1>
         <p style={{ fontSize: 14.5, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.55 }}>
-          Sign in to your Velnox workspace.
+          Sign in to your inbox.
         </p>
       </div>
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '28px 28px 24px', boxShadow: 'var(--shadow-sm)' }}>

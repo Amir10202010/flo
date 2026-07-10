@@ -3,9 +3,9 @@ import { ArrowRight, Mail } from 'lucide-react'
 import { Reveal } from './Motion'
 
 const STEPS = [
-  { n: 1, title: 'Request inbox access', desc: 'Velnox is invite-only for now — request access with the Gmail your team works out of.' },
+  { n: 1, title: 'Request inbox access', desc: 'Velnox is in limited access for now — request access with the Gmail you want to connect.' },
   { n: 2, title: 'We approve & sync starts', desc: 'Once approved you connect in two clicks; threads import and get analyzed.' },
-  { n: 3, title: 'Act on what matters', desc: 'Work the command center, reply with AI drafts, and stay ahead of at-risk clients.' },
+  { n: 3, title: 'Act on what matters', desc: 'Work the command center, reply with AI drafts, and stay ahead of the clients going cold.' },
 ]
 
 /** First-run state: the platform is real, it just needs a connected inbox. */
@@ -35,7 +35,7 @@ export default function DashboardEmpty({ hasIntegration }: { hasIntegration: boo
         <p style={{ margin: '0 0 22px', fontSize: 14, color: 'var(--text-secondary)', maxWidth: 460, lineHeight: 1.6 }}>
           {hasIntegration
             ? 'Threads are being imported and analyzed. The command center, insights and trends fill in as data arrives.'
-            : 'Velnox is invite-only while we finish Google verification. Request access with the Gmail you want to connect — your dashboard fills in the moment it’s synced.'}
+            : 'Velnox is in limited access while we finish Google verification. Request access with the Gmail you want to connect — your dashboard fills in the moment it’s synced.'}
         </p>
         <Link href="/settings?tab=connections" className="btn-primary" style={{ fontSize: 14 }}>
           {hasIntegration ? 'View sync status' : 'Request inbox access'}

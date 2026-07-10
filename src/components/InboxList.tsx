@@ -423,7 +423,7 @@ function ConnectEmpty() {
       <div>
         <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>No Gmail connected yet</p>
         <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: 260 }}>
-          Velnox is invite-only for now — request access to the Gmail you want to connect.
+          Velnox is in limited access for now — request access to the Gmail you want to connect.
         </p>
       </div>
       <Link href="/settings?tab=connections" className="btn-primary" style={{ fontSize: 13.5, padding: '9px 18px', textDecoration: 'none' }}>

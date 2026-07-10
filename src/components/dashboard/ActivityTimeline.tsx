@@ -20,7 +20,7 @@ export default function ActivityTimeline({ events }: { events: TimelineEvent[] }
     <WidgetShell
       icon={<Activity size={14} />}
       title="Activity"
-      sub="Latest events across your workspace"
+      sub="Latest events across your inbox"
       status="live"
     >
       {events.length === 0 ? (

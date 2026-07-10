@@ -10,9 +10,9 @@ import type { DegradedReason } from '@/services/assistant.service'
 
 const SUGGESTED = [
   'Who should I follow up with today?',
-  'Summarize my at-risk clients',
+  'Who’s going cold right now?',
   'Draft a check-in email to my quietest client',
-  'What changed in my pipeline this week?',
+  'What changed this week?',
 ]
 
 interface Source {
@@ -136,7 +136,7 @@ export default function AssistantComposer() {
         <input
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="Ask about your clients, threads or pipeline…"
+          placeholder="Ask about your inbox, contacts or threads…"
           aria-label="Ask the assistant"
           disabled={loading}
           style={{
@@ -212,7 +212,7 @@ export default function AssistantComposer() {
           {loading && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 12.5 }}>
               <Loader2 size={14} className="animate-spin" style={{ color: 'var(--accent)' }} />
-              Reading your workspace…
+              Reading your inbox…
             </div>
           )}
 

@@ -90,7 +90,7 @@ export default function AssistantModal() {
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Ask Velnox</div>
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>Grounded in your workspace · it proposes, you confirm</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>Grounded in your inbox · it proposes, you confirm</div>
           </div>
           <button
             type="button"
