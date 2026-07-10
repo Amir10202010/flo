@@ -61,9 +61,9 @@ export async function GET(req: NextRequest) {
       update: {},
     })
 
-    // Resolve the active organization (cookie → first membership → auto-create a
-    // personal workspace) so a first connect never dead-ends, and the mailbox is
-    // wired as a shared inbox of that org.
+    // Resolve the active space (cookie → first membership → auto-create the
+    // user's private one) so a first connect never dead-ends, and the mailbox is
+    // wired to it.
     const orgCookie = req.cookies.get(ACTIVE_ORG_COOKIE)?.value
     let organizationId =
       (orgCookie
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
       null
     if (!organizationId) {
       const base = (user.email ?? 'My').split('@')[0]
-      const org = await createOrganization(user.id, `${base}'s Workspace`)
+      const org = await createOrganization(user.id, `${base}'s inbox`)
       organizationId = org.id
     }
 
