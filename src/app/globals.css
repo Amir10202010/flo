@@ -1017,6 +1017,10 @@
   align-items: stretch;
 }
 @media (max-width: 860px) { .demo-duo { grid-template-columns: 1fr; } }
+/* the Reveal wrapper is the stretched grid item — the card must fill it so
+   both cards in a row stand equal, panels pinned to the same bottom line */
+.demo-duo > * { display: flex; }
+.demo-duo .demo-card { width: 100%; }
 
 .demo-card {
   position: relative;
