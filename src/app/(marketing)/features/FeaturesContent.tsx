@@ -28,8 +28,8 @@ const ROWS: Row[] = [
     icon: Mail,
     eyebrow: 'Your Gmail',
     title: 'Your inbox, made smarter',
-    desc: 'Connect your own Gmail in two clicks with Google OAuth. Velnox reads your threads and gets to work — no new tool to learn, no mailbox to migrate.',
-    points: ['Connect in 30 seconds with Google OAuth', 'Your own personal inbox — nothing shared', 'Tokens encrypted, disconnect any time'],
+    desc: 'Connect your own Gmail with Google’s secure sign-in. Velnox reads your threads and gets to work — no new tool to learn, no mailbox to migrate.',
+    points: ['Secure Google sign-in — no password shared', 'Your own personal inbox — nothing shared', 'Tokens encrypted, disconnect any time'],
     demo: <GmailConnectDemo />,
   },
   {
@@ -128,7 +128,7 @@ export default function FeaturesContent() {
                 Get on top of your inbox
               </h2>
               <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.72)', margin: '0 0 28px', lineHeight: 1.6 }}>
-                Connect your Gmail in 30 seconds. Free to start.
+                Connect your Gmail. Free during early access.
               </p>
               <Link href="/signup" className="lp-cta-btn">Connect your Gmail — free <ArrowRight size={16} /></Link>
             </div>

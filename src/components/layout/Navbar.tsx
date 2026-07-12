@@ -54,7 +54,7 @@ export default function Navbar() {
             Sign in
           </Link>
           <Link href="/signup" className="btn-primary" style={{ padding: '8px 18px', fontSize: 14, gap: 6 }}>
-            Get started <ArrowRight size={14} />
+            Start free <ArrowRight size={14} />
           </Link>
         </div>
 
@@ -90,7 +90,7 @@ export default function Navbar() {
               })}
               <div className="nav-mobile-actions">
                 <Link href="/login" onClick={() => setMenuOpen(false)} className="btn-ghost" style={{ justifyContent: 'center' }}>Sign in</Link>
-                <Link href="/signup" onClick={() => setMenuOpen(false)} className="btn-primary" style={{ justifyContent: 'center' }}>Get started</Link>
+                <Link href="/signup" onClick={() => setMenuOpen(false)} className="btn-primary" style={{ justifyContent: 'center' }}>Start free</Link>
               </div>
             </div>
           </motion.div>

@@ -55,7 +55,7 @@ export default function AboutContent() {
               className="display-title"
               style={{ fontSize: 'clamp(32px, 4.6vw, 46px)', margin: '0 0 16px' }}
             >
-              Built for teams tired of dropped threads in a shared inbox
+              Built for people who run their whole business from one inbox
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
@@ -63,8 +63,9 @@ export default function AboutContent() {
               transition={{ duration: 0.55, ease: 'easeOut', delay: 0.1 }}
               style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}
             >
-              Velnox started from a simple frustration: a team sharing one mailbox, nobody sure who&apos;s replying
-              to what, important threads slipping through the cracks. We built the shared inbox we wished we had.
+              Velnox started from a simple frustration: client work lives in Gmail, and Gmail treats a $10,000 client
+              the same as a newsletter. Important threads slip, clients quietly go cold. We built the inbox assistant
+              we wished we had.
             </motion.p>
           </div>
         </section>
@@ -74,8 +75,8 @@ export default function AboutContent() {
           <div className="mkt-card" style={{ maxWidth: 760, margin: '0 auto', padding: '36px 40px', borderRadius: 20, background: '#FFFFFF', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
             <h2 style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', margin: '0 0 12px' }}>Our mission</h2>
             <p style={{ fontSize: 17, lineHeight: 1.75, color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-serif)', fontWeight: 400 }}>
-              Give every team the clarity of a world-class operation — one place to see who&apos;s handling what,
-              which conversations need attention now, and exactly what to say next.
+              Give every freelancer and consultant the follow-up discipline of a world-class operation —
+              who needs you today, who is drifting, and exactly what to say next.
             </p>
           </div>
         </section>
@@ -99,7 +100,7 @@ export default function AboutContent() {
             >
               <ValueCard icon={Target} title="Clarity over clutter" desc="A clean, minimal inbox that surfaces what matters and hides what doesn't — no dashboards full of numbers nobody reads." />
               <ValueCard icon={Sparkles} title="AI that explains itself" desc="Every priority label and suggestion comes with a reason, so you can trust it, learn from it, and override it when needed." />
-              <ValueCard icon={Users} title="Built for real teams" desc="Roles, assignment and internal notes designed for a team working one inbox together — fast, reliable, and accountable." />
+              <ValueCard icon={Users} title="Built for one busy inbox" desc="No seats, no setup, no shared anything — Velnox reads the Gmail you already use and works for exactly one person: you." />
             </motion.div>
           </div>
         </section>

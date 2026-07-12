@@ -448,7 +448,7 @@ export function ColdDemo() {
             borderRadius: 9, padding: '8px 10px', fontSize: 11.5, fontWeight: 600, color: 'var(--accent)',
           }}
         >
-          <Sparkles size={12} /> Follow-up drafted — review before send
+          <Sparkles size={12} /> Draft a follow-up — one click
         </motion.div>
       </Panel>
     </CardShell>

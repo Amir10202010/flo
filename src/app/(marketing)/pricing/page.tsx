@@ -4,19 +4,19 @@ import PricingContent from './PricingContent'
 export const metadata: Metadata = {
   title: 'Pricing — Velnox',
   description:
-    'Flat, no-per-seat pricing for the AI shared inbox. Free for one mailbox; Pro, Team and Business add full AI, shared inboxes and roles. Monthly or annual (2 months free).',
+    'Simple flat pricing for your own inbox. Free to start on your own Gmail; Pro adds unlimited AI drafts, going-cold alerts and the assistant. Annual = 2 months free.',
   alternates: { canonical: '/pricing' },
   openGraph: {
     type: 'website',
     siteName: 'Velnox',
     title: 'Pricing — Velnox',
-    description: 'Flat, no-per-seat pricing for the AI shared inbox. Free to start; upgrade as your team grows.',
+    description: 'Simple flat pricing for your own inbox. Free to start; Pro adds unlimited AI drafts and going-cold alerts.',
     url: '/pricing',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Pricing — Velnox',
-    description: 'Flat, no-per-seat pricing for the AI shared inbox. Free to start; upgrade as your team grows.',
+    description: 'Simple flat pricing for your own inbox. Free to start; Pro adds unlimited AI drafts and going-cold alerts.',
   },
 }
 

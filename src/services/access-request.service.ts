@@ -43,16 +43,23 @@ export async function submitAccessRequest(
   })
 
   if (shouldNotifyOwner(existing)) {
-    const notified = await notifyOwnerOfAccessRequest({
+    const payload = {
       email: record.email,
       note: record.note,
       requestedBy: record.requestedBy,
       createdAt: record.createdAt,
-    }).catch((e) => {
+    }
+    // Telegram first (instant, works even without a connected owner mailbox),
+    // then the email. Each channel is best-effort; either one counts as notified.
+    const messaged = await notifyTelegramOfAccessRequest(payload).catch((e) => {
+      console.warn('[access-request] telegram notification failed (request still recorded):', e)
+      return false
+    })
+    const emailed = await notifyOwnerOfAccessRequest(payload).catch((e) => {
       console.warn('[access-request] owner notification failed (request still recorded):', e)
       return false
     })
-    if (notified) {
+    if (messaged || emailed) {
       await prisma.accessRequest
         .update({ where: { id: record.id }, data: { notifiedAt: new Date() } })
         .catch(() => {})
@@ -63,6 +70,36 @@ export async function submitAccessRequest(
 }
 
 type OwnerEmailInput = { email: string; note: string | null; requestedBy: string | null; createdAt: Date }
+
+/**
+ * Telegram ping to the founder — needs TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID
+ * (create a bot via @BotFather, get your chat id via @userinfobot). Unlike the
+ * email path it works even when the owner mailbox isn't connected.
+ */
+async function notifyTelegramOfAccessRequest(req: OwnerEmailInput): Promise<boolean> {
+  const token = process.env.TELEGRAM_BOT_TOKEN?.trim()
+  const chatId = process.env.TELEGRAM_CHAT_ID?.trim()
+  if (!token || !chatId) return false
+
+  const text = [
+    '🔑 Velnox — access request',
+    `Email: ${req.email}`,
+    ...(req.note ? [`Note: ${req.note}`] : []),
+    '',
+    `Add to Test users: ${AUDIENCE_URL}`,
+  ].join('\n')
+
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    console.warn(`[access-request] telegram sendMessage HTTP ${res.status}: ${body.slice(0, 200)}`)
+  }
+  return res.ok
+}
 
 /** Email the owner about a new access request. Returns false when it can't send. */
 async function notifyOwnerOfAccessRequest(req: OwnerEmailInput): Promise<boolean> {

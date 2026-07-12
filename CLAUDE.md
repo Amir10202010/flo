@@ -26,12 +26,14 @@ DIRECT_URL     # direct connection (port 5432) — used by prisma migrate only
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
-GEMINI_API_KEY        # free-tier AI Studio key powers ALL AI features (analysis, search, embeddings); without it the app degrades to the local heuristic provider
+GEMINI_API_KEY        # free-tier AI Studio key(s) — one key or several comma-separated ("key1,key2", rotated on 429/auth errors) — powers ALL AI features (analysis, search, embeddings); without it the app degrades to the local heuristic provider
 GEMINI_MODEL          # optional: override the Gemini model (default gemini-2.5-flash); e.g. gemini-2.5-flash-lite. NB: 2.0-family models lost their free tier (429 quota limit 0)
 AI_PROVIDER           # optional: auto (default) | gemini | local — provider selection for the AI layer (src/services/ai)
 AI_EMBEDDING_MODEL    # optional: override the embedding model (default gemini-embedding-001)
 TELEGRAM_API_ID
 TELEGRAM_API_HASH
+TELEGRAM_BOT_TOKEN    # optional: @BotFather bot token — new access requests ping the founder in Telegram
+TELEGRAM_CHAT_ID      # optional: chat id the access-request pings go to (pair with TELEGRAM_BOT_TOKEN)
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET
 GOOGLE_REDIRECT_URI

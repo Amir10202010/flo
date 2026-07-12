@@ -21,9 +21,9 @@ const instrument = Instrument_Serif({
   display: 'swap',
 })
 
-const TITLE = 'Velnox — The AI assistant for your inbox'
+const TITLE = 'Velnox — Never lose a client in your Gmail'
 const DESCRIPTION =
-  'Velnox reads your Gmail and tells you who to reply to and follow up with today — and drafts the reply. Connect in 30 seconds. It’s your own inbox.'
+  'Velnox reads your Gmail and tells you which client to answer today, who’s going cold, and what to say — with the reply already drafted. Your own inbox, made smarter.'
 
 export const metadata: Metadata = {
   title: TITLE,

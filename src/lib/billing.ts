@@ -52,7 +52,7 @@ export const PLAN_CATALOG: Record<BillingPlan, PlanInfo> = {
     priceMonthly: 0,
     priceAnnual: 0,
     tagline: 'Get on top of your inbox, free.',
-    features: ['Your Gmail, AI-triaged', 'Auto-drafts on urgent threads (20/mo)', 'See who’s going cold', '7-day history'],
+    features: ['Your Gmail, AI-triaged', 'Auto-drafts on urgent threads (20/mo)', 'See who’s going cold', '7 days of inbox analytics'],
     limits: { members: 1, inboxes: 1, rules: 0, analyticsHistoryDays: 7, audit: false, automations: false, aiDrafts: false, autoDraftsPerMonth: 20, alerts: false, digest: false, assistant: false },
   },
   PRO: {
@@ -60,8 +60,8 @@ export const PLAN_CATALOG: Record<BillingPlan, PlanInfo> = {
     name: 'Pro',
     priceMonthly: 12,
     priceAnnual: 120,
-    tagline: 'For anyone who lives in their inbox.',
-    features: ['Unlimited AI drafts & smart compose', 'Going-cold email alerts', 'Weekly digest & Ask-AI assistant', '90-day history'],
+    tagline: 'For freelancers and consultants who run client work over email.',
+    features: ['Unlimited AI drafts & smart compose', 'Going-cold email alerts', 'Weekly digest & Ask-AI assistant', '90 days of inbox analytics'],
     limits: { members: 1, inboxes: 1, rules: 0, analyticsHistoryDays: 90, audit: false, automations: false, aiDrafts: true, autoDraftsPerMonth: Infinity, alerts: true, digest: true, assistant: true },
   },
   TEAM: {

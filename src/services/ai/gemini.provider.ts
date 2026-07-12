@@ -17,6 +17,9 @@ import {
  * Models are overridable via GEMINI_MODEL / AI_EMBEDDING_MODEL without code
  * changes. 429s map to retryable AiProviderError so the job queue's
  * exponential backoff (queue.failJob) does the rate-limit pacing for us.
+ *
+ * GEMINI_API_KEY may hold SEVERAL comma-separated keys; calls rotate to the
+ * next key on 429/auth failures, multiplying the free-tier quota.
  */
 
 // NOTE: the Gemini 2.0 models lost their free tier (quota limit 0 as of 2026);
@@ -26,10 +29,47 @@ const EMBEDDING_MODEL = process.env.AI_EMBEDDING_MODEL?.trim() || 'gemini-embedd
 const EMBEDDING_DIMS = 768
 const EMBED_BATCH = 16
 
-function apiKey(): string {
-  const key = process.env.GEMINI_API_KEY
-  if (!key) throw new AiProviderError('GEMINI_API_KEY is not set', 'auth')
-  return key
+/**
+ * GEMINI_API_KEY accepts one key or several comma-separated keys
+ * ("key1,key2,key3"). Each AI Studio key has its own free-tier quota, so a
+ * small pool multiplies the daily allowance. Rotation state is per-process.
+ */
+let keyCursor = 0
+
+function keyPool(): string[] {
+  const keys = (process.env.GEMINI_API_KEY ?? '')
+    .split(',')
+    .map((k) => k.trim())
+    .filter(Boolean)
+  if (!keys.length) throw new AiProviderError('GEMINI_API_KEY is not set', 'auth')
+  return keys
+}
+
+/**
+ * Run `fn` with a key from the pool, advancing to the next key when the
+ * current one is rate-limited (429) or rejected (auth) — a different key has
+ * its own quota. Sticks with the key that succeeded so later calls keep
+ * draining it. Other errors (5xx, bad output) hit the same backend regardless
+ * of key, so they propagate immediately.
+ */
+async function withApiKey<T>(fn: (key: string) => Promise<T>): Promise<T> {
+  const keys = keyPool()
+  let lastErr: AiProviderError | null = null
+  for (let attempt = 0; attempt < keys.length; attempt++) {
+    const idx = (keyCursor + attempt) % keys.length
+    try {
+      const result = await fn(keys[idx])
+      keyCursor = idx
+      return result
+    } catch (err) {
+      const e = classify(err)
+      if (e.kind !== 'rate_limit' && e.kind !== 'auth') throw e
+      lastErr = e
+    }
+  }
+  // Whole pool exhausted — start the next call on a fresh key.
+  keyCursor = (keyCursor + 1) % keys.length
+  throw lastErr ?? new AiProviderError('Gemini: no usable API key', 'auth')
 }
 
 function classify(err: unknown): AiProviderError {
@@ -48,6 +88,50 @@ function classify(err: unknown): AiProviderError {
   return new AiProviderError(`Gemini error: ${msg}`, 'bad_response')
 }
 
+async function embedBatch(key: string, batch: string[], gTask: string): Promise<number[][]> {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL}:batchEmbedContents?key=${key}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requests: batch.map((text) => ({
+          model: `models/${EMBEDDING_MODEL}`,
+          content: { parts: [{ text }] },
+          taskType: gTask,
+          outputDimensionality: EMBEDDING_DIMS,
+        })),
+      }),
+    },
+  ).catch((e) => {
+    throw new AiProviderError(`Gemini embeddings fetch failed: ${e}`, 'unavailable')
+  })
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    const msg = `Gemini embeddings HTTP ${res.status}: ${body.slice(0, 200)}`
+    if (res.status === 429) throw new AiProviderError(msg, 'rate_limit')
+    if (res.status === 401 || res.status === 403) throw new AiProviderError(msg, 'auth')
+    if (res.status >= 500) throw new AiProviderError(msg, 'unavailable')
+    throw new AiProviderError(msg, 'bad_response')
+  }
+
+  const data = (await res.json()) as { embeddings?: { values?: number[] }[] }
+  const vectors = data.embeddings ?? []
+  if (vectors.length !== batch.length) {
+    throw new AiProviderError(
+      `Gemini embeddings: expected ${batch.length} vectors, got ${vectors.length}`,
+      'bad_response',
+    )
+  }
+  return vectors.map((v) => {
+    if (!Array.isArray(v.values) || !v.values.length) {
+      throw new AiProviderError('Gemini embeddings: empty vector in response', 'bad_response')
+    }
+    return l2Normalize(v.values)
+  })
+}
+
 function l2Normalize(v: number[]): number[] {
   let norm = 0
   for (const x of v) norm += x * x
@@ -63,28 +147,30 @@ class GeminiProvider implements AiTextProvider, AiEmbeddingProvider {
 
   async generateJson<T = unknown>(req: GenerateJsonRequest): Promise<T> {
     try {
-      const genAI = new GoogleGenerativeAI(apiKey())
-      const model = genAI.getGenerativeModel({
-        model: GENERATION_MODEL,
-        generationConfig: {
-          responseMimeType: 'application/json',
-          // Our AiJsonSchema subset is structurally a Gemini Schema (SchemaType
-          // enum values are the lowercase JSON-schema type names).
-          responseSchema: req.schema as unknown as Schema,
-          ...(req.maxOutputTokens ? { maxOutputTokens: req.maxOutputTokens } : {}),
-        },
-      })
+      return await withApiKey(async (key) => {
+        const genAI = new GoogleGenerativeAI(key)
+        const model = genAI.getGenerativeModel({
+          model: GENERATION_MODEL,
+          generationConfig: {
+            responseMimeType: 'application/json',
+            // Our AiJsonSchema subset is structurally a Gemini Schema (SchemaType
+            // enum values are the lowercase JSON-schema type names).
+            responseSchema: req.schema as unknown as Schema,
+            ...(req.maxOutputTokens ? { maxOutputTokens: req.maxOutputTokens } : {}),
+          },
+        })
 
-      const result = await model.generateContent(req.prompt)
-      const text = result.response.text()
-      try {
-        return JSON.parse(text) as T
-      } catch {
-        throw new AiProviderError(
-          `Gemini returned non-JSON output (first 200 chars): ${text.slice(0, 200)}`,
-          'bad_response',
-        )
-      }
+        const result = await model.generateContent(req.prompt)
+        const text = result.response.text()
+        try {
+          return JSON.parse(text) as T
+        } catch {
+          throw new AiProviderError(
+            `Gemini returned non-JSON output (first 200 chars): ${text.slice(0, 200)}`,
+            'bad_response',
+          )
+        }
+      })
     } catch (err) {
       throw classify(err)
     }
@@ -97,53 +183,13 @@ class GeminiProvider implements AiTextProvider, AiEmbeddingProvider {
    */
   async embed(texts: string[], taskType: EmbedTaskType): Promise<number[][]> {
     if (!texts.length) return []
-    const key = apiKey()
     const gTask = taskType === 'query' ? 'RETRIEVAL_QUERY' : 'RETRIEVAL_DOCUMENT'
     const out: number[][] = []
 
     for (let i = 0; i < texts.length; i += EMBED_BATCH) {
       const batch = texts.slice(i, i + EMBED_BATCH)
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL}:batchEmbedContents?key=${key}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            requests: batch.map((text) => ({
-              model: `models/${EMBEDDING_MODEL}`,
-              content: { parts: [{ text }] },
-              taskType: gTask,
-              outputDimensionality: EMBEDDING_DIMS,
-            })),
-          }),
-        },
-      ).catch((e) => {
-        throw new AiProviderError(`Gemini embeddings fetch failed: ${e}`, 'unavailable')
-      })
-
-      if (!res.ok) {
-        const body = await res.text().catch(() => '')
-        const msg = `Gemini embeddings HTTP ${res.status}: ${body.slice(0, 200)}`
-        if (res.status === 429) throw new AiProviderError(msg, 'rate_limit')
-        if (res.status === 401 || res.status === 403) throw new AiProviderError(msg, 'auth')
-        if (res.status >= 500) throw new AiProviderError(msg, 'unavailable')
-        throw new AiProviderError(msg, 'bad_response')
-      }
-
-      const data = (await res.json()) as { embeddings?: { values?: number[] }[] }
-      const vectors = data.embeddings ?? []
-      if (vectors.length !== batch.length) {
-        throw new AiProviderError(
-          `Gemini embeddings: expected ${batch.length} vectors, got ${vectors.length}`,
-          'bad_response',
-        )
-      }
-      for (const v of vectors) {
-        if (!Array.isArray(v.values) || !v.values.length) {
-          throw new AiProviderError('Gemini embeddings: empty vector in response', 'bad_response')
-        }
-        out.push(l2Normalize(v.values))
-      }
+      const vectors = await withApiKey((key) => embedBatch(key, batch, gTask))
+      out.push(...vectors)
     }
     return out
   }

@@ -6,7 +6,7 @@ import { motion, MotionConfig, AnimatePresence, type Variants } from 'framer-mot
 import { ArrowRight, Plus } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
-import ProductDemo from '@/components/marketing/ProductDemo'
+import HeroMedia from '@/components/marketing/HeroMedia'
 import HeroSkyline from '@/components/marketing/HeroSkyline'
 import { RankDemo, DraftDemo, ColdDemo, FollowThroughDemo } from '@/components/marketing/SoloDemos'
 
@@ -35,10 +35,10 @@ function Reveal({ children, className, style }: { children: React.ReactNode; cla
 
 /* ── Content ─────────────────────────────────────────────────────────────── */
 const FAQS = [
-  { q: 'How does Velnox connect to my Gmail?', a: 'You connect your own Gmail in two clicks with Google’s secure OAuth — Velnox never sees or stores your password. Your threads start syncing within minutes.' },
   { q: 'What does the AI actually do?', a: 'It reads every thread, ranks what needs you today, flags the people going cold, and drafts a reply in your voice — review-before-send, never auto-sent.' },
-  { q: 'Is it really just my inbox?', a: 'Yes. Velnox is single-user and reads one personal Gmail. There’s no team to set up and no shared mailbox — it’s your own inbox, made smarter.' },
   { q: 'Is my data private and secure?', a: 'OAuth tokens are encrypted at rest (AES-256-GCM). To power AI features, message content is processed by our AI provider (Google’s Gemini API); we never sell your data — see our Privacy Policy for exactly how it’s handled.' },
+  { q: 'How does Velnox connect to my Gmail?', a: 'You connect with Google’s secure sign-in — Velnox never sees or stores your password. We’re in early access, so new Gmail connections are approved personally (usually within a day); once approved, your threads sync within minutes.' },
+  { q: 'Do I need to change how I use email?', a: 'No. Velnox sits on the personal Gmail you already have — it adds a ranked to-answer list, going-cold flags and ready-to-send drafts on top. Nothing to migrate, nobody else to invite.' },
 ]
 
 /* Cluely-style two-tone section headline: the working part in ink, the
@@ -84,7 +84,7 @@ export default function LandingPage() {
               transition={{ duration: 0.55, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
               style={{ fontSize: 17, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 auto 30px', maxWidth: 540 }}
             >
-              Velnox reads your Gmail and tells you who to answer today, who’s going cold,
+              Velnox reads your Gmail and tells you which client to answer today, who’s going cold,
               and what to say — with the reply already drafted.
             </motion.p>
 
@@ -93,11 +93,14 @@ export default function LandingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
               className="hero-cta"
-              style={{ display: 'flex', justifyContent: 'center' }}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}
             >
               <Link href="/signup" className="btn-primary" style={{ fontSize: 15, padding: '13px 26px' }}>
                 Start free <ArrowRight size={16} />
               </Link>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
+                For freelancers, consultants and solo founders who run client work over Gmail.
+              </p>
             </motion.div>
           </div>
 
@@ -105,17 +108,18 @@ export default function LandingPage() {
           <div className="hero-sky-spacer" aria-hidden />
         </section>
 
-        {/* ── Product window rising out of the skyline (future demo video) ── */}
+        {/* ── Product window rising out of the skyline — plays public/demo.mp4
+               when the file exists, falls back to the animated scene ─────── */}
         <section id="demo" className="hero-demo-pull mkt-x" style={{ padding: '0 32px' }}>
           <div style={{ maxWidth: 1140, margin: '0 auto' }}>
-            <Reveal><ProductDemo /></Reveal>
+            <Reveal><HeroMedia /></Reveal>
           </div>
         </section>
 
-        {/* ── How Velnox works your morning — two live demo cards ────────── */}
-        <section className="section-padded mkt-x" style={{ padding: '110px 32px 96px' }}>
+        {/* ── Your morning, already sorted — two live demo cards ─────────── */}
+        <section id="how" className="section-padded mkt-x" style={{ padding: '110px 32px 96px' }}>
           <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-            <DuoHead ink="How Velnox works" muted="your morning" />
+            <DuoHead ink="Your morning," muted="already sorted" />
             <div className="demo-duo">
               <Reveal><RankDemo /></Reveal>
               <Reveal><DraftDemo /></Reveal>
@@ -181,15 +185,15 @@ export default function LandingPage() {
           <Reveal style={{ maxWidth: 880, margin: '0 auto' }}>
             <div className="lp-cta">
               <h2 className="display-title" style={{ fontSize: 'clamp(26px, 3.4vw, 38px)', color: '#fff', margin: '0 0 12px' }}>
-                Stop losing clients in your inbox.
+                Tomorrow morning, know exactly who to answer.
               </h2>
               <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.72)', margin: '0 0 28px', lineHeight: 1.6, maxWidth: 460 }}>
-                Connect your Gmail and see who to reply to and follow up with today — with the reply already drafted. 30 seconds to set up.
+                Connect your Gmail and see who to reply to and follow up with today — with the reply already drafted.
               </p>
               <Link href="/signup" className="lp-cta-btn">
                 Connect your Gmail — free <ArrowRight size={16} />
               </Link>
-              <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)', margin: '16px 0 0' }}>Free to start · your own inbox · no credit card</p>
+              <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)', margin: '16px 0 0' }}>Early access — we approve new inboxes personally, usually within a day · no credit card</p>
             </div>
           </Reveal>
         </section>

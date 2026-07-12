@@ -8,12 +8,12 @@ import {
 import {
   Sparkles, Check, Send, Search, UserRound, ChevronDown, RotateCcw, PencilLine,
   LayoutDashboard, Inbox as InboxIcon, Users, Lightbulb, ShieldAlert, ChartColumn,
-  Bot, ArrowDownWideNarrow, type LucideIcon,
+  Bot, ArrowDownWideNarrow, CalendarClock, type LucideIcon,
 } from 'lucide-react'
 import Cursor from './Cursor'
 import { SPRING, bubbleIn, lineStagger, lineIn } from './demo-motion'
 
-/* ── Static data — mirrors the real shared-inbox /inbox page ───────────────── */
+/* ── Static data — mirrors the real (single-user) /inbox page ──────────────── */
 const ALEX_GRAD = 'linear-gradient(135deg,#DC2B55,#F2709C)'
 
 const CONVS = [
@@ -25,12 +25,12 @@ const CONVS = [
   {
     grad: 'linear-gradient(135deg,#C2620A,#F6A23B)', ini: 'KL', name: 'Karina Lee',
     subject: 'Proposal follow-up', preview: 'Still checking on my end…',
-    time: '3h', badge: 'High', cls: 'priority-attention', unread: 0, assignee: null,
+    time: '3h', badge: 'High', cls: 'priority-attention', unread: 0,
   },
   {
     grad: 'linear-gradient(135deg,#4F5CF4,#7C4DFF)', ini: 'MJ', name: 'Mark Johnson',
     subject: 'Invoice #214', preview: "Thanks, I'll follow up later.",
-    time: '1d', badge: null, cls: '', unread: 0, assignee: null,
+    time: '1d', badge: null, cls: '', unread: 0,
   },
 ]
 
@@ -51,12 +51,12 @@ const BASE_MESSAGES = [
 ]
 
 const SUGGESTED =
-  "Hi Alex — yes, the full package is $3,800 (full setup + a 2-year warranty). We can kick off this Monday; I'll send the onboarding details today. Excited to get started! 🎉"
+  "Hi Alex — yes, the full package is $3,800 (design, build and two rounds of revisions). We can kick off this Monday — I'll send over the agreement today. Excited to get started! 🎉"
 const CLIENT_REPLY = "Perfect — Monday works for us. Let's do it! 🙌"
 
 /* Timeline: cumulative step machine. Each entry = ms the step is held.
- * 0 idle · 1 analyzing · 2 insight · 3 assign · 4 note · 5 draft · 6 send ·
- * 7 client typing · 8 reply · 9 resolved */
+ * 0 idle · 1 analyzing · 2 insight · 3 follow-up · 4 reminder · 5 draft ·
+ * 6 send · 7 client typing · 8 reply · 9 resolved */
 const DURATIONS = [1600, 1300, 1900, 1350, 1900, 2400, 950, 1100, 1800, 2900]
 
 export default function ProductDemo() {
@@ -111,8 +111,8 @@ export default function ProductDemo() {
 
   const analyzing = s === 1
   const insightShown = s >= 2
-  const assigned = s >= 3
-  const noteShown = s >= 4
+  const followUpSet = s >= 3
+  const reminderShown = s >= 4
   const draftInComposer = s === 5
   const sentVisible = s >= 6
   const clientTyping = s === 7
@@ -147,9 +147,9 @@ export default function ProductDemo() {
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [step, reduce])
 
-  /* Alex's list row mirrors the app: assignee flips to You, the preview/time
-   * update once the reply is sent, unread clears, Urgent → Won on resolve. */
-  const alexAssignee = assigned ? 'You' : null
+  /* Alex's list row mirrors the app: a follow-up chip appears, the preview/time
+   * update once the reply is sent, unread clears, Urgent → Replied on resolve. */
+  const alexFollowUp = followUpSet ? 'Follow-up today' : null
   const alexPreview = replyVisible ? CLIENT_REPLY : sentVisible ? `You: ${SUGGESTED.replace(' 🎉', '')}` : CONVS[0].preview
   const alexTime = sentVisible ? 'now' : CONVS[0].time
 
@@ -205,7 +205,7 @@ export default function ProductDemo() {
               <div className="inbox-search" style={{ padding: '6px 9px', marginBottom: 9 }}>
                 <Search size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                 <span style={{ flex: 1, fontSize: 12, color: 'var(--text-muted)' }}>Search conversations…</span>
-                <span className="inbox-search-badge"><Sparkles size={9} /> AI · beta</span>
+                <span className="inbox-search-badge"><Sparkles size={9} /> AI</span>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -219,7 +219,7 @@ export default function ProductDemo() {
 
             <div className="inbox-group-head" style={{ padding: '9px 14px', cursor: 'default' }}>
               <span className="inbox-group-dot" style={{ background: '#EA4335' }} />
-              <span className="inbox-group-label" style={{ fontSize: 11 }}>support@acme.co</span>
+              <span className="inbox-group-label" style={{ fontSize: 11 }}>you@gmail.com</span>
               <span className="inbox-group-count">3</span>
               <ChevronDown size={13} className="inbox-group-chevron" />
             </div>
@@ -229,7 +229,7 @@ export default function ProductDemo() {
               const selected = isHot
               const preview = isHot ? alexPreview : c.preview
               const time = isHot ? alexTime : c.time
-              const assignee = isHot ? alexAssignee : c.assignee
+              const followUp = isHot ? alexFollowUp : null
               const unreadGone = isHot && sentVisible
               return (
                 <div
@@ -249,17 +249,17 @@ export default function ProductDemo() {
                     </div>
                     <p style={{ margin: '1px 0 0', color: 'var(--text-secondary)', fontWeight: 500, fontSize: 11.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.45 }}>{c.subject}</p>
 
-                    {assignee && (
+                    {followUp && (
                       <AnimatePresence mode="popLayout" initial={false}>
                         <motion.span
-                          key={assignee}
+                          key={followUp}
                           initial={isHot ? { opacity: 0, scale: 0.7 } : false}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={SPRING.snap}
                           className="cat-tag"
                           style={{ marginTop: 4, color: 'var(--text-secondary)', background: 'var(--bg-subtle)' }}
                         >
-                          <UserRound size={10} /> {assignee}
+                          <CalendarClock size={10} /> {followUp}
                         </motion.span>
                       </AnimatePresence>
                     )}
@@ -473,19 +473,19 @@ export default function ProductDemo() {
               <h3 className="rail-label" style={{ marginBottom: 9 }}>Properties</h3>
 
               <div className="rail-prop" style={{ marginBottom: 8 }}>
-                <span className="rail-prop-k" style={{ width: 48, fontSize: 11 }}>Owner</span>
+                <span className="rail-prop-k" style={{ width: 56, fontSize: 11 }}>Follow-up</span>
                 <div className="rail-prop-v">
                   <div className="rail-select" style={{ padding: '5px 9px', fontSize: 11.5 }}>
-                    <UserRound size={12} />
+                    <CalendarClock size={12} />
                     <span className="rail-select-label">
                       <AnimatePresence mode="popLayout" initial={false}>
                         <motion.span
-                          key={assigned ? 'you' : 'unassigned'}
+                          key={followUpSet ? 'today' : 'none'}
                           initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
                           transition={SPRING.snap}
-                          style={{ display: 'inline-block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: assigned ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                          style={{ display: 'inline-block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: followUpSet ? 'var(--text-primary)' : 'var(--text-muted)' }}
                         >
-                          {assigned ? 'You' : 'Unassigned'}
+                          {followUpSet ? 'Today' : 'None'}
                         </motion.span>
                       </AnimatePresence>
                     </span>
@@ -495,7 +495,7 @@ export default function ProductDemo() {
               </div>
 
               <div className="rail-prop" style={{ marginBottom: 8 }}>
-                <span className="rail-prop-k" style={{ width: 48, fontSize: 11 }}>Status</span>
+                <span className="rail-prop-k" style={{ width: 56, fontSize: 11 }}>Status</span>
                 <div className="rail-seg">
                   {(['Open', 'Snoozed', 'Closed'] as const).map(label => {
                     const active = resolved ? label === 'Closed' : label === 'Open'
@@ -507,18 +507,18 @@ export default function ProductDemo() {
               </div>
 
               <div className="rail-prop" style={{ marginBottom: 0 }}>
-                <span className="rail-prop-k" style={{ width: 48, fontSize: 11 }}>Tags</span>
+                <span className="rail-prop-k" style={{ width: 56, fontSize: 11 }}>Tags</span>
                 <div className="rail-prop-v">
-                  <span className="rail-tag-chip" style={{ color: '#DC2B55', background: '#DC2B551a', borderColor: '#DC2B5555', fontSize: 10.5 }}>Hot lead</span>
+                  <span className="rail-tag-chip" style={{ color: '#DC2B55', background: '#DC2B551a', borderColor: '#DC2B5555', fontSize: 10.5 }}>Key client</span>
                 </div>
               </div>
             </section>
 
-            {/* Velnox's private note to you */}
+            {/* Reminder — the real assistant-set follow-up feature */}
             <section className="rail-section" style={{ padding: '13px 14px', borderBottom: 'none' }}>
-              <h3 className="rail-label" style={{ marginBottom: 9 }}>Velnox note <span className="rail-label-hint">· private to you</span></h3>
+              <h3 className="rail-label" style={{ marginBottom: 9 }}>Reminder <span className="rail-label-hint">· set by Velnox</span></h3>
               <AnimatePresence>
-                {noteShown ? (
+                {reminderShown ? (
                   <motion.div
                     key="note"
                     initial={{ opacity: 0, y: 8, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -529,11 +529,11 @@ export default function ProductDemo() {
                       <span className="rail-note-author" style={{ fontSize: 11 }}>Velnox</span>
                       <span className="rail-note-time" style={{ fontSize: 10 }}>just now</span>
                     </div>
-                    <p className="rail-note-body" style={{ fontSize: 11.5 }}>Pricing approved ✅ — green light to close.</p>
+                    <p className="rail-note-body" style={{ fontSize: 11.5 }}>Nudge Alex tomorrow 9:00 if he hasn’t replied.</p>
                   </motion.div>
                 ) : (
                   <motion.p key="note-empty" exit={{ opacity: 0 }} style={{ margin: 0, fontSize: 11.5, color: 'var(--text-muted)' }}>
-                    Add an internal note…
+                    No reminders yet…
                   </motion.p>
                 )}
               </AnimatePresence>
@@ -570,13 +570,13 @@ function DemoCard({
   )
 }
 
-/* ── Priority badge that flips Urgent → Won with a spring ─────────────────── */
+/* ── Priority badge that flips Urgent → Replied with a spring ─────────────── */
 function FlipBadge({ won, fontSize }: { won: boolean; fontSize?: number }) {
   return (
     <span style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.span
-          key={won ? 'won' : 'urgent'}
+          key={won ? 'replied' : 'urgent'}
           initial={{ opacity: 0, scale: 0.55, y: -8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.6, y: 8 }}
@@ -584,7 +584,7 @@ function FlipBadge({ won, fontSize }: { won: boolean; fontSize?: number }) {
           className={`priority-badge ${won ? 'priority-cold' : 'priority-hot'}`}
           style={fontSize ? { fontSize } : undefined}
         >
-          {won ? 'Won' : 'Urgent'}
+          {won ? 'Replied' : 'Urgent'}
         </motion.span>
       </AnimatePresence>
     </span>

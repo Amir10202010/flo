@@ -4,7 +4,7 @@ import ContactContent from './ContactContent'
 export const metadata: Metadata = {
   title: 'Contact — Velnox',
   description:
-    'Get in touch with the Velnox team about support, sales or security questions — or just start a free account and try the AI shared inbox yourself.',
+    'Get in touch with the Velnox team about support, sales or security questions — or just start a free account and try the AI assistant for your Gmail yourself.',
   alternates: { canonical: '/contact' },
   openGraph: {
     type: 'website',
