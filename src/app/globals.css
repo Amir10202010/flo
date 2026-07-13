@@ -979,16 +979,20 @@
 .hero-sky {
   position: relative;
   overflow: hidden;
-  padding-top: 138px;
+  padding-top: 118px;
 }
-@media (max-width: 900px) { .hero-sky { padding-top: 118px; } }
-@media (max-width: 640px) { .hero-sky { padding-top: 102px; } }
+@media (max-width: 900px) { .hero-sky { padding-top: 104px; } }
+@media (max-width: 640px) { .hero-sky { padding-top: 94px; } }
 
 .hero-serif {
   font-family: var(--font-hero-serif, Georgia, 'Times New Roman', serif);
-  font-weight: 400;
-  letter-spacing: -0.015em;
-  line-height: 1.06;
+  font-weight: 420;
+  /* Pin the soft, bookish low-opsz cut (Cluely-like) — auto optical sizing
+     would swap in the sharp Didone display cut at these sizes. */
+  font-optical-sizing: none;
+  font-variation-settings: 'opsz' 20, 'SOFT' 70, 'WONK' 0;
+  letter-spacing: -0.005em;
+  line-height: 1.08;
 }
 
 .hero-skyline {
@@ -1001,7 +1005,7 @@
 
 /* space under the copy so the skyline reads before the window covers it —
    kept tight so the demo window is already peeking above the fold */
-.hero-sky-spacer { height: clamp(150px, 19vw, 240px); }
+.hero-sky-spacer { height: clamp(130px, 17vw, 215px); }
 
 /* the product window overlaps the city by ~a third of its chrome */
 .hero-demo-pull {

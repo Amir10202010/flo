@@ -14,11 +14,14 @@ const inter = Inter({
   display: 'swap',
 })
 
+// Variable cut with the SOFT/WONK/opsz axes so .hero-serif can pin a LOW
+// optical size — at display sizes the auto opsz turns Didone-sharp (reads
+// like the old Instrument Serif); the low-opsz soft cut is the Cluely look.
 const fraunces = Fraunces({
   variable: '--font-hero-serif',
   subsets: ['latin'],
-  weight: '400',
   display: 'swap',
+  axes: ['SOFT', 'WONK', 'opsz'],
 })
 
 const TITLE = 'Velnox — Never lose a client in your Gmail'

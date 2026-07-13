@@ -30,12 +30,12 @@ export default function HeroMedia() {
         aria-hidden
         style={{
           position: 'absolute',
-          inset: '-11% -9% -15%',
+          inset: '-13% -11% -17%',
           zIndex: 0,
           pointerEvents: 'none',
           background:
-            'radial-gradient(60% 58% at 50% 44%, rgba(79,92,244,0.55), rgba(96,165,250,0.34) 52%, rgba(124,192,255,0) 78%)',
-          filter: 'blur(46px)',
+            'radial-gradient(62% 60% at 50% 44%, rgba(79,92,244,0.75), rgba(96,165,250,0.5) 50%, rgba(124,192,255,0) 76%)',
+          filter: 'blur(38px)',
         }}
       />
       {!videoFailed && (

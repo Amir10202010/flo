@@ -82,7 +82,7 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
-              style={{ fontSize: 19, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 auto 30px', maxWidth: 600 }}
+              style={{ fontSize: 19, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 auto 30px', maxWidth: 620, textWrap: 'balance' }}
             >
               Velnox reads your Gmail and tells you which client to answer today, who’s going cold,
               and what to say — with the reply already drafted.
@@ -95,8 +95,8 @@ export default function LandingPage() {
               className="hero-cta"
               style={{ display: 'flex', justifyContent: 'center' }}
             >
-              <Link href="/signup" className="btn-primary" style={{ fontSize: 15, padding: '13px 26px' }}>
-                Start free <ArrowRight size={16} />
+              <Link href="/signup" className="btn-primary" style={{ fontSize: 16.5, padding: '16px 34px', borderRadius: 10 }}>
+                Start free <ArrowRight size={17} />
               </Link>
             </motion.div>
           </div>
@@ -116,7 +116,7 @@ export default function LandingPage() {
         {/* ── Your morning, already sorted — two live demo cards ─────────── */}
         <section id="how" className="section-padded mkt-x" style={{ padding: '110px 32px 96px' }}>
           <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-            <DuoHead ink="Your morning," muted="already sorted" />
+            <DuoHead ink="Your morning," muted="already sorted" align="center" />
             <div className="demo-duo">
               <Reveal><RankDemo /></Reveal>
               <Reveal><DraftDemo /></Reveal>
