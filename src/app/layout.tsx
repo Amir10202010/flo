@@ -1,21 +1,21 @@
 import type { Metadata } from 'next'
-import { Inter, Instrument_Serif } from 'next/font/google'
+import { Inter, Fraunces } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import PostHogProvider from '@/components/analytics/PostHogProvider'
 import './globals.css'
 
 // One typeface for the product (UI + marketing body): Inter, the calm, neutral,
-// "invisible" sans used by Linear/GitHub/Stripe. Instrument Serif exists for a
-// single job — the landing hero headline (.hero-serif) — and must not creep
-// into UI surfaces.
+// "invisible" sans used by Linear/GitHub/Stripe. Fraunces (soft bookish serif,
+// the closest Google face to Cluely's display look) exists for a single job —
+// the landing hero headline (.hero-serif) — and must not creep into UI surfaces.
 const inter = Inter({
   variable: '--font-inter',
   subsets: ['latin'],
   display: 'swap',
 })
 
-const instrument = Instrument_Serif({
-  variable: '--font-instrument',
+const fraunces = Fraunces({
+  variable: '--font-hero-serif',
   subsets: ['latin'],
   weight: '400',
   display: 'swap',
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     // data-scroll-behavior suppresses Next.js router warning about smooth scroll
-    <html lang="en" data-scroll-behavior="smooth" className={`${inter.variable} ${instrument.variable} h-full`}>
+    <html lang="en" data-scroll-behavior="smooth" className={`${inter.variable} ${fraunces.variable} h-full`}>
       <body className="min-h-full">
         <PostHogProvider>{children}</PostHogProvider>
         <Analytics />

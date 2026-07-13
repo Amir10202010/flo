@@ -47,7 +47,7 @@ function DuoHead({ ink, muted, align = 'left' }: { ink: string; muted: string; a
   return (
     <Reveal style={{ textAlign: align, marginBottom: 34 }}>
       <h2 className="display-title" style={{ fontSize: 'clamp(27px, 3.4vw, 38px)', margin: 0 }}>
-        {ink} <span style={{ color: 'var(--text-muted)' }}>{muted}</span>
+        {ink} <span style={{ color: 'var(--accent)' }}>{muted}</span>
       </h2>
     </Reveal>
   )
@@ -71,7 +71,7 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-              style={{ fontSize: 'clamp(46px, 7.4vw, 88px)', color: 'var(--text-primary)', margin: '0 0 22px' }}
+              style={{ fontSize: 'clamp(37px, 7.2vw, 86px)', color: 'var(--text-primary)', margin: '0 0 22px' }}
             >
               Stop losing clients
               <br />
@@ -82,7 +82,7 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
-              style={{ fontSize: 17, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 auto 30px', maxWidth: 540 }}
+              style={{ fontSize: 19, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 auto 30px', maxWidth: 600 }}
             >
               Velnox reads your Gmail and tells you which client to answer today, who’s going cold,
               and what to say — with the reply already drafted.
@@ -93,14 +93,11 @@ export default function LandingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
               className="hero-cta"
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}
+              style={{ display: 'flex', justifyContent: 'center' }}
             >
               <Link href="/signup" className="btn-primary" style={{ fontSize: 15, padding: '13px 26px' }}>
                 Start free <ArrowRight size={16} />
               </Link>
-              <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
-                For freelancers, consultants and solo founders who run client work over Gmail.
-              </p>
             </motion.div>
           </div>
 

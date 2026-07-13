@@ -25,8 +25,24 @@ export default function HeroMedia() {
 
   return (
     <div style={{ position: 'relative' }}>
+      {/* Cluely-style cool ambience bleeding out from behind the window */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          inset: '-11% -9% -15%',
+          zIndex: 0,
+          pointerEvents: 'none',
+          background:
+            'radial-gradient(60% 58% at 50% 44%, rgba(79,92,244,0.55), rgba(96,165,250,0.34) 52%, rgba(124,192,255,0) 78%)',
+          filter: 'blur(46px)',
+        }}
+      />
       {!videoFailed && (
-        <div className="scene" style={{ display: videoReady ? 'block' : 'none' }}>
+        <div className="scene" style={{ position: 'relative', zIndex: 1, display: videoReady ? 'block' : 'none' }}>
+          {/* The capture has 96px of black pillarboxing burned into each side of
+              its 1920px frame (5%) — overscan the video by 1920/1728 so the
+              window chrome crops the bars away. */}
           <video
             ref={videoRef}
             src="/demo.mp4"
@@ -37,11 +53,11 @@ export default function HeroMedia() {
             preload="auto"
             onCanPlay={() => setVideoReady(true)}
             onError={() => setVideoFailed(true)}
-            style={{ display: 'block', width: '100%', height: 'auto' }}
+            style={{ display: 'block', width: '111.12%', maxWidth: 'none', marginLeft: '-5.56%', height: 'auto' }}
           />
         </div>
       )}
-      {!videoReady && <ProductDemo />}
+      {!videoReady && <div style={{ position: 'relative', zIndex: 1 }}><ProductDemo /></div>}
     </div>
   )
 }

@@ -355,7 +355,7 @@ export async function sendWeeklyDigest(
 
   const attention = data.needsAttention.length
   const subject =
-    `${opts.manual ? '[Preview] ' : ''}Your team’s week in review — ${data.stats.inbound} new emails` +
+    `${opts.manual ? '[Preview] ' : ''}Your week in review — ${data.stats.inbound} new emails` +
     (attention ? `, ${attention} need${attention === 1 ? 's' : ''} attention` : '')
 
   try {
