@@ -986,9 +986,10 @@
 
 .hero-serif {
   font-family: var(--font-hero-serif, Georgia, 'Times New Roman', serif);
-  font-weight: 420;
-  /* Pin the soft, bookish low-opsz cut (Cluely-like) — auto optical sizing
-     would swap in the sharp Didone display cut at these sizes. */
+  /* Light + soft: the low-opsz cut at a light weight reads minimal and airy
+     (Cluely-like) — auto optical sizing would swap in the sharp Didone
+     display cut at these sizes, and heavier weights read bookish/bold. */
+  font-weight: 340;
   font-optical-sizing: none;
   font-variation-settings: 'opsz' 20, 'SOFT' 70, 'WONK' 0;
   letter-spacing: -0.005em;

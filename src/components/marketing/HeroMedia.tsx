@@ -39,7 +39,18 @@ export default function HeroMedia() {
         }}
       />
       {!videoFailed && (
-        <div className="scene" style={{ position: 'relative', zIndex: 1, display: videoReady ? 'block' : 'none' }}>
+        <div
+          className="scene"
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            display: videoReady ? 'block' : 'none',
+            /* the blue ambience must READ — a tinted shadow hugging the frame
+               shows on any display, unlike the blurred halo alone */
+            boxShadow:
+              '0 0 0 1px rgba(79,92,244,0.18), 0 24px 70px rgba(79,92,244,0.38), 0 0 140px 28px rgba(96,165,250,0.42)',
+          }}
+        >
           {/* The capture has 96px of black pillarboxing burned into each side of
               its 1920px frame (5%) — overscan the video by 1920/1728 so the
               window chrome crops the bars away. */}
