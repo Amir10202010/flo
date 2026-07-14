@@ -2653,15 +2653,15 @@ a > .insight-card:hover {
   position: relative;
   flex: 1;
   min-height: 540px;
-  border: 1px solid #23264A;
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  /* Night canvas — deep indigo-black field with a faint dot grid so nodes glow. */
+  /* Light canvas that matches the app — faint dot grid so nodes read cleanly. */
   background:
-    radial-gradient(circle at 1px 1px, rgba(124, 139, 255, 0.10) 1px, transparent 0) 0 0 / 30px 30px,
-    radial-gradient(120% 120% at 50% 30%, #15183A 0%, #0C0E22 55%, #08091A 100%);
+    radial-gradient(circle at 1px 1px, var(--border-light) 1px, transparent 0) 0 0 / 30px 30px,
+    linear-gradient(180deg, #FCFDFF 0%, #F3F5FD 100%);
   overflow: hidden;
   touch-action: none;
-  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.45), var(--shadow-sm);
+  box-shadow: var(--shadow-xs);
   cursor: grab;
 }
 .graph-canvas:active { cursor: grabbing; }
@@ -2682,14 +2682,15 @@ a > .insight-card:hover {
   align-items: center;
   justify-content: center;
   border-radius: 9px;
-  border: 1px solid rgba(124, 139, 255, 0.22);
-  background: rgba(18, 21, 44, 0.72);
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-surface) 90%, transparent);
   backdrop-filter: blur(6px);
-  color: #C7CDF0;
+  color: var(--text-secondary);
   cursor: pointer;
+  box-shadow: var(--shadow-xs);
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.graph-zoom-btn:hover { background: rgba(36, 41, 78, 0.9); color: #fff; border-color: rgba(124, 139, 255, 0.5); }
+.graph-zoom-btn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--accent); }
 .graph-chip {
   display: inline-flex;
   align-items: center;
@@ -2716,16 +2717,16 @@ a > .insight-card:hover {
   padding: 7px 12px;
   font-size: 11px;
   font-weight: 600;
-  color: #AEB5DB;
-  background: rgba(12, 14, 34, 0.72);
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
   backdrop-filter: blur(6px);
-  border: 1px solid rgba(124, 139, 255, 0.18);
+  border: 1px solid var(--border-light);
   border-radius: 10px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-xs);
   max-width: calc(100% - 24px);
 }
-.graph-legend-sep { width: 1px; height: 12px; background: rgba(124, 139, 255, 0.25); }
-.graph-legend-info { display: inline-flex; color: #8891B8; cursor: help; }
+.graph-legend-sep { width: 1px; height: 12px; background: var(--border); }
+.graph-legend-info { display: inline-flex; color: var(--text-muted); cursor: help; }
 
 .graph-sidebar {
   width: 300px;

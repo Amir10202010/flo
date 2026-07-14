@@ -66,12 +66,15 @@ interface View {
   y: number
 }
 
-// Night-canvas palette — colors chosen to glow on the deep indigo-black field.
+// Palette matches the app's light theme (same hues as the /clients mini-graph).
 const TYPE_META: Record<GraphNodeType, { color: string; label: string; icon: typeof User }> = {
-  PERSON: { color: '#7C8BFF', label: 'Person', icon: User },
-  COMPANY: { color: '#34D3EE', label: 'Company', icon: Building2 },
-  TOPIC: { color: '#B79BFF', label: 'Topic', icon: Tag },
+  PERSON: { color: '#4F5CF4', label: 'Person', icon: User },
+  COMPANY: { color: '#0EA5E9', label: 'Company', icon: Building2 },
+  TOPIC: { color: '#8B5CF6', label: 'Topic', icon: Tag },
 }
+
+const EDGE_WORKS_AT = '#94A3B8'
+const EDGE_DISCUSSED = '#C4B5FD'
 
 const TYPE_FILTERS: { key: GraphNodeType; label: string }[] = [
   { key: 'PERSON', label: 'People' },
@@ -227,13 +230,13 @@ export default function GraphExplorer({
         'link',
         forceLink<SimNode, SimEdge>(simEdges)
           .id((d) => d.id)
-          .distance((e) => 70 + 60 / (e.weight + 1))
-          .strength(0.35),
+          .distance((e) => 130 + 70 / (e.weight + 1))
+          .strength(0.22),
       )
-      .force('charge', forceManyBody<SimNode>().strength(-420).distanceMax(700))
-      .force('collide', forceCollide<SimNode>((d) => d.r + 14).strength(0.9))
-      .force('x', forceX(0).strength(0.03))
-      .force('y', forceY(0).strength(0.03))
+      .force('charge', forceManyBody<SimNode>().strength(-900).distanceMax(1100))
+      .force('collide', forceCollide<SimNode>((d) => d.r + 26).strength(1))
+      .force('x', forceX(0).strength(0.018))
+      .force('y', forceY(0).strength(0.018))
       .alpha(1)
       .alphaDecay(0.022)
 
@@ -510,10 +513,10 @@ export default function GraphExplorer({
                     <line
                       key={e.id}
                       x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2}
-                      stroke={e.deterministic ? '#5B6689' : '#8B7DD8'}
+                      stroke={e.deterministic ? EDGE_WORKS_AT : EDGE_DISCUSSED}
                       strokeWidth={Math.min(3.5, 0.8 + Math.log2(e.weight + 1))}
                       strokeDasharray={e.deterministic ? undefined : '5 5'}
-                      strokeOpacity={dim ? 0.05 : active && anyActive ? 0.85 : 0.32}
+                      strokeOpacity={dim ? 0.07 : active && anyActive ? 0.9 : 0.4}
                       strokeLinecap="round"
                       vectorEffect="non-scaling-stroke"
                     />
@@ -542,13 +545,13 @@ export default function GraphExplorer({
                       onPointerLeave={() => setHoverId((h) => (h === n.id ? null : h))}
                     >
                       {/* soft glow */}
-                      <circle r={n.r * (sel || hov ? 2.1 : 1.75)} fill={meta.color} opacity={sel ? 0.32 : hov ? 0.24 : 0.16} />
+                      <circle r={n.r * (sel || hov ? 2 : 1.65)} fill={meta.color} opacity={sel ? 0.22 : hov ? 0.16 : 0.1} />
                       {/* selection ring */}
                       {sel && <circle r={n.r + 5} fill="none" stroke={meta.color} strokeWidth={2} strokeOpacity={0.9} vectorEffect="non-scaling-stroke" />}
-                      <circle r={n.r} fill={meta.color} stroke="#0B0C1A" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+                      <circle r={n.r} fill={meta.color} stroke="#FFFFFF" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
                       {showIcon && (
                         <foreignObject x={-iconSize / 2} y={-iconSize / 2} width={iconSize} height={iconSize} style={{ pointerEvents: 'none', overflow: 'visible' }}>
-                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0B0C1A' }}>
+                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF' }}>
                             <Icon size={Math.max(9, iconSize * 0.62)} strokeWidth={2.4} />
                           </div>
                         </foreignObject>
@@ -556,16 +559,16 @@ export default function GraphExplorer({
                       {showLabel && (
                         <text
                           x={0}
-                          y={n.r + 12}
+                          y={n.r + 13}
                           textAnchor="middle"
                           style={{
                             fontSize: 11,
                             fontWeight: sel ? 700 : 600,
-                            fill: dim ? '#5A6180' : '#E7EAF6',
+                            fill: dim ? 'var(--text-muted)' : 'var(--text-primary)',
                             fontFamily: 'var(--font-sans)',
                             paintOrder: 'stroke',
-                            stroke: '#0A0B16',
-                            strokeWidth: 3,
+                            stroke: 'var(--bg-base)',
+                            strokeWidth: 3.5,
                             strokeLinejoin: 'round',
                             pointerEvents: 'none',
                           }}
@@ -596,18 +599,18 @@ export default function GraphExplorer({
               const meta = TYPE_META[f.key]
               return (
                 <span key={f.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 9, height: 9, borderRadius: '50%', background: meta.color, boxShadow: `0 0 6px ${meta.color}` }} />
+                  <span style={{ width: 9, height: 9, borderRadius: '50%', background: meta.color }} />
                   {meta.label}
                 </span>
               )
             })}
             <span className="graph-legend-sep" />
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke="#8891B8" strokeWidth="2" /></svg>
+              <svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke={EDGE_WORKS_AT} strokeWidth="2" /></svg>
               works at
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke="#B79BFF" strokeWidth="2" strokeDasharray="3 3" /></svg>
+              <svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke={EDGE_DISCUSSED} strokeWidth="2" strokeDasharray="3 3" /></svg>
               discusses
             </span>
             <span className="graph-legend-info" title="Company links are derived deterministically from each contact's email domain. Topic links are AI-inferred from conversation content — treat them as suggestions, not facts.">
@@ -622,7 +625,7 @@ export default function GraphExplorer({
         {selectedNode ? (
           <>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-              <span style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: TYPE_META[selectedNode.type].color, color: '#0B0C1A' }}>
+              <span style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: TYPE_META[selectedNode.type].color, color: '#FFFFFF' }}>
                 {(() => { const Icon = TYPE_META[selectedNode.type].icon; return <Icon size={17} strokeWidth={2.4} /> })()}
               </span>
               <div style={{ minWidth: 0, flex: 1 }}>
