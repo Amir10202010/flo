@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Activity, Snowflake, UserPlus, Users } from 'lucide-react'
 import { requireOrgPage } from '@/lib/org'
 import { getClientDirectory, type ClientRow } from '@/services/clients.service'
+import { getClientGraphPreviews, type MiniGraphNeighbor } from '@/services/graph.service'
 import type { RelationshipHealth as RelData, RelationshipItem } from '@/services/dashboard.service'
 import { Reveal } from '@/components/dashboard/Motion'
 import StatCard from '@/components/dashboard/StatCard'
@@ -47,6 +48,11 @@ export default async function ClientsPage() {
   const ctx = await requireOrgPage()
 
   const data = await getClientDirectory(ctx.organization.id)
+  // One-hop graph neighbors per contact for the mini-graph column. Sequential
+  // after the directory (small Prisma pool — never fan out). Map → plain object
+  // so it serializes into the client ClientsTable.
+  const previewMap = await getClientGraphPreviews(ctx.userId)
+  const previews: Record<string, MiniGraphNeighbor[]> = Object.fromEntries(previewMap)
 
   return (
     <div className="dash-page" style={{ padding: '28px 32px 56px', maxWidth: 1480, margin: '0 auto', width: '100%' }}>
@@ -103,7 +109,7 @@ export default async function ClientsPage() {
           </div>
 
           <Reveal delay={0.16}>
-            <ClientsTable rows={data.rows} />
+            <ClientsTable rows={data.rows} previews={previews} />
           </Reveal>
         </>
       )}

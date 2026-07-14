@@ -2626,3 +2626,119 @@ a > .insight-card:hover {
 }
 .settings-tab:hover { color: var(--text-secondary); }
 .settings-tab[data-active='true'] { color: var(--text-primary); border-bottom-color: var(--accent); }
+
+/* ── Knowledge Graph explorer ──────────────────────────────────────────────── */
+.graph-explorer {
+  display: flex;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+}
+.graph-canvas-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+.graph-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.graph-canvas {
+  position: relative;
+  flex: 1;
+  min-height: 520px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 1px 1px, var(--border-light) 1px, transparent 0) 0 0 / 26px 26px,
+    var(--bg-surface);
+  overflow: hidden;
+  touch-action: none;
+  box-shadow: var(--shadow-xs);
+}
+.graph-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+.graph-chip:hover { background: var(--bg-hover); }
+.graph-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 7px 11px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  box-shadow: var(--shadow-xs);
+  max-width: calc(100% - 24px);
+}
+.graph-legend-sep { width: 1px; height: 12px; background: var(--border); }
+.graph-legend-info { display: inline-flex; color: var(--text-muted); cursor: help; }
+
+.graph-sidebar {
+  width: 300px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  padding: 16px;
+  overflow-y: auto;
+  box-shadow: var(--shadow-xs);
+}
+.graph-sidebar-head {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.graph-conv-link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 11px;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: var(--bg-subtle);
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+.graph-conv-link:hover { background: var(--bg-hover); border-color: var(--border); }
+
+@media (max-width: 900px) {
+  .graph-explorer { flex-direction: column; }
+  .graph-sidebar { width: auto; max-height: 320px; }
+  .graph-sidebar-skeleton { display: none; }
+}
+
+/* ── Contact mini-graph (static radial preview on /clients) ─────────────────── */
+.mini-graph-link {
+  display: inline-flex;
+  border-radius: 50%;
+  transition: transform 0.15s;
+}
+.mini-graph-link:hover { transform: scale(1.06); }

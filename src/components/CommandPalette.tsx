@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Search,
   Settings,
+  Share2,
   Snowflake,
   Users,
 } from 'lucide-react'
@@ -37,6 +38,7 @@ const PAGES: { href: string; label: string; icon: React.ReactNode; keywords: str
   { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={15} />, keywords: 'home overview command center' },
   { href: '/inbox', label: 'Inbox', icon: <Inbox size={15} />, keywords: 'mail conversations threads' },
   { href: '/clients', label: 'Contacts', icon: <Users size={15} />, keywords: 'contacts directory clients people' },
+  { href: '/graph', label: 'Knowledge Graph', icon: <Share2 size={15} />, keywords: 'graph network relationships companies topics entities' },
   { href: '/dashboard?tab=trends', label: 'Trends', icon: <ChartColumn size={15} />, keywords: 'analytics charts metrics response time volume' },
   { href: '/settings', label: 'Settings', icon: <Settings size={15} />, keywords: 'account profile plan' },
 ]

@@ -4,11 +4,13 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowDown, ArrowUp, ChevronRight, Search, Users } from 'lucide-react'
 import type { ClientRow } from '@/services/clients.service'
+import type { MiniGraphNeighbor } from '@/services/graph.service'
 import WidgetShell from './WidgetShell'
 import ContactAvatar from './ContactAvatar'
 import RiskBadge from './RiskBadge'
 import EmptyNote from './EmptyNote'
 import ContactNotesButton from './ContactNotesButton'
+import MiniGraph from '@/components/graph/MiniGraph'
 
 type SortKey = 'name' | 'threads' | 'engagement' | 'lastActivity'
 
@@ -53,7 +55,13 @@ function SortHead({
   )
 }
 
-export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
+export default function ClientsTable({
+  rows,
+  previews = {},
+}: {
+  rows: ClientRow[]
+  previews?: Record<string, MiniGraphNeighbor[]>
+}) {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('engagement')
@@ -129,6 +137,7 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
                 <th style={{ width: 120 }}>Relationship</th>
                 <th style={{ width: 110 }}>Sentiment</th>
                 <SortHead k="lastActivity" width={120} {...sortHeadProps}>Last activity</SortHead>
+                <th style={{ width: 58 }}>Graph</th>
                 <th style={{ width: 56 }}>Notes</th>
                 <th style={{ width: 36 }} />
               </tr>
@@ -187,6 +196,9 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{r.lastActivityAgo ?? '—'}</td>
                     <td onClick={(e) => e.stopPropagation()}>
+                      <MiniGraph contactId={r.id} contactName={r.name} neighbors={previews[r.id] ?? []} size={44} />
+                    </td>
+                    <td onClick={(e) => e.stopPropagation()}>
                       <ContactNotesButton contactId={r.id} contactName={r.name} count={r.noteCount} />
                     </td>
                     <td>
@@ -227,6 +239,8 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 7, flexShrink: 0 }}>
                   {r.risk ? <RiskBadge level={r.risk} /> : null}
                   <span style={{ fontSize: 12, fontWeight: 700, color: engagementColor(r.engagement) }}>{r.engagement}</span>
+                  <MiniGraph contactId={r.id} contactName={r.name} neighbors={previews[r.id] ?? []} size={40} interactive={false} />
+
                 </div>
               </button>
             )

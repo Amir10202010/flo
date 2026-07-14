@@ -309,3 +309,12 @@ export async function enqueueEmbedConversation(conversationId: string): Promise<
 export async function enqueueGenerateDraft(conversationId: string): Promise<Job> {
   return enqueueDeduped('GENERATE_DRAFT', { conversationId }, `GENERATE_DRAFT:${conversationId}`)
 }
+
+/**
+ * Enqueue knowledge-graph entity extraction for one conversation, deduped on the
+ * conversation id. extractGraphEntities is idempotent (upserts bump weight), so a
+ * stray duplicate is a cheap re-count, never a wrong result.
+ */
+export async function enqueueExtractGraphEntities(conversationId: string): Promise<Job> {
+  return enqueueDeduped('EXTRACT_GRAPH_ENTITIES', { conversationId }, `EXTRACT_GRAPH_ENTITIES:${conversationId}`)
+}

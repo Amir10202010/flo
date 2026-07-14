@@ -3,7 +3,7 @@
 import { useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Inbox, LayoutDashboard, LogOut, Search, Settings, Sparkles, Users } from 'lucide-react'
+import { Inbox, LayoutDashboard, LogOut, Search, Settings, Share2, Sparkles, Users } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase'
 import { useUiStore } from '@/stores/ui.store'
 import Brand from './Brand'
@@ -24,6 +24,7 @@ const NAV: NavEntry[] = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/inbox', icon: Inbox, label: 'Inbox', tour: 'inbox' },
   { href: '/clients', icon: Users, label: 'Contacts', tour: 'clients' },
+  { href: '/graph', icon: Share2, label: 'Graph', pill: 'Beta' },
 ]
 
 const SYSTEM: NavEntry[] = [
