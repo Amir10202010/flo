@@ -103,8 +103,8 @@ export default function ClientsTable({
   return (
     <WidgetShell
       icon={<Users size={14} />}
-      title="Client directory"
-      sub={`${rows.length} ${rows.length === 1 ? 'contact' : 'contacts'} · engagement and relationship health update with every sync`}
+      title="Contact directory"
+      sub={`${rows.length} ${rows.length === 1 ? 'contact' : 'contacts'} · tap a mini-graph to explore relationships, or jot a private note — engagement updates every sync`}
       status="live"
       action={
         <div className="inbox-search" style={{ width: 230, padding: '7px 10px', flexShrink: 0 }}>
@@ -137,8 +137,8 @@ export default function ClientsTable({
                 <th style={{ width: 120 }}>Relationship</th>
                 <th style={{ width: 110 }}>Sentiment</th>
                 <SortHead k="lastActivity" width={120} {...sortHeadProps}>Last activity</SortHead>
-                <th style={{ width: 58 }}>Graph</th>
-                <th style={{ width: 56 }}>Notes</th>
+                <th style={{ width: 58 }} title="One-hop relationship map — click to open in the knowledge graph">Graph</th>
+                <th style={{ width: 56 }} title="Private notes about this contact">Notes</th>
                 <th style={{ width: 36 }} />
               </tr>
             </thead>

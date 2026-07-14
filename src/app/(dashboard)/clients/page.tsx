@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { Activity, Snowflake, UserPlus, Users } from 'lucide-react'
+import Link from 'next/link'
+import { Activity, Share2, Snowflake, UserPlus, Users } from 'lucide-react'
 import { requireOrgPage } from '@/lib/org'
 import { getClientDirectory, type ClientRow } from '@/services/clients.service'
 import { getClientGraphPreviews, type MiniGraphNeighbor } from '@/services/graph.service'
@@ -11,7 +12,7 @@ import ClientsTable from '@/components/dashboard/ClientsTable'
 import RelationshipHealth from '@/components/dashboard/RelationshipHealth'
 import DashboardEmpty from '@/components/dashboard/DashboardEmpty'
 
-export const metadata: Metadata = { title: 'Clients — Velnox' }
+export const metadata: Metadata = { title: 'Contacts — Velnox' }
 
 /** The 3-bucket Relationship Health read, derived from the directory rows we
  * already load (no extra query) — relocated here from the dashboard. */
@@ -57,11 +58,11 @@ export default async function ClientsPage() {
   return (
     <div className="dash-page" style={{ padding: '28px 32px 56px', maxWidth: 1480, margin: '0 auto', width: '100%' }}>
       <Reveal>
-        <div className="dash-header-row" style={{ marginBottom: 20 }}>
+        <div className="dash-header-row" style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5 }}>
               <h1 className="page-title" style={{ margin: 0 }}>
-                Clients
+                Contacts
               </h1>
               <ModulePill status="live" />
             </div>
@@ -69,6 +70,10 @@ export default async function ClientsPage() {
               Everyone you email, scored by real engagement — and who&apos;s going cold.
             </p>
           </div>
+          <Link href="/graph" className="btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 600, padding: '8px 12px', borderRadius: 9, border: '1px solid var(--border)', color: 'var(--text-secondary)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            <Share2 size={14} style={{ color: 'var(--accent)' }} />
+            Open knowledge graph
+          </Link>
         </div>
       </Reveal>
 
