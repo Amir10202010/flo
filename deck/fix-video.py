@@ -4,7 +4,15 @@ pptxgenjs leaves two things wrong on slide 4 that it has no API for:
 
 1. The poster is its own grey play-button placeholder, which would sit over the
    middle of the slide until someone hits play. Replaced with poster.png — a real
-   1920x1080 frame of demo.mp4 at t=1.2s, the same frame slide4.png renders.
+   1920x1080 frame of demo.mp4 at t=0, the same frame slide4.png renders.
+
+   t=0 specifically. Screen Studio's auto-zoom starts moving at ~0.3s and by 1s
+   it has pushed the window off the right edge of its own frame, so a later grab
+   shows a severed card, a cursor stranded in dead space and a lone sliver of
+   wallpaper down one side that reads as a bug. At t=0 the window is whole, the
+   URL bar still says usevelnox.com/dashboard, all three stat cards are there,
+   and the wallpaper surrounds the window evenly — which is the composition
+   Screen Studio intended.
 
 2. demo.mp4 has 60px of black pillarbox per side. CSS crops it in index.html via
    overscan; PowerPoint's equivalent is a:srcRect on the blipFill, which is what

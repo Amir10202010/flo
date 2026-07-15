@@ -87,5 +87,6 @@ pres.writeFile({ fileName: OUT }).then(() => {
   console.log(`  6 slides, ${STAGE_W}x${STAGE_H}in, ${(kb / 1024).toFixed(1)} MB`);
   console.log(`  video box: ${(SCENE.x * PX).toFixed(3)}, ${(SCENE.y * PX).toFixed(3)} ` +
               `${(SCENE.w * PX).toFixed(3)} x ${(SCENE.h * PX).toFixed(3)} in`);
-  console.log(`  NOTE: run crop-video.py next — the 60px pillarbox is still uncropped here.`);
+  console.log(`  NEXT: python deck/fix-video.py — the poster is still pptxgenjs's grey`);
+  console.log(`        placeholder and the 60px pillarbox is still uncropped.`);
 });
