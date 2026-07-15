@@ -240,7 +240,7 @@ html, body {
 /* 112 of 500 is a genuinely nested ratio, so the bar can state it without
    inflating anything. It fills on slide entry — the one number worth watching
    arrive. */
-.conv { margin-top: 40px; width: 556px; }
+.conv { margin-top: 38px; width: 500px; }
 .conv-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 13.5px; margin-bottom: 10px; }
 .conv-head span { color: var(--text-muted); }
 .conv-head b { font-weight: 600; color: var(--accent); font-size: 14px; }
@@ -265,16 +265,55 @@ html, body {
 /* The real landing page in real browser chrome — the brief's "realistic browser
    frame". This is the page the 500 visitors actually saw, so it belongs on the
    traction slide rather than a product one. Shot from production at 2×.
-   It bleeds off the right edge only; nothing is severed mid-element. */
+   Sized to sit entirely inside the stage: 810 wide → 506 of image + 38 of bar =
+   544, centred at y=178. An earlier cut ran it off the right edge as a bleed and
+   it just read as broken, which is the only vote that counts. */
 .s3-shot {
   position: absolute;
-  left: 748px; top: 140px;
-  width: 1020px;
+  left: 690px; top: 178px;
+  width: 810px;
   border-radius: var(--radius-xl);
   overflow: hidden;
   border: 1px solid var(--border);
   background: var(--bg-surface);
   box-shadow: var(--shadow-xl);
+}
+
+/* The annotation. Percentages come from the live DOM, not from eyeballing the
+   PNG: the hero CTA measures left 44.16% / top 46.28% / w 11.67% / h 5.44% of
+   the 1440×900 viewport the shot was taken at, inset by 8px a side for the ring.
+   Re-measure if the landing hero ever moves. */
+.shot-body { position: relative; line-height: 0; }
+.pin {
+  position: absolute;
+  left: 43.6%; top: 45.39%; width: 12.78%; height: 7.22%;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 5px rgba(79, 92, 244, 0.13);
+}
+.slide[data-active] .pin { animation: pinPulse 2.6s var(--ease) 0.5s infinite; }
+@keyframes pinPulse {
+  0%, 100% { box-shadow: 0 0 0 5px rgba(79, 92, 244, 0.13); }
+  50%      { box-shadow: 0 0 0 11px rgba(79, 92, 244, 0.05); }
+}
+.pin-line {
+  position: absolute;
+  left: 56.4%; top: 49%;
+  width: 1.9%; height: 1.5px;
+  background: var(--accent); opacity: 0.45;
+}
+.pin-tag {
+  position: absolute;
+  left: 58.3%; top: 49%;
+  transform: translateY(-50%);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 5px 12px;
+  font-size: 11.5px; font-weight: 600; line-height: 1.3;
+  color: var(--accent);
+  box-shadow: var(--shadow-md);
+  white-space: nowrap;
 }
 .bbar {
   height: 38px; display: flex; align-items: center; gap: 12px;
@@ -336,20 +375,21 @@ html, body {
    under a label that names what they are evidence OF, an anime count and a Dota
    climb argue the same thing the olympiad does — he does not put things down. */
 #s5 { padding: 84px 110px; display: grid; grid-template-columns: 400px 1fr; gap: 74px; align-items: center; }
+/* 400×533 is exactly 3:4 — the aspect of founder.jpg (960×1280). With cover on a
+   matching ratio the crop is zero, so the frame shows the photo as shot. The
+   framing was chosen deliberately; the deck's job is to present it, not re-crop
+   it. Swapping in a photo of another aspect will crop — change these two numbers
+   to match it rather than letting cover decide. */
 .portrait {
   position: relative;
-  width: 400px; height: 520px;
+  width: 400px; height: 533px;
   border-radius: var(--radius-xl);
   overflow: hidden;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-lg);
 }
-/* Framed to head-and-shoulders. The NIS collar and tie are load-bearing — they
-   corroborate the last line of "Builds" — while the phone and the mirror are
-   not. These three numbers are tuned to this exact 960×1280 file; a replacement
-   photo needs them re-checked, not inherited. */
-.portrait img { position: absolute; width: 870px; left: -245px; top: -52px; display: block; }
+.portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
 /* Shown only when deck/founder.jpg is absent. A typographic slot — never a
    stock face. public/photos/founder.jpg is stock imagery of an unrelated
    person and is deliberately not used here. */
@@ -369,20 +409,29 @@ html, body {
 .fact-group + .fact-group { margin-top: 30px; }
 .fact-group .label { display: block; margin-bottom: 4px; }
 
-/* No bullets, no ticks — the hairline rules already separate these, and a
-   column of check glyphs reads as a feature list, not as credibility. The meta
-   is right-aligned so the rows read as a ledger: claim, then its evidence. */
+/* Icons are lucide — the same set the product itself uses in 71 places, so they
+   read as Velnox's furniture rather than as decoration bought in. Tinted square
+   + accent glyph is the app's own idiom (see the AI Command Center chip). The
+   meta is right-aligned so each row reads as a ledger: claim, then its evidence. */
 .facts { list-style: none; display: flex; flex-direction: column; max-width: 760px; }
 .facts li {
-  padding: 13px 0;
+  padding: 12px 0;
   border-bottom: 1px solid var(--border-light);
   font-size: 18.5px;
   font-weight: 500;
   color: var(--text-primary);
   letter-spacing: -0.014em;
-  display: flex; align-items: baseline; gap: 20px;
+  display: flex; align-items: center; gap: 15px;
 }
 .facts li:last-child { border-bottom: 0; }
+.facts li .ico {
+  width: 30px; height: 30px; border-radius: var(--radius-sm);
+  background: var(--accent-dim);
+  color: var(--accent);
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.facts li .ico svg { width: 16px; height: 16px; display: block; }
 .facts li .m {
   font-size: 13px; color: var(--text-muted); font-weight: 400;
   letter-spacing: 0; margin-left: auto; text-align: right; white-space: nowrap;
@@ -559,9 +608,9 @@ html, body {
 
   <!-- ════ 3 · Traction ═════════════════════════════════════════════════ -->
   <section class="slide" id="s3">
-    <div style="position:relative; z-index:2; width:600px;">
-      <h2 class="r display-title" style="font-size:50px; margin-bottom:34px;">
-        It's live. <span class="muted-tail">People sign up.</span>
+    <div style="position:relative; z-index:2; width:520px;">
+      <h2 class="r display-title" style="font-size:50px; margin-bottom:32px;">
+        It's live.<br /><span class="muted-tail">People sign up.</span>
       </h2>
 
       <div class="r s3-hero">
@@ -585,13 +634,19 @@ html, body {
       </div>
     </div>
 
-    <!-- The page those 500 visitors landed on, shot from production at 2×. -->
+    <!-- The page those 500 visitors landed on, shot from production at 2×.
+         The ring sits on the real CTA they really clicked. -->
     <div class="r s3-shot">
       <div class="bbar">
         <span class="bdots"><i></i><i></i><i></i></span>
         <span class="burl">usevelnox.com</span>
       </div>
-      <img src="shots/landing.png" alt="The Velnox landing page at usevelnox.com" />
+      <div class="shot-body">
+        <img src="shots/landing.png" alt="The Velnox landing page at usevelnox.com" />
+        <span class="pin" aria-hidden="true"></span>
+        <span class="pin-line" aria-hidden="true"></span>
+        <span class="pin-tag">112 clicked this</span>
+      </div>
     </div>
   </section>
 
@@ -627,18 +682,36 @@ html, body {
       <div class="r fact-group">
         <span class="label">Builds</span>
         <ul class="facts">
-          <li>2nd Degree Diploma — Republican Informatics Olympiad <span class="m">District stage</span></li>
-          <li>Built a startup platform for dental clinics <span class="m">Velnox isn't my first product</span></li>
-          <li>Graduated Yandex Programming &amp; STEP Academy</li>
-          <li>Student at NIS Astana <span class="m">Nazarbayev Intellectual School</span></li>
+          <li>
+            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"/><path d="M11 12 5.12 2.2"/><path d="m13 12 5.88-9.8"/><path d="M8 7h8"/><circle cx="12" cy="17" r="5"/><path d="M12 18v-2h-.5"/></svg></span>
+            2nd Degree Diploma — Republican Informatics Olympiad <span class="m">District stage</span>
+          </li>
+          <li>
+            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2v2"/><path d="M5 2v2"/><path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/></svg></span>
+            Built a startup platform for dental clinics <span class="m">Velnox isn't my first product</span>
+          </li>
+          <li>
+            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></svg></span>
+            Graduated Yandex Programming &amp; STEP Academy
+          </li>
+          <li>
+            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 21v-3a2 2 0 0 0-4 0v3"/><path d="M18 4.933V21"/><path d="m4 6 7.106-3.79a2 2 0 0 1 1.788 0L20 6"/><path d="m6 11-3.52 2.147a1 1 0 0 0-.48.854V19a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a1 1 0 0 0-.48-.853L18 11"/><path d="M6 4.933V21"/><circle cx="12" cy="9" r="2"/></svg></span>
+            Student at NIS Astana <span class="m">Nazarbayev Intellectual School</span>
+          </li>
         </ul>
       </div>
 
       <div class="r fact-group">
         <span class="label">Finishes</span>
         <ul class="facts">
-          <li>100 anime in one month</li>
-          <li>Zero → Legend, Dota 2 <span class="m">from unranked</span></li>
+          <li>
+            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2-5 5-5-5"/><rect width="20" height="15" x="2" y="7" rx="2"/></svg></span>
+            100 anime in one month
+          </li>
+          <li>
+            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg></span>
+            Zero → Legend, Dota 2 <span class="m">from unranked</span>
+          </li>
         </ul>
         <p class="s5-note">Same stubbornness that got Velnox into production.</p>
       </div>
@@ -653,17 +726,21 @@ html, body {
         <span style="font-size:28px;">velnox</span>
       </div>
 
-      <h2 class="r display-title" style="font-size:58px;">
-        I need <span id="cnt">10</span> pilot users.<br />
-        <span class="muted-tail">From you, I need one.</span>
+      <h2 class="r display-title" style="font-size:56px;">
+        Don't take my word for it.<br />
+        <span class="muted-tail">Open your own inbox.</span>
       </h2>
 
       <p class="r s6-sub">
-        One freelancer, agency owner or consultant who runs their business out of Gmail.
-        I'll onboard them myself, this week.
+        Scan it. Connect your Gmail. Velnox will name the client you've left
+        waiting longest — and draft the reply. If it gets you wrong, tell me and
+        I'll fix it this week.
       </p>
 
-      <p class="r s6-mail">Send them to <b>usevelnox.com</b> — or straight to me: <b>sagindiktar@gmail.com</b></p>
+      <p class="r s6-mail">
+        Looking for my first <b id="cnt">10</b> pilot users ·
+        <b>sagindiktar@gmail.com</b>
+      </p>
     </div>
 
     <!-- Real QR, real destination. Generated with `npx qrcode -e H` and inlined
