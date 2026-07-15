@@ -281,7 +281,7 @@ html, body {
 /* 112 of 500 is a genuinely nested ratio, so the bar can state it without
    inflating anything. It fills on slide entry — the one number worth watching
    arrive. */
-.conv { margin-top: 38px; width: 500px; }
+.conv { margin-top: 38px; width: 450px; }
 .conv-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 13.5px; margin-bottom: 10px; }
 .conv-head span { color: var(--text-muted); }
 .conv-head b { font-weight: 600; color: var(--accent); font-size: 14px; }
@@ -303,59 +303,26 @@ html, body {
 .minor .v { font-size: 27px; font-weight: 600; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 .minor .k { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; }
 
-/* The real landing page in real browser chrome — the brief's "realistic browser
-   frame". This is the page the 500 visitors actually saw, so it belongs on the
-   traction slide rather than a product one. Shot from production at 2×.
-   Sized to sit entirely inside the stage: 810 wide → 506 of image + 38 of bar =
-   544, centred at y=178. An earlier cut ran it off the right edge as a bleed and
-   it just read as broken, which is the only vote that counts. */
+/* The real product in real browser chrome — the brief's "realistic browser
+   frame". This showed the landing page for a while, which was a mistake: slide 1
+   already IS the landing hero, so the traction slide was spending its picture on
+   a rerun of the title card. The dashboard earns the space instead — it is the
+   thing the 112 signed up FOR, running on a real mailbox.
+   The dashboard is a denser image than the landing page was, so it takes the
+   wider frame the numbers column can spare: 920 wide → 510 of image (1920×1065)
+   + 38 of bar = 548, centred at y=176. At that width the three headline stats
+   still read, which is all that has to — the rest is texture, not text. */
 .s3-shot {
   position: absolute;
-  left: 690px; top: 178px;
-  width: 810px;
+  left: 580px; top: 176px;
+  width: 920px;
   border-radius: var(--radius-xl);
   overflow: hidden;
   border: 1px solid var(--border);
   background: var(--bg-surface);
   box-shadow: var(--shadow-xl);
 }
-
-/* The annotation. Percentages come from the live DOM, not from eyeballing the
-   PNG: the hero CTA measures left 44.16% / top 46.28% / w 11.67% / h 5.44% of
-   the 1440×900 viewport the shot was taken at, inset by 8px a side for the ring.
-   Re-measure if the landing hero ever moves. */
 .shot-body { position: relative; line-height: 0; }
-.pin {
-  position: absolute;
-  left: 43.6%; top: 45.39%; width: 12.78%; height: 7.22%;
-  border: 2px solid var(--accent);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 0 0 5px rgba(79, 92, 244, 0.13);
-}
-.slide[data-active] .pin { animation: pinPulse 2.6s var(--ease) 0.5s infinite; }
-@keyframes pinPulse {
-  0%, 100% { box-shadow: 0 0 0 5px rgba(79, 92, 244, 0.13); }
-  50%      { box-shadow: 0 0 0 11px rgba(79, 92, 244, 0.05); }
-}
-.pin-line {
-  position: absolute;
-  left: 56.4%; top: 49%;
-  width: 1.9%; height: 1.5px;
-  background: var(--accent); opacity: 0.45;
-}
-.pin-tag {
-  position: absolute;
-  left: 58.3%; top: 49%;
-  transform: translateY(-50%);
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 100px;
-  padding: 5px 12px;
-  font-size: 11.5px; font-weight: 600; line-height: 1.3;
-  color: var(--accent);
-  box-shadow: var(--shadow-md);
-  white-space: nowrap;
-}
 .bbar {
   height: 38px; display: flex; align-items: center; gap: 12px;
   padding: 0 14px;
@@ -373,10 +340,39 @@ html, body {
 .s3-shot img { display: block; width: 100%; }
 
 /* ═══ Slide 4 — demo ═══════════════════════════════════════════════════════ */
-#s4 { display: flex; flex-direction: column; align-items: center; padding: 54px 0 0; }
-/* 1180 keeps the scene at 737px tall (video is 0.625 × width after overscan),
-   so the whole thing lands inside the 900px stage instead of overflowing. */
-.glow-wrap { position: relative; width: 1180px; }
+#s4 { display: flex; flex-direction: column; align-items: center; padding: 40px 0 0; }
+
+/* The demo runs 30s with no narration and four distinct acts, and a room that
+   cannot tell which act it is watching is a room reading the UI instead of
+   listening. The caption names the act; the rule shows how much is left. Both
+   are driven off the video's own currentTime, so they cannot drift out of sync
+   with it — the timings below are read off the capture, not invented. */
+.vmeta { width: 1140px; margin-top: 24px; }
+.vbar {
+  height: 3px; border-radius: 100px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+}
+.vbar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 100px; }
+.vcap {
+  display: flex; align-items: center; gap: 11px;
+  margin-top: 15px; height: 22px;
+  font-size: 17px; font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: -0.014em;
+}
+.vcap .d {
+  width: 7px; height: 7px; border-radius: 100px;
+  background: var(--accent); flex-shrink: 0;
+}
+.vcap b { font-weight: 500; transition: opacity 0.2s var(--ease); }
+/* 1140, not 1180: the caption and its rule need room under the video, and at
+   1180 the caption landed 16px off the bottom edge. 1140 × 0.6 = 684 of scene,
+   which leaves the caption a proper margin.
+   NB deck/build-pptx.js pins the PowerPoint video overlay to this scene's
+   measured rect. Change this number and that one is wrong — re-measure. */
+.glow-wrap { position: relative; width: 1140px; }
 /* The site's own ambience — HeroMedia.tsx, verbatim. */
 .glow {
   position: absolute; inset: -13% -11% -17%;
@@ -562,24 +558,19 @@ html, body {
   <section class="slide" id="s1" data-active>
     <div class="skyline" data-sky aria-hidden="true"></div>
 
-    <!-- Logo and one sentence. Nothing else.
-
-         This slide used to be the landing hero rebuilt: a big centred Fraunces
-         two-liner over the skyline with a subtitle under it. That is precisely
-         what slide 3 shows a photograph of — same face, same centring, same
-         skyline, same subtitle slot, and even near-synonymous words ("never lose
-         a client in your Gmail" / "stop losing clients in your inbox"). The room
-         saw one composition twice and read the second as a rerun of the first.
-         So the hero belongs to slide 3, where it is evidence, and the title card
-         is now what a title card should be: who this is, and what it does. -->
     <div class="inner">
-      <div class="r brand" style="gap:26px; margin-bottom:34px; justify-content:center;">
-        <img src="../public/logo.png" alt="" width="88" height="88" />
-        <span style="font-size:104px;">velnox</span>
+      <div class="r brand" style="gap:14px; margin-bottom:44px;">
+        <img src="../public/logo.png" alt="" width="40" height="40" />
+        <span style="font-size:43px;">velnox</span>
       </div>
 
-      <p class="r" style="font-size:34px; color:var(--text-secondary); letter-spacing:-0.022em; line-height:1.4; text-wrap:balance;">
-        Never lose a client in your Gmail.
+      <h1 class="r hero-serif" style="font-size:86px; margin-bottom:26px;">
+        Never lose a client<br />in your Gmail.
+      </h1>
+
+      <p class="r" style="font-size:21px; color:var(--text-secondary); line-height:1.6; max-width:760px; margin:0 auto; text-wrap:balance;">
+        Velnox reads your Gmail and tells you which client to answer today, who's going cold,
+        and what to say — with the reply already drafted.
       </p>
     </div>
   </section>
@@ -625,7 +616,7 @@ html, body {
 
   <!-- ════ 3 · Traction ═════════════════════════════════════════════════ -->
   <section class="slide" id="s3">
-    <div style="position:relative; z-index:2; width:520px;">
+    <div style="position:relative; z-index:2; width:450px;">
       <h2 class="r display-title" style="font-size:50px; margin-bottom:32px;">
         It's live.<br /><span class="muted-tail">People sign up.</span>
       </h2>
@@ -652,18 +643,15 @@ html, body {
 
     <div class="wash" style="left:600px; right:-40px; top:60px; bottom:60px;" aria-hidden="true"></div>
 
-    <!-- The page those 500 visitors landed on, shot from production at 2×.
-         The ring sits on the real CTA they really clicked. -->
+    <!-- What the 112 signed up for: the real dashboard, on a real mailbox.
+         The 127 overdue in its UNANSWERED card is the same 127 slide 2 claims. -->
     <div class="r s3-shot">
       <div class="bbar">
         <span class="bdots"><i></i><i></i><i></i></span>
-        <span class="burl">usevelnox.com</span>
+        <span class="burl">usevelnox.com/dashboard</span>
       </div>
       <div class="shot-body">
-        <img src="shots/landing.png" alt="The Velnox landing page at usevelnox.com" />
-        <span class="pin" aria-hidden="true"></span>
-        <span class="pin-line" aria-hidden="true"></span>
-        <span class="pin-tag">112 clicked this</span>
+        <img src="shots/dashboard.png" alt="The Velnox dashboard running on the founder's own Gmail" />
       </div>
     </div>
   </section>
@@ -678,6 +666,14 @@ html, body {
       <div class="scene">
         <video id="demo" src="../public/demo.mp4" muted loop playsinline preload="auto"></video>
       </div>
+    </div>
+
+    <div class="r vmeta">
+      <div class="vbar"><i id="vprog"></i></div>
+      <p class="vcap">
+        <span class="d" aria-hidden="true"></span>
+        <b id="vcap">Ranked by who matters — not by who emailed last.</b>
+      </p>
     </div>
   </section>
 
@@ -872,6 +868,35 @@ function go(n) {
   else { video.pause(); }
 
 }
+
+/* Demo captions. Cue points are read off the capture — dashboard until ~4s, the
+   inbox and threads to ~16s, the assistant to ~24s, drafting to the end — and
+   driven off the video's own clock, so they stay honest about what is on screen
+   even if the file is re-cut and the acts move. Re-check them if it is. */
+var CUES = [
+  [0,  'Ranked by who matters — not by who emailed last.'],
+  [4,  'Every thread read, scored and explained.'],
+  [16, 'Ask it anything about your inbox.'],
+  [24, 'It drafts every overdue reply for you.']
+];
+var capEl = document.getElementById('vcap');
+var progEl = document.getElementById('vprog');
+var cueAt = -1;
+
+video.addEventListener('timeupdate', function () {
+  var d = video.duration || 30;
+  progEl.style.width = Math.min(video.currentTime / d * 100, 100) + '%';
+
+  var k = 0;
+  for (var j = 0; j < CUES.length; j++) if (video.currentTime >= CUES[j][0]) k = j;
+  if (k === cueAt) return;
+  cueAt = k;
+  capEl.style.opacity = '0';
+  setTimeout(function () {
+    capEl.textContent = CUES[k][1];
+    capEl.style.opacity = '1';
+  }, 200);
+});
 
 document.addEventListener('keydown', function (e) {
   if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(i + 1); }

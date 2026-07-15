@@ -37,7 +37,7 @@ const STAGE_H = 7.5;
 // video lands 28px below the frame drawn into the background image, showing as
 // a dark seam along the top of the demo. That is a real bug this file shipped
 // once; a pixel diff of the PowerPoint render against the HTML one caught it.
-const SCENE = { x: 210, y: 126.39, w: 1180, h: 708.02 };
+const SCENE = { x: 230, y: 112.39, w: 1140, h: 684.02 };
 
 const NOTES = {
   1: "Velnox. It reads your Gmail and tells you which client to answer today.",
