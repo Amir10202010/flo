@@ -158,55 +158,73 @@ html, body {
 /* ═══ Slide 1 — title ══════════════════════════════════════════════════════ */
 #s1 { display: grid; place-items: center; text-align: center; }
 #s1 .inner { position: relative; z-index: 1; max-width: 1040px; padding-bottom: 60px; }
-.skyline { position: absolute; left: 0; right: 0; bottom: 0; height: 400px; pointer-events: none; }
+.skyline { position: absolute; left: 0; right: 0; bottom: 0; height: 400px; pointer-events: none; z-index: 0; }
 .skyline svg { display: block; width: 100%; height: 100%; }
 
-/* ═══ Slide 2 — problem ════════════════════════════════════════════════════ */
+/* The motif's other appearances. Slide 1 establishes the city at full height;
+   these are the same skyline seen from further off. Different height = different
+   crop (preserveAspectRatio slice), and slide 5 is mirrored, so no two slides
+   show the same picture.
+   --- slide 2: low and pale, so the pile has somewhere to sit
+   --- slide 5: mirrored and paler still, behind the founder — Astana, the city
+       the role line already names */
+#s2 .skyline { height: 210px; opacity: 0.5; }
+#s5 .skyline { height: 300px; opacity: 0.34; transform: scaleX(-1); }
+
+/* The site's ambience (HeroMedia.tsx), reused as slide furniture rather than as
+   decoration invented for the deck: it is what already sits behind the product
+   on the landing page. Slide 4 has it around the video; 3 and 6 get it behind
+   the artefact the slide is about. */
+/* HeroMedia's stops run to zero at 76%, which is right behind a dark video and
+   wrong here: against #F6F8FE the residual tint is still perceptible at that
+   stop, so the falloff terminates as a visible circle rather than as air. Peak
+   halved and the fade stretched to 100% so there is nowhere for an edge to be. */
+.wash {
+  position: absolute;
+  z-index: 0; pointer-events: none;
+  background: radial-gradient(72% 70% at 50% 45%,
+    rgba(79,92,244,0.15), rgba(96,165,250,0.08) 45%, rgba(124,192,255,0) 100%);
+  filter: blur(64px);
+}
+
+/* ═══ Slide 2 — problem ════════════════════════════════════════════════════
+   The earlier version was five labelled rows, an ellipsis and one hot row. It
+   read as neither screenshot nor diagram — you had to parse it to get the joke.
+   This one argues by quantity instead of by words: 26 anonymous grey rows, one
+   red. Nothing above the red row says anything, because the whole point is that
+   none of it is worth saying anything about. The only words in the pile are on
+   the row that matters. */
 #s2 { padding: 0 110px; display: flex; flex-direction: column; justify-content: center; }
-.stack {
-  width: 760px;
+.pile {
+  width: 640px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg-surface);
   overflow: hidden;
   box-shadow: var(--shadow-md);
 }
-.stack-head {
+.pile-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 13px 18px;
+  padding: 12px 18px;
   border-bottom: 1px solid var(--border-light);
   background: var(--bg-subtle);
 }
-.row {
-  display: flex; align-items: center; gap: 13px;
-  padding: 12px 18px;
-  border-bottom: 1px solid var(--border-light);
-}
-.dot { width: 26px; height: 26px; border-radius: 100px; background: var(--bg-elevated); flex-shrink: 0; }
-.row-t { flex: 1; font-size: 14.5px; color: var(--text-muted); font-weight: 500; }
-.row-x { font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.pile-rows { padding: 7px 0 3px; }
+.prow { display: flex; align-items: center; gap: 11px; padding: 4px 18px; }
+.prow .d { width: 12px; height: 12px; border-radius: 100px; background: var(--bg-elevated); flex-shrink: 0; }
+.prow .b { height: 5px; border-radius: 100px; background: var(--bg-elevated); }
 
-.gap {
-  padding: 11px 18px;
-  font-size: 12.5px;
-  color: var(--text-muted);
-  border-bottom: 1px solid var(--border-light);
-  background: repeating-linear-gradient(
-    -45deg, transparent, transparent 6px,
-    rgba(141,147,190,0.05) 6px, rgba(141,147,190,0.05) 12px
-  );
-}
-
-/* The one loud row. Everything above it is deliberately quiet so this lands. */
-.row-hot {
+/* The one loud row. Everything above it is deliberately mute so this lands. */
+.prow-hot {
   display: flex; align-items: center; gap: 13px;
-  padding: 17px 18px;
+  padding: 16px 18px;
   background: var(--hot-dim);
+  border-top: 1px solid var(--hot-border);
   border-left: 3px solid var(--hot);
 }
 .dot-hot { width: 30px; height: 30px; border-radius: 100px; background: var(--hot); opacity: 0.85; flex-shrink: 0; }
-.row-hot .n { display: block; font-size: 16px; font-weight: 600; color: var(--text-primary); }
-.row-hot .s { display: block; font-size: 13.5px; color: var(--text-secondary); margin-top: 3px; }
+.prow-hot .n { display: block; font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.prow-hot .s { display: block; font-size: 13.5px; color: var(--text-secondary); margin-top: 3px; }
 .chip-hot {
   font-size: 12px; font-weight: 600; color: var(--hot);
   background: var(--bg-surface);
@@ -519,32 +537,7 @@ html, body {
 
   <!-- ════ 1 · Title ════════════════════════════════════════════════════ -->
   <section class="slide" id="s1" data-active>
-    <div class="skyline" aria-hidden="true">
-      <svg width="100%" height="100%" viewBox="0 0 1600 400" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <pattern id="skyWin" width="14" height="20" patternUnits="userSpaceOnUse">
-            <rect x="4" y="5" width="4" height="9" fill="#FFFFFF" opacity="0.34" />
-          </pattern>
-          <linearGradient id="skyHazeTop" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#F6F8FE" stop-opacity="1" />
-            <stop offset="1" stop-color="#F6F8FE" stop-opacity="0" />
-          </linearGradient>
-          <linearGradient id="skyHazeBase" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#F6F8FE" stop-opacity="0" />
-            <stop offset="0.72" stop-color="#F6F8FE" stop-opacity="0.9" />
-            <stop offset="1" stop-color="#F6F8FE" stop-opacity="1" />
-          </linearGradient>
-          <filter id="skyBlur" x="-4%" y="-4%" width="108%" height="108%">
-            <feGaussianBlur stdDeviation="1.6" />
-          </filter>
-        </defs>
-        <path id="far" fill="#E4E8F8" filter="url(#skyBlur)" />
-        <path id="near1" fill="#D9DEF3" />
-        <path id="near2" fill="url(#skyWin)" />
-        <rect x="0" y="150" width="1600" height="130" fill="url(#skyHazeTop)" opacity="0.55" />
-        <rect x="0" y="268" width="1600" height="132" fill="url(#skyHazeBase)" />
-      </svg>
-    </div>
+    <div class="skyline" data-sky aria-hidden="true"></div>
 
     <div class="inner">
       <div class="r brand" style="gap:14px; margin-bottom:44px;">
@@ -565,29 +558,26 @@ html, body {
 
   <!-- ════ 2 · Problem ══════════════════════════════════════════════════ -->
   <section class="slide" id="s2">
-    <h2 class="r display-title" style="font-size:56px; margin-bottom:44px;">
+    <div class="skyline" data-sky aria-hidden="true"></div>
+
+    <h2 class="r display-title" style="font-size:56px; margin-bottom:40px; position:relative; z-index:1;">
       Gmail sorts by time. <span class="muted-tail">Your clients don't.</span>
     </h2>
 
-    <div class="r" style="display:grid; grid-template-columns:720px 1fr; gap:80px; align-items:center;">
+    <div class="r" style="display:grid; grid-template-columns:640px 1fr; gap:90px; align-items:center; position:relative; z-index:1;">
 
-      <!-- Diagram. NOT a screenshot: no Gmail chrome, no real people, archetypal
-           rows only. It illustrates the mechanism, it does not claim to be data. -->
-      <div class="stack">
-        <div class="stack-head">
-          <span class="label">Sorted by date</span>
-          <span class="label" style="color:var(--text-muted); opacity:0.7;">newest first</span>
+      <!-- Diagram, not a screenshot: no Gmail chrome, no real people. It shows a
+           mechanism; it does not claim to be data. Rows are injected by script —
+           26 hand-tuned widths, no randomness, so every render is identical. -->
+      <div class="pile">
+        <div class="pile-head">
+          <span class="label">Your inbox, sorted by date</span>
+          <span class="label" style="opacity:0.7;">newest first ↓</span>
         </div>
 
-        <div class="row"><span class="dot"></span><span class="row-t">Newsletter</span><span class="row-x">2 min</span></div>
-        <div class="row"><span class="dot"></span><span class="row-t">Calendar invite</span><span class="row-x">18 min</span></div>
-        <div class="row"><span class="dot"></span><span class="row-t">Promotion</span><span class="row-x">1 hr</span></div>
-        <div class="row"><span class="dot"></span><span class="row-t">Receipt</span><span class="row-x">3 hr</span></div>
-        <div class="row"><span class="dot"></span><span class="row-t">Social notification</span><span class="row-x">5 hr</span></div>
+        <div class="pile-rows" data-pile></div>
 
-        <div class="gap">21 more — newsletters, promotions, receipts</div>
-
-        <div class="row-hot">
+        <div class="prow-hot">
           <span class="dot-hot"></span>
           <span style="flex:1;">
             <span class="n">The client who pays you</span>
@@ -600,7 +590,6 @@ html, body {
       <div class="proof">
         <div class="k">127</div>
         <div class="v">overdue replies in my own inbox,<br />right now.</div>
-        <div class="w">Oldest: 12 days.</div>
       </div>
 
     </div>
@@ -624,7 +613,6 @@ html, body {
           <b>112 signed up</b>
         </div>
         <div class="conv-bar"><i></i></div>
-        <div class="conv-foot">Roughly 1 in 5 who saw the page made an account.</div>
       </div>
 
       <div class="r minor">
@@ -633,6 +621,8 @@ html, body {
         <div><div class="v">1</div><div class="k">paying · first $12</div></div>
       </div>
     </div>
+
+    <div class="wash" style="left:600px; right:-40px; top:60px; bottom:60px;" aria-hidden="true"></div>
 
     <!-- The page those 500 visitors landed on, shot from production at 2×.
          The ring sits on the real CTA they really clicked. -->
@@ -665,7 +655,9 @@ html, body {
 
   <!-- ════ 5 · Founder ══════════════════════════════════════════════════ -->
   <section class="slide" id="s5">
-    <div class="r portrait">
+    <div class="skyline" data-sky aria-hidden="true"></div>
+
+    <div class="r portrait" style="z-index:1;">
       <img id="founder-img" src="founder.jpg" alt="Amirkhan Sagyndyk" style="display:none;" />
       <div class="slot" id="founder-slot">
         <span class="mono">V</span>
@@ -673,7 +665,7 @@ html, body {
       </div>
     </div>
 
-    <div>
+    <div style="position:relative; z-index:1;">
       <h2 class="r display-title" style="font-size:46px; margin-bottom:7px;">Amirkhan Sagyndyk</h2>
       <p class="r" style="font-size:17px; color:var(--text-secondary); margin-bottom:32px;">
         Founder, Velnox · Astana, Kazakhstan
@@ -713,7 +705,6 @@ html, body {
             Zero → Legend, Dota 2 <span class="m">from unranked</span>
           </li>
         </ul>
-        <p class="s5-note">Same stubbornness that got Velnox into production.</p>
       </div>
     </div>
   </section>
@@ -737,23 +728,20 @@ html, body {
         I'll fix it this week.
       </p>
 
-      <p class="r s6-mail">
-        Looking for my first <b id="cnt">10</b> pilot users ·
-        <b>sagindiktar@gmail.com</b>
-      </p>
     </div>
 
     <!-- Real QR, real destination. Generated with `npx qrcode -e H` and inlined
          so the deck stays one self-contained file that works with no network. -->
-    <div class="r">
-      <div class="qr-card">
+    <div class="r" style="position:relative;">
+      <div class="wash" style="inset:-70px -60px;" aria-hidden="true"></div>
+      <div class="qr-card" style="position:relative; z-index:1;">
         <div class="qr-ring" aria-hidden="true"></div>
         <svg viewBox="0 0 37 37" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="QR code to usevelnox.com">
           <path fill="#FFFFFF" d="M0 0h37v37H0z"/>
           <path stroke="#0C0E1D" d="M4 4.5h7m3 0h1m1 0h4m1 0h1m1 0h2m1 0h7M4 5.5h1m5 0h1m2 0h1m1 0h2m6 0h1m2 0h1m5 0h1M4 6.5h1m1 0h3m1 0h1m1 0h1m1 0h3m2 0h1m3 0h1m2 0h1m1 0h3m1 0h1M4 7.5h1m1 0h3m1 0h1m1 0h1m1 0h1m4 0h3m2 0h1m1 0h1m1 0h3m1 0h1M4 8.5h1m1 0h3m1 0h1m2 0h1m2 0h4m3 0h1m2 0h1m1 0h3m1 0h1M4 9.5h1m5 0h1m2 0h2m2 0h1m2 0h1m3 0h1m1 0h1m5 0h1M4 10.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M13 11.5h3m3 0h4m1 0h1M7 12.5h2m1 0h2m1 0h2m1 0h1m1 0h2m3 0h1m5 0h2M4 13.5h3m1 0h1m3 0h2m1 0h2m1 0h1m2 0h2m4 0h3m1 0h1M5 14.5h2m1 0h1m1 0h1m1 0h1m1 0h3m1 0h1m1 0h1m1 0h6m2 0h1M5 15.5h1m2 0h2m2 0h4m1 0h3m3 0h2m4 0h1m2 0h1M7 16.5h2m1 0h2m3 0h4m3 0h1m2 0h2m2 0h1m1 0h1M4 17.5h2m1 0h2m2 0h1m1 0h1m2 0h2m2 0h3m3 0h1m1 0h1m1 0h1m1 0h1M5 18.5h7m3 0h1m1 0h5m1 0h5m1 0h1m2 0h1M6 19.5h4m2 0h4m1 0h1m3 0h2m2 0h1m2 0h5M5 20.5h1m2 0h1m1 0h1m3 0h1m2 0h2m3 0h1m1 0h1m2 0h1m1 0h1M4 21.5h1m2 0h2m3 0h2m1 0h1m1 0h4m1 0h1m4 0h4M4 22.5h2m1 0h4m2 0h1m3 0h1m1 0h3m1 0h1m3 0h3m2 0h1M4 23.5h2m3 0h1m2 0h7m1 0h1m1 0h2m1 0h2m3 0h2M4 24.5h3m1 0h3m1 0h1m4 0h4m3 0h7m1 0h1M12 25.5h1m1 0h1m2 0h1m1 0h2m2 0h2m3 0h3M4 26.5h7m1 0h5m1 0h2m3 0h2m1 0h1m1 0h1m1 0h1M4 27.5h1m5 0h1m2 0h1m1 0h2m2 0h1m2 0h3m3 0h2M4 28.5h1m1 0h3m1 0h1m1 0h2m2 0h4m3 0h6m3 0h1M4 29.5h1m1 0h3m1 0h1m1 0h1m1 0h2m1 0h1m4 0h1m4 0h1m3 0h1M4 30.5h1m1 0h3m1 0h1m2 0h3m2 0h3m1 0h1m1 0h2m1 0h2m1 0h3M4 31.5h1m5 0h1m3 0h3m8 0h1m2 0h3m1 0h1M4 32.5h7m2 0h3m1 0h1m2 0h2m1 0h2m1 0h4"/>
         </svg>
       </div>
-      <p class="qr-cap">Scan → <b>usevelnox.com</b></p>
+      <p class="qr-cap" style="position:relative; z-index:1;">Scan → <b>usevelnox.com</b></p>
     </div>
   </section>
 
@@ -764,13 +752,52 @@ html, body {
 <div id="hint">← → to move · F for fullscreen</div>
 
 <script>
-/* Skyline paths — HeroSkyline.tsx, verbatim. Injected rather than inlined to
-   keep the markup above readable. */
-document.getElementById('far').setAttribute('d',
-  'M0 400 V269 h34 v-18 h27 v18 h21 V236 h38 v-24 h12 v24 h20 v33 h30 V218 h44 v51 h24 v-92 h10 l4 -14 4 14 h10 v92 h27 V241 h36 v-30 h26 v30 h18 v28 h33 V204 h12 v-26 h8 l3 -12 3 12 h8 v26 h12 v65 h29 v-38 h40 v38 h22 V222 h38 v47 h25 v-71 h30 v-19 h9 l3 -16 3 16 h9 v19 h30 v71 h24 V235 h42 v34 h20 v-56 h36 v56 h26 V214 h12 v-25 h7 l3 -13 3 13 h7 v25 h12 v55 h31 v-31 h40 v31 h21 V226 h38 v43 h26 v-64 h28 v-20 h8 l3 -15 3 15 h8 v20 h28 v64 h24 V241 h38 v28 h20 v-49 h34 v49 h27 V219 h44 v50 h22 v-31 h36 v31 h24 V245 h32 v24 h22 v-18 h30 v18 h21 v155 Z');
-var NEAR = 'M0 400 V308 h44 v-26 h34 v26 h20 V262 h12 v-16 h32 v16 h12 v46 h26 V241 h10 v-18 h44 v18 h10 v67 h30 v-38 h14 V216 h6 l3 -38 3 38 h6 v54 h14 v38 h26 V273 h48 v-42 h12 v42 h14 v35 h30 v-62 h10 v-25 h15 l3 -20 3 20 h15 v25 h10 v62 h24 v-27 h46 v27 h22 V254 h12 v-20 h40 v20 h12 v54 h30 v-83 h8 v-18 h13 l2 -30 2 30 h13 v18 h8 v83 h26 v-33 h52 v33 h20 V259 h12 v-24 h38 v24 h12 v49 h30 v-70 h10 v-22 h14 l3 -26 3 26 h14 v22 h10 v70 h24 v-30 h48 v30 h22 V251 h12 v-19 h42 v19 h12 v57 h28 v-40 h50 v40 h22 V266 h44 v42 h26 v-24 h40 v24 h20 v-30 h38 v122 Z';
-document.getElementById('near1').setAttribute('d', NEAR);
-document.getElementById('near2').setAttribute('d', NEAR);
+/* Skyline paths — HeroSkyline.tsx, verbatim. The deck's one recurring motif:
+   rather than give every slide a different decoration (which is how decks start
+   looking like templates), the same city returns at a different crop, scale,
+   opacity and facing on each slide it appears. One world, several angles.
+   Built by script per instance because the gradient/pattern/filter ids have to
+   be unique — two copies sharing an id is invalid and the second one renders
+   against the first one's defs. */
+var FAR_D = 'M0 400 V269 h34 v-18 h27 v18 h21 V236 h38 v-24 h12 v24 h20 v33 h30 V218 h44 v51 h24 v-92 h10 l4 -14 4 14 h10 v92 h27 V241 h36 v-30 h26 v30 h18 v28 h33 V204 h12 v-26 h8 l3 -12 3 12 h8 v26 h12 v65 h29 v-38 h40 v38 h22 V222 h38 v47 h25 v-71 h30 v-19 h9 l3 -16 3 16 h9 v19 h30 v71 h24 V235 h42 v34 h20 v-56 h36 v56 h26 V214 h12 v-25 h7 l3 -13 3 13 h7 v25 h12 v55 h31 v-31 h40 v31 h21 V226 h38 v43 h26 v-64 h28 v-20 h8 l3 -15 3 15 h8 v20 h28 v64 h24 V241 h38 v28 h20 v-49 h34 v49 h27 V219 h44 v50 h22 v-31 h36 v31 h24 V245 h32 v24 h22 v-18 h30 v18 h21 v155 Z';
+var NEAR_D = 'M0 400 V308 h44 v-26 h34 v26 h20 V262 h12 v-16 h32 v16 h12 v46 h26 V241 h10 v-18 h44 v18 h10 v67 h30 v-38 h14 V216 h6 l3 -38 3 38 h6 v54 h14 v38 h26 V273 h48 v-42 h12 v42 h14 v35 h30 v-62 h10 v-25 h15 l3 -20 3 20 h15 v25 h10 v62 h24 v-27 h46 v27 h22 V254 h12 v-20 h40 v20 h12 v54 h30 v-83 h8 v-18 h13 l2 -30 2 30 h13 v18 h8 v83 h26 v-33 h52 v33 h20 V259 h12 v-24 h38 v24 h12 v49 h30 v-70 h10 v-22 h14 l3 -26 3 26 h14 v22 h10 v70 h24 v-30 h48 v30 h22 V251 h12 v-19 h42 v19 h12 v57 h28 v-40 h50 v40 h22 V266 h44 v42 h26 v-24 h40 v24 h20 v-30 h38 v122 Z';
+
+function skySVG(n) {
+  var u = 'sky' + n;
+  return '<svg width="100%" height="100%" viewBox="0 0 1600 400" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">'
+    + '<defs>'
+    +   '<pattern id="w' + u + '" width="14" height="20" patternUnits="userSpaceOnUse">'
+    +     '<rect x="4" y="5" width="4" height="9" fill="#FFFFFF" opacity="0.34"/></pattern>'
+    +   '<linearGradient id="t' + u + '" x1="0" y1="0" x2="0" y2="1">'
+    +     '<stop offset="0" stop-color="#F6F8FE" stop-opacity="1"/>'
+    +     '<stop offset="1" stop-color="#F6F8FE" stop-opacity="0"/></linearGradient>'
+    +   '<linearGradient id="b' + u + '" x1="0" y1="0" x2="0" y2="1">'
+    +     '<stop offset="0" stop-color="#F6F8FE" stop-opacity="0"/>'
+    +     '<stop offset="0.72" stop-color="#F6F8FE" stop-opacity="0.9"/>'
+    +     '<stop offset="1" stop-color="#F6F8FE" stop-opacity="1"/></linearGradient>'
+    +   '<filter id="f' + u + '" x="-4%" y="-4%" width="108%" height="108%">'
+    +     '<feGaussianBlur stdDeviation="1.6"/></filter>'
+    + '</defs>'
+    + '<path fill="#E4E8F8" filter="url(#f' + u + ')" d="' + FAR_D + '"/>'
+    + '<path fill="#D9DEF3" d="' + NEAR_D + '"/>'
+    + '<path fill="url(#w' + u + ')" d="' + NEAR_D + '"/>'
+    + '<rect x="0" y="150" width="1600" height="130" fill="url(#t' + u + ')" opacity="0.55"/>'
+    + '<rect x="0" y="268" width="1600" height="132" fill="url(#b' + u + ')"/>'
+    + '</svg>';
+}
+Array.prototype.forEach.call(document.querySelectorAll('[data-sky]'), function (el, i) {
+  el.innerHTML = skySVG(i);
+});
+
+/* The pile on slide 2. Widths are hand-tuned and fixed — Math.random would give
+   a different deck on every render and the exported PNGs would never match the
+   live page. 26 rows: enough that nobody counts them, few enough to fit. */
+var PILE_W = [78, 52, 91, 44, 67, 83, 38, 72, 60, 88, 47, 75, 55, 94, 41, 69, 81, 50, 86, 63, 43, 77, 58, 90, 48, 71];
+Array.prototype.forEach.call(document.querySelectorAll('[data-pile]'), function (el) {
+  el.innerHTML = PILE_W.map(function (w) {
+    return '<div class="prow"><span class="d"></span><span class="b" style="width:' + w + '%"></span></div>';
+  }).join('');
+});
 
 /* Founder photo: activate the frame only if the real file is actually there.
    No stock face ever renders — the slot placeholder is the honest fallback.
@@ -816,23 +843,6 @@ function go(n) {
   if (slides[i].id === 's4') { video.currentTime = 0; video.play().catch(function(){}); }
   else { video.pause(); }
 
-  if (slides[i].id === 's6') countUp();
-}
-
-/* The ask counts up as the slide lands. It is the one number the room has to
-   carry out of the deck, and a number that moves is a number that gets read.
-   Cubic ease-out to match the deck's --ease. */
-var cnt = document.getElementById('cnt');
-function countUp() {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { cnt.textContent = '10'; return; }
-  var t0 = null;
-  function step(ts) {
-    if (t0 === null) t0 = ts;
-    var p = Math.min((ts - t0) / 780, 1);
-    cnt.textContent = Math.round((1 - Math.pow(1 - p, 3)) * 10);
-    if (p < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
 }
 
 document.addEventListener('keydown', function (e) {
