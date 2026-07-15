@@ -24,6 +24,35 @@ is a local file. Wifi at the venue is irrelevant.
 `../public/` relative to itself. Move the repo, or the whole `deck/` folder plus
 the two files it borrows from `public/`.
 
+## If a venue demands a file: velnox-pitch.pptx
+
+```bash
+node deck/build-pptx.js && python deck/fix-video.py
+```
+
+24MB, 13.333×7.5in, six slides. Gitignored — it is a build output, and the video
+inside it is `public/demo.mp4` a second time.
+
+Each slide goes in as one full-bleed 3200×1800 render (240 DPI), not as rebuilt
+PowerPoint shapes: the design already exists and is exact, and re-approximating
+Fraunces, the skyline, the wash and the annotation ring in a format that has none
+of them would only drift from `index.html`. Slide 4 additionally carries the real
+`demo.mp4` over the video area of its own still, so it plays rather than freezes;
+if PowerPoint can't play it, the still underneath is already the right frame.
+
+`fix-video.py` exists because pptxgenjs has no API for the two things slide 4
+needs: a real poster (its default is a grey play-button placeholder that would
+sit over the middle of the slide) and `a:srcRect`, PowerPoint's own video crop,
+to take off the 60px pillarbox. The poster must go in **uncropped** — srcRect
+crops poster and playback together.
+
+Verified by rendering the .pptx through the real PowerPoint (COM) and diffing
+against the HTML: mean difference 3.14/255 per pixel, and the QR still decodes to
+`https://usevelnox.com` out of the PowerPoint render.
+
+The browser version is still the better one — it has the motion, the pulse and
+the fill animations. Use the .pptx only when someone insists on a file.
+
 ## Assets
 
 | Path | What |

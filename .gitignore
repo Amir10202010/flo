@@ -63,3 +63,11 @@ ehthumbs.db
 
 # ...but do track the committed placeholder template (last match wins)
 !.env.example
+
+# pitch deck build outputs — regenerate with:
+#   node deck/build-pptx.js && python deck/fix-video.py
+# The .pptx is 24MB because demo.mp4 is embedded in it, and public/demo.mp4 is
+# already in the repo once. The 2x renders come straight out of deck/index.html.
+/deck/velnox-pitch.pptx
+/deck/export2x/
+/deck/.pptx-work/
