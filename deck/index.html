@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Velnox — pitch</title>
+<link rel="icon" href="../public/logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,100..900,0..100,0..1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   Velnox pitch deck.
+
+   Every token below is lifted verbatim from src/app/globals.css. This deck is
+   an extension of the product surface, not a separate design. If a value here
+   drifts from the app, the app wins.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  --bg-base:      #F6F8FE;
+  --bg-surface:   #FFFFFF;
+  --bg-elevated:  #EEF1FD;
+  --bg-subtle:    #F9FAFF;
+
+  --border:       #DDE1F5;
+  --border-light: #E8ECF9;
+
+  --text-primary:   #0C0E1D;
+  --text-secondary: #4B5282;
+  --text-muted:     #8D93BE;
+
+  --accent:      #4F5CF4;
+  --accent-dim:  rgba(79, 92, 244, 0.07);
+
+  --btn-primary: #15172A;
+
+  --hot:        #DC2B55;
+  --hot-dim:    rgba(220, 43, 85, 0.07);
+  --hot-border: rgba(220, 43, 85, 0.2);
+
+  --attention:  #C2620A;
+
+  --radius-sm: 6px;
+  --radius:    8px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+
+  --shadow-md: 0 2px 8px rgba(12, 18, 60, 0.06), 0 0 0 1px rgba(12, 18, 60, 0.04);
+  --shadow-lg: 0 6px 20px rgba(12, 18, 60, 0.08), 0 0 0 1px rgba(12, 18, 60, 0.04);
+  --shadow-xl: 0 12px 36px rgba(12, 18, 60, 0.10), 0 0 0 1px rgba(12, 18, 60, 0.035);
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: #0B0D18;           /* letterbox surround — the stage is the page */
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+/* ── Stage ────────────────────────────────────────────────────────────────
+   Fixed 1600×900 and scaled to fit, so every slide screenshots identically
+   at any display size and the type never reflows between machines. */
+#viewport {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+#stage {
+  position: relative;
+  width: 1600px;
+  height: 900px;
+  transform-origin: center center;
+  background: var(--bg-base);
+  overflow: hidden;
+  color: var(--text-primary);
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(14px);
+  transition: opacity 0.42s var(--ease), transform 0.42s var(--ease), visibility 0s linear 0.42s;
+}
+.slide[data-active] {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: opacity 0.42s var(--ease), transform 0.42s var(--ease), visibility 0s;
+}
+
+/* Stagger: children lift in behind the slide itself. */
+.slide[data-active] .r { animation: revealUp 0.5s var(--ease) both; }
+.slide[data-active] .r:nth-child(1) { animation-delay: 0.06s; }
+.slide[data-active] .r:nth-child(2) { animation-delay: 0.12s; }
+.slide[data-active] .r:nth-child(3) { animation-delay: 0.18s; }
+.slide[data-active] .r:nth-child(4) { animation-delay: 0.24s; }
+@keyframes revealUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── Type ─────────────────────────────────────────────────────────────────
+   Inter everywhere. Fraunces gets exactly ONE job — the title-card line —
+   mirroring the one-exception rule stated in src/app/layout.tsx. It must not
+   appear on any surface that reads as product UI. */
+.hero-serif {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 340;
+  font-optical-sizing: none;
+  font-variation-settings: 'opsz' 20, 'SOFT' 70, 'WONK' 0;
+  letter-spacing: -0.005em;
+  line-height: 1.08;
+}
+.display-title {
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.06;
+  color: var(--text-primary);
+  text-wrap: balance;
+}
+.muted-tail { color: var(--accent); }
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ── Brand lockup — reproduces src/components/layout/Brand.tsx ───────────── */
+.brand { display: inline-flex; align-items: center; gap: 12px; }
+.brand img { display: block; object-fit: contain; flex-shrink: 0; }
+.brand span {
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+/* ── Surfaces ─────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+/* ═══ Slide 1 — title ══════════════════════════════════════════════════════ */
+#s1 { display: grid; place-items: center; text-align: center; }
+#s1 .inner { position: relative; z-index: 1; max-width: 1040px; padding-bottom: 60px; }
+.skyline { position: absolute; left: 0; right: 0; bottom: 0; height: 400px; pointer-events: none; }
+.skyline svg { display: block; width: 100%; height: 100%; }
+
+/* ═══ Slide 2 — problem ════════════════════════════════════════════════════ */
+#s2 { padding: 0 110px; display: flex; flex-direction: column; justify-content: center; }
+.stack {
+  width: 760px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+.stack-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-subtle);
+}
+.row {
+  display: flex; align-items: center; gap: 13px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border-light);
+}
+.dot { width: 26px; height: 26px; border-radius: 100px; background: var(--bg-elevated); flex-shrink: 0; }
+.row-t { flex: 1; font-size: 14.5px; color: var(--text-muted); font-weight: 500; }
+.row-x { font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+.gap {
+  padding: 11px 18px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-light);
+  background: repeating-linear-gradient(
+    -45deg, transparent, transparent 6px,
+    rgba(141,147,190,0.05) 6px, rgba(141,147,190,0.05) 12px
+  );
+}
+
+/* The one loud row. Everything above it is deliberately quiet so this lands. */
+.row-hot {
+  display: flex; align-items: center; gap: 13px;
+  padding: 17px 18px;
+  background: var(--hot-dim);
+  border-left: 3px solid var(--hot);
+}
+.dot-hot { width: 30px; height: 30px; border-radius: 100px; background: var(--hot); opacity: 0.85; flex-shrink: 0; }
+.row-hot .n { display: block; font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.row-hot .s { display: block; font-size: 13.5px; color: var(--text-secondary); margin-top: 3px; }
+.chip-hot {
+  font-size: 12px; font-weight: 600; color: var(--hot);
+  background: var(--bg-surface);
+  border: 1px solid var(--hot-border);
+  border-radius: 100px;
+  padding: 5px 11px;
+  white-space: nowrap;
+}
+
+/* The counterweight to the diagram: one real number, big enough to carry the
+   right half of the slide on its own. */
+.proof .k {
+  font-size: 132px; font-weight: 600; letter-spacing: -0.05em;
+  line-height: 0.9; color: var(--hot); font-variant-numeric: tabular-nums;
+}
+.proof .v { font-size: 21px; color: var(--text-primary); line-height: 1.5; margin-top: 18px; font-weight: 500; letter-spacing: -0.012em; }
+.proof .w { font-size: 15px; color: var(--text-muted); margin-top: 12px; }
+
+/* ═══ Slide 3 — traction ═══════════════════════════════════════════════════ */
+#s3 { padding: 0 0 0 110px; display: flex; flex-direction: column; justify-content: center; }
+.stat { padding: 22px 24px 20px; }
+.stat .k { font-size: 12px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); }
+.stat .v {
+  font-size: 60px; font-weight: 600; letter-spacing: -0.045em;
+  line-height: 1.04; margin-top: 8px; font-variant-numeric: tabular-nums;
+}
+.stat .s { font-size: 13.5px; color: var(--text-secondary); margin-top: 5px; }
+
+.minor { display: flex; gap: 34px; }
+.minor div .v { font-size: 25px; font-weight: 600; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.minor div .k { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+
+/* Real product, bleeding off the right AND bottom edges — the same "rising
+   window" move the landing page makes with .hero-demo-pull. Anchored rather
+   than flowed, so the numbers column can centre independently of it. */
+.bleed {
+  position: absolute;
+  left: 700px;
+  top: 96px;
+  bottom: -80px;
+  right: -90px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xl);
+}
+/* Fill the frame and let the right/bottom crop off. Anchored top-left so the
+   crop keeps the part that carries the slide: the stat row and the ranked
+   command centre. */
+.bleed img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: left top; }
+
+/* ═══ Slide 4 — demo ═══════════════════════════════════════════════════════ */
+#s4 { display: flex; flex-direction: column; align-items: center; padding: 54px 0 0; }
+/* 1180 keeps the scene at 737px tall (video is 0.625 × width after overscan),
+   so the whole thing lands inside the 900px stage instead of overflowing. */
+.glow-wrap { position: relative; width: 1180px; }
+/* The site's own ambience — HeroMedia.tsx, verbatim. */
+.glow {
+  position: absolute; inset: -13% -11% -17%;
+  z-index: 0; pointer-events: none;
+  background: radial-gradient(62% 60% at 50% 44%,
+    rgba(79,92,244,0.75), rgba(96,165,250,0.5) 50%, rgba(124,192,255,0) 76%);
+  filter: blur(38px);
+}
+.scene {
+  position: relative; z-index: 1;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  background: #000;
+  box-shadow:
+    0 0 0 1px rgba(79,92,244,0.18),
+    0 24px 70px rgba(79,92,244,0.38),
+    0 0 140px 28px rgba(96,165,250,0.42);
+}
+/* The capture has exactly 60px of black pillarbox burned into each side of its
+   1920 frame (3.125%) — measured off the file, constant across all 30s. Overscan
+   by 1920/1800 so the chrome crops the bars away and nothing else.
+   NB: HeroMedia.tsx still assumes 96px/5% from the previous cut of demo.mp4; it
+   over-crops ~1.9% of real content per side. Harmless, but wrong. */
+.scene video { display: block; width: 106.67%; max-width: none; margin-left: -3.333%; height: auto; }
+
+/* ═══ Slide 5 — founder ════════════════════════════════════════════════════ */
+#s5 { padding: 104px 110px; display: grid; grid-template-columns: 380px 1fr; gap: 76px; align-items: center; }
+.portrait {
+  position: relative;
+  width: 380px; height: 470px;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+}
+.portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Shown only when deck/founder.jpg is absent. A typographic slot — never a
+   stock face. public/photos/founder.jpg is stock imagery of an unrelated
+   person and is deliberately not used here. */
+.portrait .slot {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  background: var(--bg-elevated);
+}
+.portrait .slot .mono {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 340;
+  font-variation-settings: 'opsz' 20, 'SOFT' 70, 'WONK' 0;
+  font-size: 116px; line-height: 1; color: var(--text-muted); opacity: 0.5;
+}
+.portrait .slot .cap { font-size: 12px; color: var(--text-muted); }
+
+/* No bullets, no ticks — the hairline rules already separate these, and a
+   column of check glyphs reads as a feature list, not as credibility. */
+.facts { list-style: none; display: flex; flex-direction: column; max-width: 720px; }
+.facts li {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: -0.014em;
+}
+.facts li:last-child { border-bottom: 0; }
+.facts li .m {
+  font-size: 13.5px; color: var(--text-muted); font-weight: 400;
+  display: block; margin-top: 5px; letter-spacing: 0;
+}
+
+/* ═══ Slide 6 — CTA ════════════════════════════════════════════════════════
+   The site's .lp-cta surface, taken full-bleed. */
+#s6 { padding: 0; }
+.cta {
+  width: 100%; height: 100%;
+  background: var(--btn-primary);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 0 140px;
+}
+.cta h2 { color: #fff; }
+.cta .sub { font-size: 20px; color: rgba(255,255,255,0.72); line-height: 1.6; max-width: 700px; margin: 20px auto 0; }
+.cta-btn {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 15px 26px;
+  border-radius: var(--radius-sm);
+  background: #fff; color: #15172A;
+  font-size: 16px; font-weight: 600;
+  text-decoration: none;
+  margin-top: 40px;
+}
+.cta .foot { font-size: 13.5px; color: rgba(255,255,255,0.45); margin-top: 22px; }
+.cta .brand span { color: #fff; }
+
+/* ── Chrome: progress + hint ──────────────────────────────────────────────── */
+#rail {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: transparent; z-index: 30;
+}
+#rail i {
+  display: block; height: 100%; width: 0;
+  background: var(--accent);
+  transition: width 0.42s var(--ease);
+}
+#s6 ~ #rail i, .on-dark #rail i { background: #fff; }
+
+#hint {
+  position: fixed; right: 18px; bottom: 14px;
+  font-size: 11.5px; color: rgba(255,255,255,0.34);
+  font-family: var(--font-sans);
+  z-index: 40;
+  transition: opacity 0.4s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide, .slide[data-active] .r, #rail i { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="viewport">
+<div id="stage">
+
+  <!-- ════ 1 · Title ════════════════════════════════════════════════════ -->
+  <section class="slide" id="s1" data-active>
+    <div class="skyline" aria-hidden="true">
+      <svg width="100%" height="100%" viewBox="0 0 1600 400" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="skyWin" width="14" height="20" patternUnits="userSpaceOnUse">
+            <rect x="4" y="5" width="4" height="9" fill="#FFFFFF" opacity="0.34" />
+          </pattern>
+          <linearGradient id="skyHazeTop" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#F6F8FE" stop-opacity="1" />
+            <stop offset="1" stop-color="#F6F8FE" stop-opacity="0" />
+          </linearGradient>
+          <linearGradient id="skyHazeBase" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#F6F8FE" stop-opacity="0" />
+            <stop offset="0.72" stop-color="#F6F8FE" stop-opacity="0.9" />
+            <stop offset="1" stop-color="#F6F8FE" stop-opacity="1" />
+          </linearGradient>
+          <filter id="skyBlur" x="-4%" y="-4%" width="108%" height="108%">
+            <feGaussianBlur stdDeviation="1.6" />
+          </filter>
+        </defs>
+        <path id="far" fill="#E4E8F8" filter="url(#skyBlur)" />
+        <path id="near1" fill="#D9DEF3" />
+        <path id="near2" fill="url(#skyWin)" />
+        <rect x="0" y="150" width="1600" height="130" fill="url(#skyHazeTop)" opacity="0.55" />
+        <rect x="0" y="268" width="1600" height="132" fill="url(#skyHazeBase)" />
+      </svg>
+    </div>
+
+    <div class="inner">
+      <div class="r brand" style="gap:14px; margin-bottom:44px;">
+        <img src="../public/logo.png" alt="" width="40" height="40" />
+        <span style="font-size:43px;">velnox</span>
+      </div>
+
+      <h1 class="r hero-serif" style="font-size:86px; margin-bottom:26px;">
+        Never lose a client<br />in your Gmail.
+      </h1>
+
+      <p class="r" style="font-size:21px; color:var(--text-secondary); line-height:1.6; max-width:760px; margin:0 auto; text-wrap:balance;">
+        Velnox reads your Gmail and tells you which client to answer today, who's going cold,
+        and what to say — with the reply already drafted.
+      </p>
+    </div>
+  </section>
+
+  <!-- ════ 2 · Problem ══════════════════════════════════════════════════ -->
+  <section class="slide" id="s2">
+    <h2 class="r display-title" style="font-size:56px; margin-bottom:44px;">
+      Gmail sorts by time. <span class="muted-tail">Your clients don't.</span>
+    </h2>
+
+    <div class="r" style="display:grid; grid-template-columns:720px 1fr; gap:80px; align-items:center;">
+
+      <!-- Diagram. NOT a screenshot: no Gmail chrome, no real people, archetypal
+           rows only. It illustrates the mechanism, it does not claim to be data. -->
+      <div class="stack">
+        <div class="stack-head">
+          <span class="label">Sorted by date</span>
+          <span class="label" style="color:var(--text-muted); opacity:0.7;">newest first</span>
+        </div>
+
+        <div class="row"><span class="dot"></span><span class="row-t">Newsletter</span><span class="row-x">2 min</span></div>
+        <div class="row"><span class="dot"></span><span class="row-t">Calendar invite</span><span class="row-x">18 min</span></div>
+        <div class="row"><span class="dot"></span><span class="row-t">Promotion</span><span class="row-x">1 hr</span></div>
+        <div class="row"><span class="dot"></span><span class="row-t">Receipt</span><span class="row-x">3 hr</span></div>
+        <div class="row"><span class="dot"></span><span class="row-t">Social notification</span><span class="row-x">5 hr</span></div>
+
+        <div class="gap">21 more — newsletters, promotions, receipts</div>
+
+        <div class="row-hot">
+          <span class="dot-hot"></span>
+          <span style="flex:1;">
+            <span class="n">The client who pays you</span>
+            <span class="s">"Any update on the quote?"</span>
+          </span>
+          <span class="chip-hot">waiting 12 days</span>
+        </div>
+      </div>
+
+      <div class="proof">
+        <div class="k">127</div>
+        <div class="v">overdue replies in my own inbox,<br />right now.</div>
+        <div class="w">Oldest: 12 days.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ════ 3 · Traction ═════════════════════════════════════════════════ -->
+  <section class="slide" id="s3">
+    <div style="position:relative; z-index:2; width:560px;">
+      <h2 class="r display-title" style="font-size:52px; margin-bottom:38px;">
+        It's live. <span class="muted-tail">Someone already pays.</span>
+      </h2>
+
+      <div class="r" style="display:flex; flex-direction:column; gap:14px;">
+        <div class="card stat">
+          <div class="k">Users</div>
+          <div class="v">112</div>
+          <div class="s">signed up · $0 marketing spend</div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="card stat">
+            <div class="k">Paying</div>
+            <div class="v">1</div>
+            <div class="s">first customer</div>
+          </div>
+          <div class="card stat">
+            <div class="k">MRR</div>
+            <div class="v">$12</div>
+            <div class="s">Pro · $12/mo</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="r minor" style="margin-top:32px; padding-left:2px;">
+        <div><div class="v">500</div><div class="k">visitors</div></div>
+        <div><div class="v">6,000</div><div class="k">impressions</div></div>
+        <div><div class="v">200</div><div class="k">engagements</div></div>
+      </div>
+    </div>
+
+    <div class="r bleed">
+      <img src="shots/dashboard.png" alt="The Velnox dashboard, running on the founder's own Gmail" />
+    </div>
+  </section>
+
+  <!-- ════ 4 · Demo ═════════════════════════════════════════════════════ -->
+  <section class="slide" id="s4">
+    <h2 class="r display-title" style="font-size:40px; margin-bottom:30px; text-align:center;">
+      Open Velnox. <span class="muted-tail">Your morning is already sorted.</span>
+    </h2>
+    <div class="r glow-wrap">
+      <div class="glow" aria-hidden="true"></div>
+      <div class="scene">
+        <video id="demo" src="../public/demo.mp4" muted loop playsinline preload="auto"></video>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ 5 · Founder ══════════════════════════════════════════════════ -->
+  <section class="slide" id="s5">
+    <div class="r portrait">
+      <img id="founder-img" src="founder.jpg" alt="Amirkhan Sagyndyk" style="display:none;" />
+      <div class="slot" id="founder-slot">
+        <span class="mono">V</span>
+        <span class="cap">drop founder.jpg in /deck</span>
+      </div>
+    </div>
+
+    <div>
+      <h2 class="r display-title" style="font-size:50px; margin-bottom:10px;">Amirkhan Sagyndyk</h2>
+      <p class="r" style="font-size:18px; color:var(--text-secondary); margin-bottom:28px;">
+        Founder, Velnox
+      </p>
+
+      <ul class="r facts">
+        <li>
+          Built Velnox solo — full-stack, in production
+          <span class="m">Next.js · Postgres · Gemini · Gmail API · Polar billing</span>
+        </li>
+        <li>
+          Built a startup platform for dental clinics
+          <span class="m">Velnox isn't my first product</span>
+        </li>
+        <li>
+          2nd Degree Diploma — Republican Informatics Olympiad
+          <span class="m">District stage</span>
+        </li>
+        <li>
+          Graduated Yandex Programming &amp; STEP Academy
+        </li>
+        <li>
+          Student at NIS Astana
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ════ 6 · Ask ══════════════════════════════════════════════════════ -->
+  <section class="slide" id="s6">
+    <div class="cta">
+      <div class="r brand" style="margin-bottom:46px;">
+        <img src="../public/logo.png" alt="" width="26" height="26" style="filter:invert(1);" />
+        <span style="font-size:26px;">velnox</span>
+      </div>
+
+      <h2 class="r display-title" style="font-size:60px;">
+        Send me 10 people who run<br />their business out of Gmail.
+      </h2>
+
+      <p class="r sub">
+        Freelancers, agency owners, consultants.<br />I'll onboard every one of them myself.
+      </p>
+
+      <a class="r cta-btn" href="https://usevelnox.com">usevelnox.com</a>
+
+      <p class="r foot">sagindiktar@gmail.com</p>
+    </div>
+  </section>
+
+  <div id="rail"><i></i></div>
+</div>
+</div>
+
+<div id="hint">← → to move · F for fullscreen</div>
+
+<script>
+/* Skyline paths — HeroSkyline.tsx, verbatim. Injected rather than inlined to
+   keep the markup above readable. */
+document.getElementById('far').setAttribute('d',
+  'M0 400 V269 h34 v-18 h27 v18 h21 V236 h38 v-24 h12 v24 h20 v33 h30 V218 h44 v51 h24 v-92 h10 l4 -14 4 14 h10 v92 h27 V241 h36 v-30 h26 v30 h18 v28 h33 V204 h12 v-26 h8 l3 -12 3 12 h8 v26 h12 v65 h29 v-38 h40 v38 h22 V222 h38 v47 h25 v-71 h30 v-19 h9 l3 -16 3 16 h9 v19 h30 v71 h24 V235 h42 v34 h20 v-56 h36 v56 h26 V214 h12 v-25 h7 l3 -13 3 13 h7 v25 h12 v55 h31 v-31 h40 v31 h21 V226 h38 v43 h26 v-64 h28 v-20 h8 l3 -15 3 15 h8 v20 h28 v64 h24 V241 h38 v28 h20 v-49 h34 v49 h27 V219 h44 v50 h22 v-31 h36 v31 h24 V245 h32 v24 h22 v-18 h30 v18 h21 v155 Z');
+var NEAR = 'M0 400 V308 h44 v-26 h34 v26 h20 V262 h12 v-16 h32 v16 h12 v46 h26 V241 h10 v-18 h44 v18 h10 v67 h30 v-38 h14 V216 h6 l3 -38 3 38 h6 v54 h14 v38 h26 V273 h48 v-42 h12 v42 h14 v35 h30 v-62 h10 v-25 h15 l3 -20 3 20 h15 v25 h10 v62 h24 v-27 h46 v27 h22 V254 h12 v-20 h40 v20 h12 v54 h30 v-83 h8 v-18 h13 l2 -30 2 30 h13 v18 h8 v83 h26 v-33 h52 v33 h20 V259 h12 v-24 h38 v24 h12 v49 h30 v-70 h10 v-22 h14 l3 -26 3 26 h14 v22 h10 v70 h24 v-30 h48 v30 h22 V251 h12 v-19 h42 v19 h12 v57 h28 v-40 h50 v40 h22 V266 h44 v42 h26 v-24 h40 v24 h20 v-30 h38 v122 Z';
+document.getElementById('near1').setAttribute('d', NEAR);
+document.getElementById('near2').setAttribute('d', NEAR);
+
+/* Founder photo: activate the frame only if the real file is actually there.
+   No stock face ever renders — the slot placeholder is the honest fallback. */
+(function () {
+  var img = document.getElementById('founder-img');
+  var slot = document.getElementById('founder-slot');
+  img.addEventListener('load', function () {
+    img.style.display = 'block';
+    slot.style.display = 'none';
+  });
+})();
+
+/* Scale the fixed stage to fit whatever it's presented on. */
+var stage = document.getElementById('stage');
+function fit() {
+  var s = Math.min(window.innerWidth / 1600, window.innerHeight / 900);
+  stage.style.transform = 'scale(' + s + ')';
+}
+window.addEventListener('resize', fit);
+fit();
+
+/* Navigation. */
+var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+var bar = document.querySelector('#rail i');
+var video = document.getElementById('demo');
+var i = 0;
+
+function go(n) {
+  i = Math.max(0, Math.min(slides.length - 1, n));
+  slides.forEach(function (s, k) {
+    if (k === i) s.setAttribute('data-active', '');
+    else s.removeAttribute('data-active');
+  });
+  bar.style.width = ((i + 1) / slides.length * 100) + '%';
+
+  /* The demo plays only while its slide is up; it restarts each time so the
+     story always begins at the beginning. */
+  if (slides[i].id === 's4') { video.currentTime = 0; video.play().catch(function(){}); }
+  else { video.pause(); }
+
+  /* The rail is indigo on light slides, white on the near-black ask. */
+  bar.style.background = slides[i].id === 's6' ? '#fff' : 'var(--accent)';
+}
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(i + 1); }
+  else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(i - 1); }
+  else if (e.key === 'Home') go(0);
+  else if (e.key === 'End') go(slides.length - 1);
+  else if (e.key === 'f' || e.key === 'F') {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen();
+  }
+  else if (/^[1-6]$/.test(e.key)) go(parseInt(e.key, 10) - 1);
+});
+document.addEventListener('click', function (e) { if (!e.target.closest('a')) go(i + 1); });
+
+var hint = document.getElementById('hint');
+setTimeout(function () { hint.style.opacity = '0'; }, 4000);
+
+go(0);
+</script>
+</body>
+</html>

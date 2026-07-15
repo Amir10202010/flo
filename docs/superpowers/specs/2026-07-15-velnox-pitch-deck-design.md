@@ -90,13 +90,18 @@ The single loud moment is the slide-4 video glow, which is the site's own.
 - No fabricated dashboard. No invented chart.
 
 ### 4 — Demo
-- `public/demo.mp4`, near-full-bleed in the site's window chrome (`.scene`).
+- `public/demo.mp4` (1920×1080, 30s), in the site's window chrome (`.scene`).
 - The site's literal glow:
   `radial-gradient(62% 60% at 50% 44%, rgba(79,92,244,0.75), rgba(96,165,250,0.5) 50%, rgba(124,192,255,0) 76%)`, `blur(38px)`,
   plus the tinted box-shadow trio from `HeroMedia.tsx`.
-- The `111.12%` / `-5.56%` overscan that crops the burned-in 96px pillarbox.
-- Autoplays muted+loop on slide entry; pauses when the slide is left.
-- One headline. Video is ~85% of the slide.
+- **Measured, not assumed:** the pillarbox is **60px per side (3.125%)**, constant
+  across all 30s — not the 96px/5% `HeroMedia.tsx` claims. The deck overscans
+  `106.67%` / `-3.333%`, cropping the black and nothing else.
+- Container is 1180px wide → scene is 737px tall, which fits the 900px stage.
+  (At 1200px it overflowed to 913px.)
+- Autoplays muted+loop on slide entry, restarts from 0, pauses on leave.
+- Known: the recording exposes third-party LinkedIn profiles (faces, names,
+  bios). Already public on the landing page; user opted to keep as-is.
 
 ### 5 — Founder
 - Photo frame wired to `deck/founder.jpg`. If the file is absent, the frame
@@ -104,34 +109,52 @@ The single loud moment is the slide-4 video glow, which is the site's own.
   **`public/photos/founder.jpg` is a stock photo of an unrelated person and is
   explicitly excluded.**
 - Name: Amirkhan Sagyndyk.
-- Five verified credibility facts, typographically ranked:
-  1. Student at NIS Astana
-  2. 2nd Degree Diploma — Republican Informatics Olympiad (District Stage)
-  3. Built a startup platform for dental clinics
+- Five verified credibility facts, ranked strongest-first (a solo-shipped
+  production product beats a school credential in this room):
+  1. Built Velnox solo — full-stack, in production (verified in git history)
+  2. Built a startup platform for dental clinics
+  3. 2nd Degree Diploma — Republican Informatics Olympiad (District Stage)
   4. Graduated Yandex Programming + STEP Academy
-  5. Built Velnox solo — full-stack, in production (verified in git history)
+  5. Student at NIS Astana
+- No ticks, no bullets — hairline rules and type hierarchy only. A column of
+  check glyphs reads as a feature list, not as credibility.
 - **Excluded by design** (user-supplied but below the brief's own "only
   credibility / no filler" bar): 100-anime marathon, Dota 2 Legend rank,
   "dream: build a global tech company."
+- Voice is first person throughout the deck ("my own inbox", "my first product").
 
 ### 6 — CTA
 - The site's `.lp-cta` surface: `#15172A`, `--radius-xl`, white text, full-bleed.
-- One ask: **"Send me 10 people drowning in their Gmail."**
-- Sub: freelancers, agency owners, consultants — anyone who runs their business
-  out of a personal inbox.
-- `velnox.app` + contact, in the `.lp-cta-btn` style (white pill on near-black).
+- One ask: **"Send me 10 people who run their business out of Gmail."**
+- Sub: freelancers, agency owners, consultants. "I'll onboard every one myself."
+- **Domain:** `usevelnox.com`, confirmed by the user. The codebase contradicts
+  itself here — `robots.ts`/`sitemap.ts` fall back to `velnox.com`,
+  `SUPPORT_EMAIL` is `hello@velnox.com`, `FeatureDemos.tsx` uses `usevelnox.com`
+  (×4), `InboxPreview.tsx` uses `velnox.app`, and `LAUNCH_CHECKLIST.md:91` still
+  reads "or your real domain". Worth reconciling in the product.
+- `usevelnox.com` + email, in the `.lp-cta-btn` style (white pill on near-black).
 
 ## Screenshots
 
 Captured from the authenticated local dev server via gstack browse in a headed
-Chromium, at `1600×900`, `--scale 2` (retina). Real account, real data.
-Any customer-identifying data visible in captures must be reviewed before the
-deck is shared publicly.
+Chromium at 1600×900. Real account (`sagindiktar@gmail.com`), real data.
 
-Candidate surfaces: `/dashboard` (command center), `/inbox` (ranked list +
-draft-ready badge), `/assistant`. Final selection depends on what the real
-account actually contains — a screenshot of an empty state proves nothing and
-will not be used.
+**Shipped:** `deck/shots/dashboard.png` — the `/dashboard` command centre, showing
+real counts (138 unanswered / 127 overdue / oldest 12d / 41 of 45 going cold) and
+the ranked AI Command Center. Used on slide 3.
+
+**Privacy redaction (baked into the PNG, not a CSS overlay):** real individuals
+are blurred in-DOM before capture — "Ava Hall", "Ahmed Maqbool" and their avatar
+monograms, plus any non-`sagindiktar` email address. Deliberately NOT blurred:
+"Velnox (via Polar)" (the founder's own paying-customer receipt — it's proof),
+`sagindiktar@gmail.com` (his own identity), and company senders (Pinterest,
+LinkedIn, FocuSee). A visible blur reads as "redacted", not as "faked".
+
+**Rejected surfaces, and why:**
+- `/inbox` — right pane is an empty "Select a conversation" state.
+- `/inbox/[id]` — the only "Clients"-categorised thread is inbound SEO cold
+  outreach miscategorised by the classifier. Showing it advertises a bug.
+- `/assistant` — 404. The route no longer exists; AI moved behind "Ask AI".
 
 ## Non-goals
 
