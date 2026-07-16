@@ -39,13 +39,31 @@ const STAGE_H = 7.5;
 // once; a pixel diff of the PowerPoint render against the HTML one caught it.
 const SCENE = { x: 230, y: 112.39, w: 1140, h: 684.02 };
 
+// Speaker notes are Russian: the slides are English but the pitch is delivered
+// in Russian. Condensed from deck/SPEECH.md — edit that, then mirror here.
 const NOTES = {
-  1: "Velnox. It reads your Gmail and tells you which client to answer today.",
-  2: "Gmail sorts by time. Your clients don't. The one that pays you is buried under 26 that don't. 127 overdue in my own inbox right now.",
-  3: "It's live. 500 visitors, 112 signed up, one already paying. Zero marketing spend.",
-  4: "This is it running on my own inbox. Ranked by who matters, reply already drafted.",
-  5: "I'm Amirkhan. Informatics olympiad, Yandex and STEP, a dental-clinic platform before this. And I finish what I start.",
-  6: "Don't take my word for it — scan it and open your own inbox. Tell me where it's wrong.",
+  1: "[10 сек] Меня зовут Амирхан. Это Velnox. Он читает ваш Gmail и говорит, "
+   + "какой клиент ждёт ответа прямо сейчас.",
+  2: "[25 сек] Вот как выглядит ваш ящик. Сверху 26 писем: рассылки, чеки, "
+   + "уведомления. Внизу красным — клиент, ждёт 12 дней. Gmail не знает, кто из "
+   + "них платит вам деньги. Он сортирует по времени. Ваши клиенты — нет. У меня "
+   + "прямо сейчас 127 просрочённых ответов. Я не ленивый. Их просто не видно.",
+  3: "[20 сек] Velnox работает. Не в фигме — в проде. 500 зашли, 112 завели "
+   + "аккаунт. Один платит — 12 долларов в месяц. Да, двенадцать. Но первый "
+   + "платящий самый трудный, и он уже есть. Маркетинга ноль. "
+   + "// Сумму назвать ровно, не извиняясь.",
+  4: "[35 сек] Пять фраз, по одной на смену подписи. Между ними — молчать. "
+   + "Это мой настоящий ящик. / Сверху не последнее письмо, а тот, кто важнее. / "
+   + "Velnox прочитал каждую переписку и объяснил, почему она горит. / У него "
+   + "можно просто спросить. / И он сам пишет ответы на все просроченные.",
+  5: "[20 сек] Я учусь в НИШ. Диплом 2 степени республиканской олимпиады по "
+   + "информатике. До Velnox — платформа для стоматологий. Яндекс и STEP Academy. "
+   + "И два факта, которые говорят больше диплома: 100 аниме за месяц и от нуля "
+   + "до Легенды в доте. Я не бросаю начатое. // Про возраст не извиняться.",
+  6: "[15 сек] Не верьте мне на слово. Отсканируйте. Подключите свой Gmail. "
+   + "Velnox назовёт клиента, которого вы забыли дольше всех, и напишет ему "
+   + "ответ. Если ошибётся — скажите, починю на этой неделе. "
+   + "// Сказать и замолчать. Без «спасибо за внимание».",
 };
 
 const pres = new pptxgen();
