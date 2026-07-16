@@ -43,11 +43,15 @@ export default function KnowledgePanel({
   stats,
   onSelect,
   onClose,
+  onNavigate,
 }: {
   nodeRef: string | null
   stats: KnowledgeGraph['stats']
   onSelect: (ref: string) => void
   onClose: () => void
+  /** Called right before programmatic navigation (hosts like the assistant
+   *  modal close themselves so the destination is visible). */
+  onNavigate?: () => void
 }) {
   const router = useRouter()
   // Derived-from-props state (render-time reset — no synchronous effect setState).
@@ -92,6 +96,7 @@ export default function KnowledgePanel({
       })
       if (!res.ok) return
       const { id } = (await res.json()) as { id: string }
+      onNavigate?.()
       router.push(`/knowledge/notes/${id}`)
     } finally {
       setCreatingNote(false)

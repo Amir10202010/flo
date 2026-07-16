@@ -5,6 +5,8 @@ import { getDashboardData, type DashboardData } from './dashboard.service'
 import { parseAction, type AssistantAction } from './assistant.actions'
 import { listReminders } from './reminder.service'
 import { listRecentNotes, type RecentNote } from './note.service'
+import { recallKnowledge, EMPTY_RECALL, type KnowledgeRecall } from './knowledge.recall'
+import type { NodeChip } from './graph.service'
 import { shortDate } from '@/lib/time'
 
 /**
@@ -48,6 +50,12 @@ export interface AssistantAnswer {
    * text already explains itself).
    */
   degradedReason: DegradedReason
+  /**
+   * Knowledge-base nodes the question touched (matched entities + their
+   * strongest connections) — powers the chat's knowledge rail. Server-derived
+   * from the graph, never model output.
+   */
+  related: NodeChip[]
 }
 
 export type DegradedReason = null | 'no-key' | 'rate-limited' | 'unavailable' | 'error'
@@ -149,9 +157,10 @@ const STATIC_SOURCES: { href: string; label: string }[] = [
 ]
 
 /** Build the href → label whitelist the model is allowed to cite. */
-function buildSourceMap(data: DashboardData): Map<string, string> {
+function buildSourceMap(data: DashboardData, recall: KnowledgeRecall): Map<string, string> {
   const map = new Map<string, string>()
   for (const s of STATIC_SOURCES) map.set(s.href, s.label)
+  for (const s of recall.sourceEntries) if (!map.has(s.href)) map.set(s.href, s.label)
 
   const note = (href: string, label: string) => {
     if (href && !map.has(href)) map.set(href, label)
@@ -183,6 +192,7 @@ function buildBriefing(
   data: DashboardData,
   reminders: Reminder[],
   notes: RecentNote[],
+  recall: KnowledgeRecall,
   now: number,
 ): string {
   const lines: string[] = []
@@ -263,6 +273,12 @@ function buildBriefing(
     }
   }
 
+  if (recall.briefingLines.length) {
+    lines.push('')
+    lines.push('KNOWLEDGE (the question mentions these — connections and recorded facts from the knowledge base)')
+    lines.push(...recall.briefingLines)
+  }
+
   return lines.join('\n')
 }
 
@@ -274,6 +290,7 @@ Rules:
 - If the briefing does not contain enough to answer, say so honestly and suggest what they could do (e.g. sync, open a page).
 - Be concise and specific. Prefer naming real contacts/threads from the briefing over generic advice.
 - When you reference a thread or page, add it to "sources" using an href copied verbatim from the briefing (the [/...] tokens).
+- The KNOWLEDGE section (when present) is the user's knowledge base: connections between people, companies and topics, plus recorded decisions/action items/risks. Prefer it for "who/what/relationship/history" questions, and cite its [/knowledge?...] hrefs when you rely on it.
 - You can DO four things when (and only when) the user clearly asks you to act: draft replies in bulk (bulk_draft), follow up on someone going cold (triage_alert), set a follow-up reminder (create_reminder), or save a note about a contact (create_note — put the note text in params.body and the person's /inbox href in params.contactHref). In that case fill "proposedAction" — it is a PROPOSAL the user confirms, never auto-executed. For any informational question, OMIT proposedAction. Use only hrefs and the "Current time" from the briefing for action params.
 - Reply in the SAME LANGUAGE as the question.
 
@@ -340,12 +357,24 @@ const DEFAULT_FOLLOWUPS = [
  * Deterministic answer from the briefing when no AI provider is available.
  * Light keyword routing keeps it genuinely useful (not a canned message).
  */
-function localAnswer(question: string, data: DashboardData): { answer: string; sources: AssistantSource[]; followUps: string[] } {
+function localAnswer(
+  question: string,
+  data: DashboardData,
+  recall: KnowledgeRecall,
+): { answer: string; sources: AssistantSource[]; followUps: string[] } {
   const q = question.toLowerCase()
   const s = data.stats
   const sources: AssistantSource[] = []
   const push = (href: string, label: string) => {
     if (href && !sources.some((x) => x.href === href)) sources.push({ href, label })
+  }
+
+  // The question named things the knowledge base knows → answer from memory.
+  if (recall.briefingLines.length) {
+    const lines = ['Here’s what your knowledge base has on that:']
+    for (const l of recall.briefingLines.slice(0, 10)) lines.push(l.replace(/ \[\/[^\]]*\]/g, ''))
+    for (const src of recall.sourceEntries.slice(0, 3)) push(src.href, src.label)
+    return { answer: lines.join('\n'), sources: sources.slice(0, 4), followUps: DEFAULT_FOLLOWUPS }
   }
 
   const asksRisk = /(risk|churn|losing|at[- ]risk|cold|quiet|slipping|угроз|риск|тер|молч)/.test(q)
@@ -394,9 +423,13 @@ function localAnswer(question: string, data: DashboardData): { answer: string; s
 
 // ── Public entry point ──────────────────────────────────────────────────────
 
-export async function answerWorkspaceQuestion(organizationId: string, question: string): Promise<AssistantAnswer> {
+export async function answerWorkspaceQuestion(
+  organizationId: string,
+  question: string,
+  userId?: string,
+): Promise<AssistantAnswer> {
   const data = await getDashboardData(organizationId)
-  const base = { hasIntegration: data.hasIntegration, hasData: data.hasData, proposedAction: null, degradedReason: null }
+  const base = { hasIntegration: data.hasIntegration, hasData: data.hasData, proposedAction: null, degradedReason: null, related: [] as NodeChip[] }
 
   // Empty workspace — short-circuit with an honest, actionable message.
   if (!data.hasIntegration) {
@@ -424,6 +457,10 @@ export async function answerWorkspaceQuestion(organizationId: string, question: 
 
   const reminders = await listReminders(organizationId)
   const notes = await listRecentNotes(organizationId)
+  // Knowledge recall: what does the graph know about the things the question
+  // names? Best-effort — an empty recall changes nothing.
+  const recall = userId ? await recallKnowledge(userId, question) : EMPTY_RECALL
+  base.related = recall.related
 
   const provider = getTextProvider()
   // Reason we'd show offline output: no key, or (set in catch) a failed call.
@@ -431,8 +468,8 @@ export async function answerWorkspaceQuestion(organizationId: string, question: 
   if (provider) {
     try {
       const now = Date.now()
-      const briefing = buildBriefing(data, reminders, notes, now)
-      const allowed = buildSourceMap(data)
+      const briefing = buildBriefing(data, reminders, notes, recall, now)
+      const allowed = buildSourceMap(data, recall)
       const raw = await provider.generateJson<Record<string, unknown>>({
         prompt: buildPrompt(question, briefing),
         schema: ANSWER_SCHEMA,
@@ -463,6 +500,6 @@ export async function answerWorkspaceQuestion(organizationId: string, question: 
     }
   }
 
-  const local = localAnswer(question, data)
+  const local = localAnswer(question, data, recall)
   return { ...local, mode: 'local', degraded: true, ...base, degradedReason }
 }

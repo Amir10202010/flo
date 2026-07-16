@@ -5,8 +5,11 @@ import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowUpRight, Check, CornerDownLeft, Loader2, Sparkles, TriangleAlert, User, Wand2, X } from 'lucide-react'
 import { handleUpgrade } from '@/lib/upgrade'
+import { useUiStore } from '@/stores/ui.store'
 import type { AssistantAction } from '@/services/assistant.actions'
 import type { DegradedReason } from '@/services/assistant.service'
+import type { NodeChip } from '@/services/graph.service'
+import { NODE_META } from '@/components/knowledge/entityMeta'
 
 const SUGGESTED = [
   'Who should I follow up with today?',
@@ -28,6 +31,7 @@ interface AssistantTurn {
   degraded: boolean
   degradedReason: DegradedReason
   proposedAction: AssistantAction | null
+  related: NodeChip[]
 }
 
 interface ApiAnswer {
@@ -38,6 +42,7 @@ interface ApiAnswer {
   degraded: boolean
   degradedReason: DegradedReason
   proposedAction: AssistantAction | null
+  related?: NodeChip[]
 }
 
 /** Honest, cause-specific note for an offline (degraded) answer. */
@@ -61,7 +66,13 @@ function degradedNote(reason: DegradedReason): string | null {
  * which answers from the user's live workspace (threads, analyses, engagement)
  * and returns grounded source links + suggested follow-ups.
  */
-export default function AssistantComposer() {
+export default function AssistantComposer({
+  onRelated,
+}: {
+  /** Fired after each answer with the knowledge nodes it touched (the modal's
+   *  knowledge rail listens). */
+  onRelated?: (related: NodeChip[]) => void
+} = {}) {
   const reduced = useReducedMotion()
   const [value, setValue] = useState('')
   const [turns, setTurns] = useState<AssistantTurn[]>([])
@@ -101,8 +112,10 @@ export default function AssistantComposer() {
           degraded: data.degraded,
           degradedReason: data.degradedReason ?? null,
           proposedAction: data.proposedAction ?? null,
+          related: data.related ?? [],
         },
       ])
+      if (data.related?.length) onRelated?.(data.related)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.')
     } finally {
@@ -317,11 +330,44 @@ function AnswerBubble({ turn, reduced }: { turn: AssistantTurn; reduced: boolean
           </div>
         )}
 
+        {turn.related.length > 0 && <RelatedKnowledge related={turn.related} />}
+
         {turn.proposedAction && <ActionCard action={turn.proposedAction} />}
 
         <DegradedNote reason={turn.degradedReason} />
       </div>
     </motion.div>
+  )
+}
+
+/** Knowledge nodes this answer touched — chips into the graph, focused. */
+function RelatedKnowledge({ related }: { related: NodeChip[] }) {
+  const closeAssistant = useUiStore((s) => s.setAssistantOpen)
+  return (
+    <div style={{ marginTop: 11 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>
+        From your knowledge
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {related.slice(0, 6).map((c) => {
+          const meta = NODE_META[c.type]
+          const Icon = meta.icon
+          return (
+            <Link
+              key={c.ref}
+              href={`/knowledge?focus=${encodeURIComponent(c.ref)}`}
+              className="kn-chip"
+              style={{ background: '#FFFFFF' }}
+              title={`${meta.label} · ${c.label}`}
+              onClick={() => closeAssistant(false)}
+            >
+              <Icon size={11} style={{ color: meta.color, flexShrink: 0 }} />
+              <span className="kn-chip-label">{c.label}</span>
+            </Link>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 

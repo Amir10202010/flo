@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   if (question.length > 500) return err('Question is too long (max 500 characters)', 400)
 
   try {
-    const result = await answerWorkspaceQuestion(ctx.organization.id, question)
+    const result = await answerWorkspaceQuestion(ctx.organization.id, question, ctx.userId)
     return ok(result)
   } catch (e) {
     console.error('[api/assistant] failed:', e)

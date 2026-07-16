@@ -21,6 +21,7 @@ import {
   type GraphEdgeKindName,
 } from '@/services/graph.service'
 import { detectMeetingProvider, hasCalendarScope, knowsPairs } from '@/services/calendar.service'
+import { matchNodesInText } from '@/services/knowledge.recall'
 
 let passed = 0
 function check(name: string, fn: () => void) {
@@ -138,6 +139,33 @@ check('calendar scope gate reads the recorded grant', () => {
   assert.ok(!hasCalendarScope({ grantedScopes: 'https://www.googleapis.com/auth/gmail.readonly' }))
   assert.ok(!hasCalendarScope({}))
   assert.ok(!hasCalendarScope(null))
+})
+
+console.log('\nknowledge base — assistant recall matching:')
+
+const RECALL_CANDIDATES = [
+  { ref: 'contact:john', label: 'John Smith', weight: 5, person: true },
+  { ref: 'entity:acme', label: 'Acme', weight: 8 },
+  { ref: 'entity:pricing', label: 'Pricing', weight: 6 },
+  { ref: 'entity:email-mkt', label: 'Email marketing', weight: 3 },
+]
+
+check('full labels match as whole words; people also match on first name', () => {
+  assert.deepEqual(matchNodesInText('What did we discuss with John about pricing?', RECALL_CANDIDATES), [
+    'entity:pricing',
+    'contact:john',
+  ])
+  assert.deepEqual(matchNodesInText('Where do things stand with Acme?', RECALL_CANDIDATES), ['entity:acme'])
+})
+
+check('topic words never match on partial tokens (no "email" → "Email marketing")', () => {
+  assert.deepEqual(matchNodesInText('Draft an email to my quietest client', RECALL_CANDIDATES), [])
+  assert.deepEqual(matchNodesInText('How is our email marketing doing?', RECALL_CANDIDATES), ['entity:email-mkt'])
+})
+
+check('no matches → empty; punctuation and case are ignored', () => {
+  assert.deepEqual(matchNodesInText('Who should I follow up with today?', RECALL_CANDIDATES), [])
+  assert.deepEqual(matchNodesInText('ACME!!!', RECALL_CANDIDATES), ['entity:acme'])
 })
 
 console.log(`\nAll ${passed} knowledge-base scenarios passed.`)

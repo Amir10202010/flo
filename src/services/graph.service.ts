@@ -581,7 +581,7 @@ async function neighborRefsOf(userId: string, ref: string, cap = 40): Promise<st
 }
 
 /** Resolve refs of any kind into labelled chips (order preserved). */
-async function resolveChips(userId: string, refs: string[]): Promise<NodeChip[]> {
+export async function resolveChips(userId: string, refs: string[]): Promise<NodeChip[]> {
   const ids = { entity: [] as string[], contact: [] as string[], meeting: [] as string[], note: [] as string[] }
   for (const r of refs) {
     const [kind, id] = r.split(':', 2)
