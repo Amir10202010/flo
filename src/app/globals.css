@@ -3018,3 +3018,42 @@ a > .insight-card:hover {
   .mt-context-grid { grid-template-columns: 1fr; }
   .mt-attendee-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Knowledge mobile (browse rows + context sheet) ─────────────────────────── */
+.kn-browse-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 8px;
+  border: none;
+  border-bottom: 1px solid var(--border-light);
+  background: transparent;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.kn-browse-row:hover { background: var(--bg-hover); }
+.kn-browse-row:last-child { border-bottom: none; }
+
+.kn-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 940;
+  background: rgba(12, 18, 60, 0.32);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.kn-sheet {
+  width: 100%;
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: 12px 18px calc(20px + env(safe-area-inset-bottom));
+  box-shadow: 0 -18px 48px rgba(12, 14, 29, 0.22);
+}

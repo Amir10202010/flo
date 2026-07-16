@@ -517,6 +517,285 @@ export async function outgoingChips(
   return out
 }
 
+// ── Node context (the /knowledge context panel) ─────────────────────────────
+
+export interface NodeContextFact {
+  kind: 'DECISION' | 'ACTION_ITEM' | 'RISK'
+  text: string
+  whenLabel: string
+  sourceHref: string | null
+  sourceLabel: string
+}
+
+export interface NodeContextItem {
+  id: string
+  title: string
+  meta: string
+  href: string
+}
+
+export interface NodeContext {
+  ref: string
+  type: GraphNodeType
+  label: string
+  sublabel: string | null
+  /** One-line state of play (person: latest AI summary; meeting: debrief). */
+  headline: string | null
+  awaitingReply: boolean
+  /** Primary action ("Open thread" / "Open meeting" / "Open note"). */
+  openHref: string | null
+  openLabel: string | null
+  stats: { conversations: number; meetings: number; notes: number; connections: number }
+  facts: NodeContextFact[]
+  conversations: NodeContextItem[]
+  meetings: NodeContextItem[]
+  notes: NodeContextItem[]
+  connections: NodeChip[]
+}
+
+function factSource(sourceType: string, sourceId: string): { href: string | null; label: string } {
+  if (sourceType === 'conversation') return { href: `/inbox/${sourceId}`, label: 'from email' }
+  if (sourceType === 'meeting') return { href: `/meetings/${sourceId}`, label: 'from meeting' }
+  if (sourceType === 'note') return { href: `/knowledge/notes/${sourceId}`, label: 'from note' }
+  return { href: null, label: sourceType }
+}
+
+/** Both-direction neighbor refs of a node, heaviest first, deduped. */
+async function neighborRefsOf(userId: string, ref: string, cap = 40): Promise<string[]> {
+  const edges = await prisma.graphEdge.findMany({
+    where: { userId, OR: [{ fromNode: ref }, { toNode: ref }] },
+    orderBy: { weight: 'desc' },
+    take: cap * 2,
+    select: { fromNode: true, toNode: true },
+  })
+  const out: string[] = []
+  const seen = new Set<string>([ref])
+  for (const e of edges) {
+    const other = e.fromNode === ref ? e.toNode : e.fromNode
+    if (seen.has(other)) continue
+    seen.add(other)
+    out.push(other)
+    if (out.length >= cap) break
+  }
+  return out
+}
+
+/** Resolve refs of any kind into labelled chips (order preserved). */
+async function resolveChips(userId: string, refs: string[]): Promise<NodeChip[]> {
+  const ids = { entity: [] as string[], contact: [] as string[], meeting: [] as string[], note: [] as string[] }
+  for (const r of refs) {
+    const [kind, id] = r.split(':', 2)
+    if (kind in ids && id) ids[kind as keyof typeof ids].push(id)
+  }
+  const entities = ids.entity.length
+    ? await prisma.graphEntity.findMany({ where: { id: { in: ids.entity }, userId }, select: { id: true, type: true, name: true } })
+    : []
+  const contacts = ids.contact.length
+    ? await prisma.contact.findMany({ where: { id: { in: ids.contact }, userId }, select: { id: true, name: true } })
+    : []
+  const meetings = ids.meeting.length
+    ? await prisma.meeting.findMany({ where: { id: { in: ids.meeting }, userId }, select: { id: true, title: true } })
+    : []
+  const notes = ids.note.length
+    ? await prisma.note.findMany({ where: { id: { in: ids.note }, userId }, select: { id: true, title: true, body: true } })
+    : []
+
+  const byRef = new Map<string, NodeChip>()
+  for (const e of entities) byRef.set(entityNode(e.id), { ref: entityNode(e.id), type: e.type as GraphNodeType, label: e.name })
+  for (const c of contacts) byRef.set(contactNode(c.id), { ref: contactNode(c.id), type: 'PERSON', label: c.name })
+  for (const m of meetings) byRef.set(meetingNode(m.id), { ref: meetingNode(m.id), type: 'MEETING', label: m.title })
+  for (const n of notes) {
+    const fallback = n.body.replace(/\s+/g, ' ').trim().slice(0, 40)
+    byRef.set(noteNode(n.id), { ref: noteNode(n.id), type: 'NOTE', label: n.title.trim() || fallback || 'Note' })
+  }
+  return refs.map((r) => byRef.get(r)).filter((c): c is NodeChip => Boolean(c))
+}
+
+/** Relative "3d ago" label without pulling in a client Date. */
+function agoLabel(d: Date | null | undefined, now: number): string {
+  if (!d) return ''
+  const days = Math.floor((now - d.getTime()) / 86_400_000)
+  if (days <= 0) return 'today'
+  if (days === 1) return 'yesterday'
+  if (days < 30) return `${days}d ago`
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`
+  return `${Math.floor(days / 365)}y ago`
+}
+
+/**
+ * Everything the context panel needs for one node — profile, facts with
+ * provenance, related conversations / meetings / notes, and connections.
+ * Sequential batched queries only (small Prisma pool). Returns null for an
+ * unknown/foreign ref.
+ */
+export async function getNodeContext(userId: string, ref: string): Promise<NodeContext | null> {
+  const now = Date.now()
+  const [kind, id] = ref.split(':', 2)
+  if (!id) return null
+
+  const neighborRefs = await neighborRefsOf(userId, ref)
+  const connections = await resolveChips(userId, neighborRefs)
+  const meetingChips = connections.filter((c) => c.type === 'MEETING')
+  const noteChips = connections.filter((c) => c.type === 'NOTE')
+
+  // Facts differ by node kind: subjects (contacts/entities) match on aboutNode,
+  // sources (meetings/notes) match on provenance.
+  const factWhere =
+    kind === 'meeting' || kind === 'note'
+      ? { userId, sourceType: kind, sourceId: id }
+      : { userId, aboutNode: ref }
+  const factRows = await prisma.knowledgeFact.findMany({
+    where: factWhere,
+    orderBy: { happenedAt: 'desc' },
+    take: 8,
+    select: { kind: true, text: true, happenedAt: true, sourceType: true, sourceId: true },
+  })
+  const facts: NodeContextFact[] = factRows.map((f) => {
+    const src = factSource(f.sourceType, f.sourceId)
+    return { kind: f.kind, text: f.text, whenLabel: agoLabel(f.happenedAt, now), sourceHref: src.href, sourceLabel: src.label }
+  })
+
+  // Meetings/notes hydrated with dates for their sections.
+  const meetingItems: NodeContextItem[] = meetingChips.length
+    ? (
+        await prisma.meeting.findMany({
+          where: { id: { in: meetingChips.map((c) => c.ref.slice('meeting:'.length)) }, userId },
+          orderBy: { startsAt: 'desc' },
+          take: 5,
+          select: { id: true, title: true, startsAt: true },
+        })
+      ).map((m) => ({ id: m.id, title: m.title, meta: agoLabel(m.startsAt, now) || 'upcoming', href: `/meetings/${m.id}` }))
+    : []
+  const noteItems: NodeContextItem[] = noteChips.length
+    ? (
+        await prisma.note.findMany({
+          where: { id: { in: noteChips.map((c) => c.ref.slice('note:'.length)) }, userId },
+          orderBy: { updatedAt: 'desc' },
+          take: 5,
+          select: { id: true, title: true, body: true, updatedAt: true },
+        })
+      ).map((n) => ({
+        id: n.id,
+        title: n.title.trim() || n.body.replace(/\s+/g, ' ').trim().slice(0, 48) || 'Note',
+        meta: agoLabel(n.updatedAt, now),
+        href: `/knowledge/notes/${n.id}`,
+      }))
+    : []
+
+  const base = {
+    ref,
+    awaitingReply: false,
+    facts,
+    meetings: meetingItems,
+    notes: noteItems,
+    connections: connections.slice(0, 18),
+  }
+
+  if (kind === 'contact') {
+    const contact = await prisma.contact.findFirst({ where: { id, userId }, select: { id: true, name: true, email: true } })
+    if (!contact) return null
+    const threads = await prisma.conversation.findMany({
+      where: { userId, contactId: id },
+      orderBy: { lastMessageAt: 'desc' },
+      take: 5,
+      select: { id: true, subject: true, lastMessageAt: true, awaitingReply: true, analysis: { select: { summary: true } } },
+    })
+    const threadCount = await prisma.conversation.count({ where: { userId, contactId: id } })
+    const latest = threads[0]
+    return {
+      ...base,
+      type: 'PERSON',
+      label: contact.name,
+      sublabel: contact.email,
+      headline: latest?.analysis?.summary ?? null,
+      awaitingReply: Boolean(latest?.awaitingReply),
+      openHref: latest ? `/inbox/${latest.id}` : null,
+      openLabel: latest ? 'Open latest thread' : null,
+      stats: { conversations: threadCount, meetings: meetingItems.length, notes: noteItems.length, connections: connections.length },
+      conversations: threads.map((t) => ({
+        id: t.id,
+        title: t.subject?.trim() || '(no subject)',
+        meta: agoLabel(t.lastMessageAt, now),
+        href: `/inbox/${t.id}`,
+      })),
+    }
+  }
+
+  if (kind === 'entity') {
+    const entity = await prisma.graphEntity.findFirst({ where: { id, userId }, select: { id: true, type: true, name: true, canonicalKey: true } })
+    if (!entity) return null
+    // Evidence threads cited by this node's edges.
+    const evidence = await prisma.graphEdge.findMany({
+      where: { userId, OR: [{ fromNode: ref }, { toNode: ref }], lastConversationId: { not: null } },
+      orderBy: { updatedAt: 'desc' },
+      take: 12,
+      select: { lastConversationId: true },
+    })
+    const convIds = [...new Set(evidence.map((e) => e.lastConversationId!))].slice(0, 5)
+    const convs = convIds.length
+      ? await prisma.conversation.findMany({
+          where: { id: { in: convIds }, userId },
+          orderBy: { lastMessageAt: 'desc' },
+          select: { id: true, subject: true, lastMessageAt: true, contact: { select: { name: true } } },
+        })
+      : []
+    return {
+      ...base,
+      type: entity.type as GraphNodeType,
+      label: entity.name,
+      sublabel: entity.type === 'COMPANY' && !entity.canonicalKey.startsWith('name:') ? entity.canonicalKey : null,
+      headline: null,
+      openHref: null,
+      openLabel: null,
+      stats: { conversations: convs.length, meetings: meetingItems.length, notes: noteItems.length, connections: connections.length },
+      conversations: convs.map((c) => ({
+        id: c.id,
+        title: c.subject?.trim() || '(no subject)',
+        meta: `${c.contact.name}${c.lastMessageAt ? ` · ${agoLabel(c.lastMessageAt, now)}` : ''}`,
+        href: `/inbox/${c.id}`,
+      })),
+    }
+  }
+
+  if (kind === 'meeting') {
+    const meeting = await prisma.meeting.findFirst({ where: { id, userId } })
+    if (!meeting) return null
+    const debrief = meeting.debrief as { summary?: unknown } | null
+    return {
+      ...base,
+      type: 'MEETING',
+      label: meeting.title,
+      sublabel: agoLabel(meeting.startsAt, now) || 'upcoming',
+      headline: typeof debrief?.summary === 'string' ? debrief.summary : null,
+      openHref: `/meetings/${meeting.id}`,
+      openLabel: 'Open meeting',
+      stats: { conversations: 0, meetings: 0, notes: noteItems.length, connections: connections.length },
+      conversations: [],
+      meetings: [],
+    }
+  }
+
+  if (kind === 'note') {
+    const note = await prisma.note.findFirst({ where: { id, userId }, select: { id: true, title: true, body: true, updatedAt: true } })
+    if (!note) return null
+    const excerpt = note.body.replace(/\s+/g, ' ').trim()
+    return {
+      ...base,
+      type: 'NOTE',
+      label: note.title.trim() || excerpt.slice(0, 48) || 'Note',
+      sublabel: agoLabel(note.updatedAt, now),
+      headline: excerpt ? (excerpt.length > 180 ? `${excerpt.slice(0, 179).trimEnd()}…` : excerpt) : null,
+      openHref: `/knowledge/notes/${note.id}`,
+      openLabel: 'Open note',
+      stats: { conversations: 0, meetings: meetingItems.length, notes: 0, connections: connections.length },
+      conversations: [],
+      notes: [],
+    }
+  }
+
+  return null
+}
+
 // ── Mini-graph previews for /clients ─────────────────────────────────────────
 
 export interface MiniGraphNeighbor {

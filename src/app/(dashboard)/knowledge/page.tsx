@@ -4,7 +4,7 @@ import { requireOrgPage } from '@/lib/org'
 import { getKnowledgeGraph } from '@/services/graph.service'
 import { Reveal } from '@/components/dashboard/Motion'
 import ModulePill from '@/components/dashboard/ModulePill'
-import GraphExplorer from '@/components/graph/GraphExplorer'
+import KnowledgeExplorer from '@/components/knowledge/KnowledgeExplorer'
 import DashboardEmpty from '@/components/dashboard/DashboardEmpty'
 import KnowledgeTabs from '@/components/knowledge/KnowledgeTabs'
 
@@ -52,7 +52,7 @@ export default async function KnowledgePage({
         )
       ) : (
         <Reveal delay={0.08} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          <GraphExplorer graph={graph} initialFocus={focus} />
+          <KnowledgeExplorer graph={graph} initialFocus={focus} />
         </Reveal>
       )}
     </div>
