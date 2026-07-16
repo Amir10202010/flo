@@ -24,6 +24,9 @@ model User {
   memberships  Membership[]
   graphEntities GraphEntity[]
   graphEdges    GraphEdge[]
+  meetings      Meeting[]
+  knowledgeNotes Note[]
+  knowledgeFacts KnowledgeFact[]
 }
 
 /// The tenant. Everything a team owns hangs off an Organization. A user joins one
@@ -563,6 +566,9 @@ enum JobType {
   NOTIFY_ALERTS
   GMAIL_MAINTENANCE
   EXTRACT_GRAPH_ENTITIES
+  CALENDAR_SYNC
+  EXTRACT_NOTE_KNOWLEDGE
+  EXTRACT_MEETING_KNOWLEDGE
 }
 
 enum AlertStatus {
@@ -882,6 +888,133 @@ enum GraphEntityType {
 }
 
 enum GraphEdgeKind {
-  WORKS_AT  // contact -> COMPANY entity
-  DISCUSSED // contact|COMPANY entity -> TOPIC entity
+  WORKS_AT  // contact -> COMPANY entity (deterministic: email domain)
+  DISCUSSED // contact|COMPANY entity -> TOPIC entity (AI)
+  ATTENDED  // contact -> meeting (deterministic: calendar attendee match)
+  MENTIONS  // note|meeting -> contact|entity (AI extraction from the body/transcript)
+  KNOWS     // contact <-> contact (deterministic: meeting co-attendance)
+}
+
+/// A meeting detected on the user's calendar (or logged manually). Attendees
+/// are matched to Contacts at sync time; `brief` caches the AI pre-meeting
+/// brief and `debrief` the post-meeting analysis (summary / decisions /
+/// action items / topics, provider-tagged for module honesty). The transcript
+/// is pasted or typed by the user — capture is provider-agnostic by design
+/// (bot/API ingestion plugs in later per provider).
+model Meeting {
+  id              String          @id @default(cuid())
+  userId          String
+  organizationId  String?
+  provider        MeetingProvider @default(OTHER)
+  /// Google Calendar event id — the calendar-sync dedupe key. Null for
+  /// manually logged meetings (Postgres unique treats NULLs as distinct).
+  calendarEventId String?
+  title           String
+  startsAt        DateTime
+  endsAt          DateTime?
+  joinUrl         String?
+  status          MeetingStatus   @default(UPCOMING)
+  /// [{ email, name?, self?, contactId? }] — snapshot from the calendar event,
+  /// re-matched to Contacts on each sync.
+  attendees       Json            @default("[]")
+  /// Pasted transcript or typed meeting notes — the debrief source text.
+  transcript      String?
+  /// Cached AI pre-meeting brief (provider-tagged).
+  brief           Json?
+  /// Cached AI post-meeting analysis (provider-tagged).
+  debrief         Json?
+  /// When the transcript/notes were ingested (debrief ran).
+  capturedAt      DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, calendarEventId])
+  @@index([userId, startsAt])
+  @@index([organizationId])
+}
+
+enum MeetingProvider {
+  GOOGLE_MEET
+  ZOOM
+  OTHER
+}
+
+enum MeetingStatus {
+  UPCOMING
+  COMPLETED
+  CANCELLED
+}
+
+/// A knowledge note — plain text the user writes; AI links it to people,
+/// companies and topics on save (MENTIONS edges from `note:<id>`). Distinct
+/// from ContactNote (a quick fact about one contact): a Note is a standalone
+/// document that can reference many entities.
+model Note {
+  id             String    @id @default(cuid())
+  userId         String
+  organizationId String?
+  title          String    @default("")
+  body           String    @default("")
+  /// Last successful auto-link pass; null while (re)linking is pending.
+  linkedAt       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@index([organizationId])
+}
+
+/// A structured piece of extracted memory — a decision, action item or risk —
+/// with full provenance (which conversation/meeting/note it came from) and an
+/// optional primary entity it is about. Facts are surfaced in context panels
+/// and meeting debriefs; they are never graph nodes (evidence, not spaghetti).
+model KnowledgeFact {
+  id             String   @id @default(cuid())
+  userId         String
+  organizationId String?
+  kind           FactKind
+  text           String
+  /// 'conversation' | 'meeting' | 'note'
+  sourceType     String
+  sourceId       String
+  /// Primary node ref this fact is about ("contact:<id>" | "entity:<id>"), if any.
+  aboutNode      String?
+  /// When the underlying source happened (message date / meeting start / note edit).
+  happenedAt     DateTime
+  /// sha1 over (userId, kind, sourceType, sourceId, normalized text) — makes
+  /// re-extraction idempotent (upsert, no duplicate facts).
+  dedupeKey      String   @unique
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, aboutNode, happenedAt(sort: Desc)])
+  @@index([userId, sourceType, sourceId])
+  @@index([organizationId])
+}
+
+enum FactKind {
+  DECISION
+  ACTION_ITEM
+  RISK
+}
+
+/// Semantic-search vector for a knowledge object (note or meeting) — same
+/// packed-Float32 in-process design as ConversationEmbedding. Polymorphic
+/// source ref (no FK); rows are removed by the owning service on delete.
+model KnowledgeEmbedding {
+  id          String   @id @default(cuid())
+  /// 'note' | 'meeting'
+  sourceType  String
+  sourceId    String
+  model       String
+  dims        Int
+  vector      Bytes
+  /// sha256 of the embedded text — skip re-embedding unchanged sources.
+  contentHash String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([sourceType, sourceId])
 }
