@@ -22,6 +22,8 @@ model User {
   reminders    Reminder[]
   contactNotes ContactNote[]
   memberships  Membership[]
+  graphEntities GraphEntity[]
+  graphEdges    GraphEdge[]
 }
 
 /// The tenant. Everything a team owns hangs off an Organization. A user joins one
@@ -560,6 +562,7 @@ enum JobType {
   GENERATE_DRAFT
   NOTIFY_ALERTS
   GMAIL_MAINTENANCE
+  EXTRACT_GRAPH_ENTITIES
 }
 
 enum AlertStatus {
@@ -827,4 +830,58 @@ model AutomationFire {
   record       CrmRecord        @relation(fields: [recordId], references: [id], onDelete: Cascade)
 
   @@unique([automationId, recordId, fireKey])
+}
+
+/// Knowledge-graph entity node — a COMPANY (from an email domain, deterministic)
+/// or a TOPIC (AI-inferred from conversation content). Person nodes are NOT
+/// stored here; they are the existing `Contact` rows, referenced as
+/// `contact:<id>` in GraphEdge. See docs/superpowers/specs/2026-07-13-knowledge-graph-design.md.
+model GraphEntity {
+  id             String          @id @default(cuid())
+  userId         String
+  organizationId String?
+  type           GraphEntityType
+  name           String
+  /// Dedupe key: lowercased email domain for COMPANY, lowercased normalized
+  /// phrase for TOPIC.
+  canonicalKey   String
+  weight         Int             @default(1)
+  createdAt      DateTime        @default(now())
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, canonicalKey])
+  @@index([organizationId])
+}
+
+/// Knowledge-graph edge. `fromNode`/`toNode` are polymorphic string refs
+/// ("contact:<id>" | "entity:<id>") — no FK constraint (id spaces don't collide,
+/// both cuid); resolved in the service layer. `weight` increments on repeat
+/// evidence (rendered as thickness); `lastConversationId` is the evidence trail.
+model GraphEdge {
+  id                  String        @id @default(cuid())
+  userId              String
+  organizationId      String?
+  fromNode            String
+  toNode              String
+  kind                GraphEdgeKind
+  lastConversationId  String?
+  weight              Int           @default(1)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fromNode, toNode, kind])
+  @@index([organizationId])
+  @@index([userId, fromNode])
+  @@index([userId, toNode])
+}
+
+enum GraphEntityType {
+  COMPANY
+  TOPIC
+}
+
+enum GraphEdgeKind {
+  WORKS_AT  // contact -> COMPANY entity
+  DISCUSSED // contact|COMPANY entity -> TOPIC entity
 }

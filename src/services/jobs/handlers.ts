@@ -9,9 +9,11 @@ import { upsertAutoDraft } from '@/services/draft.service'
 import { notifyNewAlerts } from '@/services/notification.service'
 import { runGmailMaintenance } from '@/services/maintenance.service'
 import { applyRulesToConversation } from '@/services/rule.service'
+import { extractGraphEntities } from '@/services/graph.service'
 import { getTextProvider } from '@/services/ai'
 import {
   enqueueEmbedConversation,
+  enqueueExtractGraphEntities,
   enqueueGenerateDraft,
   enqueueMany,
   enqueueNotifyAlerts,
@@ -88,6 +90,9 @@ export async function handleJob(job: Job): Promise<unknown> {
       const { priority } = await analyzeConversation(conversationId, { fallbackOnRetryable: lastAttempt })
       // The fresh summary changes the embedding text — refresh it (hash-deduped).
       await enqueueEmbedConversation(conversationId)
+      // Knowledge-graph extraction: deterministic company edge always, AI topics
+      // when a provider is configured (the job itself skips the AI half otherwise).
+      await enqueueExtractGraphEntities(conversationId)
       // Pre-draft a reply for urgent threads (gated on priority here; the job
       // re-checks awaiting + provider). Skipped entirely without an AI key.
       if ((priority.level === 'HOT' || priority.level === 'ATTENTION') && getTextProvider()) {
@@ -130,6 +135,16 @@ export async function handleJob(job: Job): Promise<unknown> {
       const conversationId = String(payload.conversationId ?? '')
       if (!conversationId) throw new Error('GENERATE_DRAFT job missing conversationId')
       return await upsertAutoDraft(conversationId)
+    }
+
+    case 'EXTRACT_GRAPH_ENTITIES': {
+      const conversationId = String(payload.conversationId ?? '')
+      if (!conversationId) throw new Error('EXTRACT_GRAPH_ENTITIES job missing conversationId')
+      // On the final attempt, accept the deterministic-only result instead of
+      // parking the job FAILED — mirrors ANALYZE_CONVERSATION's quota-exhaustion
+      // handling (retryable topic-extraction errors back off until then).
+      const lastAttempt = job.attempts >= job.maxAttempts
+      return await extractGraphEntities(conversationId, { fallbackOnRetryable: lastAttempt })
     }
 
     case 'GMAIL_MAINTENANCE': {

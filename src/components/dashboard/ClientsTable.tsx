@@ -4,11 +4,13 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowDown, ArrowUp, ChevronRight, Search, Users } from 'lucide-react'
 import type { ClientRow } from '@/services/clients.service'
+import type { MiniGraphNeighbor } from '@/services/graph.service'
 import WidgetShell from './WidgetShell'
 import ContactAvatar from './ContactAvatar'
 import RiskBadge from './RiskBadge'
 import EmptyNote from './EmptyNote'
 import ContactNotesButton from './ContactNotesButton'
+import MiniGraph from '@/components/graph/MiniGraph'
 
 type SortKey = 'name' | 'threads' | 'engagement' | 'lastActivity'
 
@@ -53,7 +55,13 @@ function SortHead({
   )
 }
 
-export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
+export default function ClientsTable({
+  rows,
+  previews = {},
+}: {
+  rows: ClientRow[]
+  previews?: Record<string, MiniGraphNeighbor[]>
+}) {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('engagement')
@@ -95,8 +103,8 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
   return (
     <WidgetShell
       icon={<Users size={14} />}
-      title="Client directory"
-      sub={`${rows.length} ${rows.length === 1 ? 'contact' : 'contacts'} · engagement and relationship health update with every sync`}
+      title="Contact directory"
+      sub={`${rows.length} ${rows.length === 1 ? 'contact' : 'contacts'} · tap a mini-graph to explore relationships, or jot a private note — engagement updates every sync`}
       status="live"
       action={
         <div className="inbox-search" style={{ width: 230, padding: '7px 10px', flexShrink: 0 }}>
@@ -129,7 +137,8 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
                 <th style={{ width: 120 }}>Relationship</th>
                 <th style={{ width: 110 }}>Sentiment</th>
                 <SortHead k="lastActivity" width={120} {...sortHeadProps}>Last activity</SortHead>
-                <th style={{ width: 56 }}>Notes</th>
+                <th style={{ width: 58 }} title="One-hop relationship map — click to open in the knowledge graph">Graph</th>
+                <th style={{ width: 56 }} title="Private notes about this contact">Notes</th>
                 <th style={{ width: 36 }} />
               </tr>
             </thead>
@@ -187,6 +196,9 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{r.lastActivityAgo ?? '—'}</td>
                     <td onClick={(e) => e.stopPropagation()}>
+                      <MiniGraph contactId={r.id} contactName={r.name} neighbors={previews[r.id] ?? []} size={44} />
+                    </td>
+                    <td onClick={(e) => e.stopPropagation()}>
                       <ContactNotesButton contactId={r.id} contactName={r.name} count={r.noteCount} />
                     </td>
                     <td>
@@ -227,6 +239,8 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 7, flexShrink: 0 }}>
                   {r.risk ? <RiskBadge level={r.risk} /> : null}
                   <span style={{ fontSize: 12, fontWeight: 700, color: engagementColor(r.engagement) }}>{r.engagement}</span>
+                  <MiniGraph contactId={r.id} contactName={r.name} neighbors={previews[r.id] ?? []} size={40} interactive={false} />
+
                 </div>
               </button>
             )
