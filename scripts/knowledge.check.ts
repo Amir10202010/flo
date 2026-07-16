@@ -22,6 +22,7 @@ import {
 } from '@/services/graph.service'
 import { detectMeetingProvider, hasCalendarScope, knowsPairs } from '@/services/calendar.service'
 import { matchNodesInText } from '@/services/knowledge.recall'
+import { scoreLabelMatch } from '@/services/knowledge.search'
 
 let passed = 0
 function check(name: string, fn: () => void) {
@@ -166,6 +167,17 @@ check('topic words never match on partial tokens (no "email" → "Email marketin
 check('no matches → empty; punctuation and case are ignored', () => {
   assert.deepEqual(matchNodesInText('Who should I follow up with today?', RECALL_CANDIDATES), [])
   assert.deepEqual(matchNodesInText('ACME!!!', RECALL_CANDIDATES), ['entity:acme'])
+})
+
+console.log('\nknowledge base — search label scoring:')
+
+check('exact > whole-word > substring; multi-term scores sum', () => {
+  assert.equal(scoreLabelMatch('Pricing', ['pricing']), 3)
+  assert.equal(scoreLabelMatch('Q3 pricing review', ['pricing']), 2)
+  assert.equal(scoreLabelMatch('Repricing', ['pricing']), 1)
+  assert.equal(scoreLabelMatch('Acme pricing', ['acme', 'pricing']), 4)
+  assert.equal(scoreLabelMatch('Onboarding', ['pricing']), 0)
+  assert.equal(scoreLabelMatch('', ['pricing']), 0)
 })
 
 console.log(`\nAll ${passed} knowledge-base scenarios passed.`)

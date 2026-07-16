@@ -23,12 +23,13 @@ import {
   Users,
 } from 'lucide-react'
 import { useUiStore } from '@/stores/ui.store'
-import type { ConversationListItem, SearchResponse, SearchResultItem } from '@/types'
+import type { ConversationListItem, KnowledgeHit, SearchResponse, SearchResultItem } from '@/types'
 import ContactAvatar from '@/components/dashboard/ContactAvatar'
+import { NODE_META } from '@/components/knowledge/entityMeta'
 
 interface PaletteEntry {
   id: string
-  group: 'Pages' | 'Actions' | 'Conversations'
+  group: 'Pages' | 'Actions' | 'Knowledge' | 'Conversations'
   label: string
   hint?: string
   icon: React.ReactNode
@@ -147,9 +148,10 @@ function PaletteDialog({
   const [syncState, setSyncState] = useState<'idle' | 'starting' | 'started' | 'failed'>('idle')
   const listRef = useRef<HTMLDivElement>(null)
 
-  // Server-side AI search for the Conversations group. Falls back to the
-  // locally cached list (substring match) when the request fails.
+  // Server-side AI search for the Knowledge + Conversations groups. Falls back
+  // to the locally cached list (substring match) when the request fails.
   const [aiResults, setAiResults] = useState<SearchResultItem[] | null>(null)
+  const [aiKnowledge, setAiKnowledge] = useState<KnowledgeHit[]>([])
   const [aiSearching, setAiSearching] = useState(false)
   useEffect(() => {
     const q = query.trim()
@@ -163,8 +165,12 @@ function PaletteDialog({
         if (!res.ok) throw new Error(`search ${res.status}`)
         const data = (await res.json()) as SearchResponse
         setAiResults(data.items)
+        setAiKnowledge(data.knowledge ?? [])
       } catch {
-        if (!ctrl.signal.aborted) setAiResults(null)
+        if (!ctrl.signal.aborted) {
+          setAiResults(null)
+          setAiKnowledge([])
+        }
       } finally {
         if (!ctrl.signal.aborted) setAiSearching(false)
       }
@@ -271,6 +277,25 @@ function PaletteDialog({
     ]
     const actions = actionDefs.filter((a) => matches(q, a.label, a.keywords) > 0)
 
+    // Knowledge hits: people, companies, topics, meetings, notes — the memory
+    // layer, ranked by the server (keyword + semantic).
+    const knowledge: PaletteEntry[] =
+      q.length >= 3
+        ? aiKnowledge.slice(0, 5).map<PaletteEntry>((k) => {
+            const meta = NODE_META[k.type]
+            const Icon = meta.icon
+            return {
+              id: `kn-${k.ref}`,
+              group: 'Knowledge',
+              label: k.label,
+              hint: k.sublabel ?? meta.label,
+              icon: <Icon size={15} style={{ color: meta.color }} />,
+              keywords: '',
+              run: () => go(k.href),
+            }
+          })
+        : []
+
     // Server AI search results win when available; otherwise substring-match
     // the locally cached list (also the offline/error fallback). The length
     // gate keeps stale results from a longer query out of short-query views.
@@ -308,8 +333,8 @@ function PaletteDialog({
               run: () => go(`/inbox/${c.id}`),
             }))
 
-    return [...pages, ...actions, ...conversations]
-  }, [query, convs, aiResults, go, startSync, syncState, onClose, setComposeOpen, setAssistantOpen, setAlertsOpen])
+    return [...pages, ...actions, ...knowledge, ...conversations]
+  }, [query, convs, aiResults, aiKnowledge, go, startSync, syncState, onClose, setComposeOpen, setAssistantOpen, setAlertsOpen])
 
   // Clamp at render time instead of syncing state in an effect.
   const index = Math.min(rawIndex, Math.max(0, entries.length - 1))

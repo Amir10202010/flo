@@ -3,6 +3,7 @@ import { ok, err } from '@/lib/api'
 import { requireOrg } from '@/lib/org'
 import { rateLimit } from '@/lib/ratelimit'
 import { searchConversations, type SearchFilters } from '@/services/search.service'
+import { searchKnowledge } from '@/services/knowledge.search'
 import type { Channel, ConversationStatus, PriorityLevel, RiskLevel, Sentiment } from '@/types'
 
 const VALID_STATUS = new Set(['ACTIVE', 'ARCHIVED', 'LOST'])
@@ -58,7 +59,9 @@ export async function GET(req: NextRequest) {
 
   try {
     const result = await searchConversations(ctx.organization.id, q, filters, limit)
-    return ok(result)
+    // Knowledge hits ride along on real queries (searchKnowledge never throws).
+    const knowledge = q.trim() ? await searchKnowledge(ctx.userId, q) : []
+    return ok({ ...result, knowledge })
   } catch (e) {
     console.error('[api/search] failed:', e)
     return err('Search failed — please try again', 500)

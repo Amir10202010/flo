@@ -206,8 +206,21 @@ export interface SearchResultItem {
   risk: RiskLevel | null
 }
 
+/** A knowledge-base search hit (entity / person / meeting / note). */
+export interface KnowledgeHit {
+  /** Node ref — "contact:<id>" | "entity:<id>" | "meeting:<id>" | "note:<id>". */
+  ref: string
+  type: 'PERSON' | 'COMPANY' | 'TOPIC' | 'MEETING' | 'NOTE'
+  label: string
+  sublabel: string | null
+  href: string
+  score: number
+}
+
 export interface SearchResponse {
   items: SearchResultItem[]
+  /** Knowledge-base hits beside the conversation results (absent on filter-only queries). */
+  knowledge?: KnowledgeHit[]
   meta: {
     /** hybrid = keyword + semantic; keyword = no embeddings; filter = empty query. */
     mode: 'hybrid' | 'keyword' | 'filter'
