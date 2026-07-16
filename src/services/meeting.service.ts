@@ -310,6 +310,22 @@ export async function getMeetingDetail(userId: string, meetingId: string): Promi
     meeting.status === 'UPCOMING' &&
     (meeting.endsAt ?? new Date(meeting.startsAt.getTime() + 3_600_000)).getTime() >= now
 
+  // "Analyzing…" is only honest while a debrief job is actually queued/running —
+  // a permanently failed job (e.g. exhausted quota) falls back to the capture
+  // form so the user can retry, instead of spinning forever.
+  let pendingDebrief = false
+  if (meeting.capturedAt && parseDebrief(meeting.debrief) === null && getTextProvider()) {
+    const liveJob = await prisma.job.findFirst({
+      where: {
+        type: 'EXTRACT_MEETING_KNOWLEDGE',
+        status: { in: ['PENDING', 'RUNNING'] },
+        payload: { path: ['meetingId'], equals: meeting.id },
+      },
+      select: { id: true },
+    })
+    pendingDebrief = Boolean(liveJob)
+  }
+
   return {
     id: meeting.id,
     title: meeting.title,
@@ -320,7 +336,7 @@ export async function getMeetingDetail(userId: string, meetingId: string): Promi
     joinUrl: meeting.joinUrl,
     isUpcoming,
     captured: Boolean(meeting.capturedAt),
-    pendingDebrief: Boolean(meeting.capturedAt) && parseDebrief(meeting.debrief) === null && Boolean(getTextProvider()),
+    pendingDebrief,
     transcript: meeting.transcript,
     brief: parseBrief(meeting.brief),
     debrief: parseDebrief(meeting.debrief),
@@ -479,6 +495,11 @@ export async function debriefMeeting(
     },
     opts,
   )
+
+  // Final-attempt quota exhaustion degrades to an empty result — leave the
+  // debrief unwritten (the page falls back to the capture form for a retry)
+  // rather than storing an empty summary.
+  if (!knowledge.summary.trim()) return { facts: 0, topics: 0, skipped: 'no-ai-provider' }
 
   const ref = meetingNode(meeting.id)
   const firstContact = attendees.find((a) => a.contactId)?.contactId ?? null
