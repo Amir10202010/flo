@@ -23,6 +23,7 @@
     "test:polar": "tsx scripts/polar.check.ts",
     "test:rules": "tsx scripts/rules.check.ts",
     "test:graph": "tsx scripts/graph.check.ts",
+    "test:knowledge": "tsx scripts/knowledge.check.ts",
     "backfill:orgs": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/backfill-orgs.ts",
     "backfill:graph": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/backfill-graph.ts"
   },

@@ -15,7 +15,7 @@
  *   (or: npm run backfill:graph)
  */
 import { prisma } from '@/lib/prisma'
-import { extractGraphEntities } from '@/services/graph.service'
+import { extractGraphEntities } from '@/services/knowledge.extract'
 import { getTextProvider } from '@/services/ai'
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))

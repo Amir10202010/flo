@@ -318,3 +318,28 @@ export async function enqueueGenerateDraft(conversationId: string): Promise<Job>
 export async function enqueueExtractGraphEntities(conversationId: string): Promise<Job> {
   return enqueueDeduped('EXTRACT_GRAPH_ENTITIES', { conversationId }, `EXTRACT_GRAPH_ENTITIES:${conversationId}`)
 }
+
+/**
+ * Enqueue a calendar sync for a user, collapsing onto an existing PENDING job
+ * (connect + hourly cron + manual refresh can all trigger it). Sync itself is
+ * idempotent — events dedupe on (userId, calendarEventId).
+ */
+export async function enqueueCalendarSync(userId: string): Promise<Job> {
+  return enqueueDeduped('CALENDAR_SYNC', { userId }, `CALENDAR_SYNC:${userId}`, { userId })
+}
+
+/**
+ * Enqueue knowledge auto-linking for a note, deduped on the note id. Autosave
+ * bursts collapse onto one pending job; the handler re-reads the latest body.
+ */
+export async function enqueueExtractNoteKnowledge(noteId: string): Promise<Job> {
+  return enqueueDeduped('EXTRACT_NOTE_KNOWLEDGE', { noteId }, `EXTRACT_NOTE_KNOWLEDGE:${noteId}`)
+}
+
+/**
+ * Enqueue the post-meeting debrief (transcript → summary / facts / graph),
+ * deduped on the meeting id. Re-capture re-enqueues; extraction is idempotent.
+ */
+export async function enqueueExtractMeetingKnowledge(meetingId: string): Promise<Job> {
+  return enqueueDeduped('EXTRACT_MEETING_KNOWLEDGE', { meetingId }, `EXTRACT_MEETING_KNOWLEDGE:${meetingId}`)
+}

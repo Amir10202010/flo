@@ -13,7 +13,7 @@ import {
   type Simulation,
   type SimulationNodeDatum,
 } from 'd3-force'
-import { Building2, Crosshair, Info, Maximize2, Minus, Plus, Search, Tag, User, X } from 'lucide-react'
+import { Building2, CalendarDays, Crosshair, FileText, Info, Maximize2, Minus, Plus, Search, Tag, User, X } from 'lucide-react'
 import type { GraphConversationRef, GraphLink, GraphNode, GraphNodeType, KnowledgeGraph } from '@/services/graph.service'
 
 /** Physics node — a fresh copy of the read-model node that d3 mutates in place. */
@@ -71,6 +71,8 @@ const TYPE_META: Record<GraphNodeType, { color: string; label: string; icon: typ
   PERSON: { color: '#4F5CF4', label: 'Person', icon: User },
   COMPANY: { color: '#0EA5E9', label: 'Company', icon: Building2 },
   TOPIC: { color: '#8B5CF6', label: 'Topic', icon: Tag },
+  MEETING: { color: '#10B981', label: 'Meeting', icon: CalendarDays },
+  NOTE: { color: '#64748B', label: 'Note', icon: FileText },
 }
 
 const EDGE_WORKS_AT = '#94A3B8'
@@ -80,6 +82,8 @@ const TYPE_FILTERS: { key: GraphNodeType; label: string }[] = [
   { key: 'PERSON', label: 'People' },
   { key: 'COMPANY', label: 'Companies' },
   { key: 'TOPIC', label: 'Topics' },
+  { key: 'MEETING', label: 'Meetings' },
+  { key: 'NOTE', label: 'Notes' },
 ]
 
 const MIN_K = 0.2
@@ -134,7 +138,7 @@ export default function GraphExplorer({
   const [dims, setDims] = useState({ w: 900, h: 620 })
   const [query, setQuery] = useState('')
   const [activeTypes, setActiveTypes] = useState<Set<GraphNodeType>>(
-    () => new Set<GraphNodeType>(['PERSON', 'COMPANY', 'TOPIC']),
+    () => new Set<GraphNodeType>(['PERSON', 'COMPANY', 'TOPIC', 'MEETING', 'NOTE']),
   )
   const [selectedId, setSelectedId] = useState<string | null>(initialFocus ?? null)
   const [hoverId, setHoverId] = useState<string | null>(null)

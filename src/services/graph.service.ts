@@ -1,21 +1,22 @@
 import { prisma } from '@/lib/prisma'
-import { getTextProvider, extractTopics } from './ai'
 
 /**
- * Knowledge-graph service — builds a People / Companies / Topics graph from the
- * already-connected Gmail data (no seeded/mock dataset). See
- * docs/superpowers/specs/2026-07-13-knowledge-graph-design.md.
+ * Knowledge-graph domain primitives + read-models. See
+ * docs/superpowers/specs/2026-07-16-knowledge-base-design.md.
  *
- * Two node kinds are stored as `GraphEntity` rows (COMPANY, TOPIC); Person nodes
- * are the existing `Contact` rows, referenced from edges as `contact:<id>`.
- * Extraction is HYBRID:
- *   - deterministic (always runs): email domain → COMPANY entity + WORKS_AT edge
- *   - AI (best-effort): conversation content → TOPIC entities + DISCUSSED edges
+ * Entity nodes are `GraphEntity` rows (COMPANY, TOPIC); Person nodes are the
+ * existing `Contact` rows; meetings and notes are their own models. All are
+ * referenced from edges as polymorphic string refs — "contact:<id>" |
+ * "entity:<id>" | "meeting:<id>" | "note:<id>" — no FK, resolved here.
  *
- * Node refs are polymorphic strings ("contact:<id>" | "entity:<id>") — no FK,
- * resolved here. `weight` bumps on repeat evidence (re-extraction is idempotent:
- * it increments weight rather than duplicating rows — enforced by the DB unique
- * constraints + the increment upserts below, mirrored purely by GraphAccumulator).
+ * Edge kinds split by provenance:
+ *   deterministic — WORKS_AT (email domain), ATTENDED / KNOWS (calendar)
+ *   AI-inferred   — DISCUSSED (conversations), MENTIONS (notes / meetings)
+ *
+ * `weight` bumps on repeat evidence (re-extraction is idempotent: it increments
+ * weight rather than duplicating rows — enforced by the DB unique constraints +
+ * the increment upserts below, mirrored purely by GraphAccumulator).
+ * Extraction orchestration lives in `knowledge.extract.ts`.
  */
 
 // ── Pure helpers (unit-tested by scripts/graph.check.ts) ─────────────────────
@@ -119,9 +120,22 @@ export function normalizeTopicKey(name: string): string {
     .trim()
 }
 
-/** Polymorphic node refs. Person = existing Contact; Company/Topic = GraphEntity. */
+/** Polymorphic node refs. Person = existing Contact; Company/Topic =
+ *  GraphEntity; meetings and notes are their own models. */
 export const contactNode = (contactId: string) => `contact:${contactId}`
 export const entityNode = (entityId: string) => `entity:${entityId}`
+export const meetingNode = (meetingId: string) => `meeting:${meetingId}`
+export const noteNode = (noteId: string) => `note:${noteId}`
+
+/** All edge kinds; provenance split drives the UI's honesty labels. */
+export type GraphEdgeKindName = 'WORKS_AT' | 'DISCUSSED' | 'ATTENDED' | 'MENTIONS' | 'KNOWS'
+
+/** AI-inferred kinds render dashed + labelled as suggestions, not facts. */
+export const AI_EDGE_KINDS: ReadonlySet<GraphEdgeKindName> = new Set(['DISCUSSED', 'MENTIONS'])
+
+export function isDeterministicEdge(kind: GraphEdgeKindName): boolean {
+  return !AI_EDGE_KINDS.has(kind)
+}
 
 // ── Pure in-memory accumulator ───────────────────────────────────────────────
 // Mirrors the DB upsert semantics (dedupe by key, bump weight on repeat). The
@@ -139,7 +153,7 @@ export interface AccEdge {
   key: string
   from: string
   to: string
-  kind: 'WORKS_AT' | 'DISCUSSED'
+  kind: GraphEdgeKindName
   weight: number
   lastConversationId: string | null
 }
@@ -161,7 +175,7 @@ export class GraphAccumulator {
   bumpEdge(
     from: string,
     to: string,
-    kind: 'WORKS_AT' | 'DISCUSSED',
+    kind: GraphEdgeKindName,
     lastConversationId: string | null,
   ): void {
     const key = `${from}|${to}|${kind}`
@@ -212,19 +226,20 @@ export async function upsertCompanyEdge(
     select: { id: true },
   })
 
-  await upsertEdge(contact.userId, contact.organizationId, contactNode(contact.id), entityNode(entity.id), 'WORKS_AT', lastConversationId)
+  await upsertGraphEdge(contact.userId, contact.organizationId, contactNode(contact.id), entityNode(entity.id), 'WORKS_AT', lastConversationId)
 
   return entity.id
 }
 
-/** Upsert a graph edge by (userId, from, to, kind); bump weight on repeat. */
-async function upsertEdge(
+/** Upsert a graph edge by (userId, from, to, kind); bump weight on repeat.
+ *  Shared by every extraction flavor (conversations, meetings, notes). */
+export async function upsertGraphEdge(
   userId: string,
   organizationId: string | null,
   fromNode: string,
   toNode: string,
-  kind: 'WORKS_AT' | 'DISCUSSED',
-  lastConversationId: string | null,
+  kind: GraphEdgeKindName,
+  lastConversationId: string | null = null,
 ): Promise<void> {
   await prisma.graphEdge.upsert({
     where: { userId_fromNode_toNode_kind: { userId, fromNode, toNode, kind } },
@@ -233,106 +248,9 @@ async function upsertEdge(
   })
 }
 
-// ── Full extraction (deterministic + AI topics) ──────────────────────────────
+// ── Read-model for /knowledge ────────────────────────────────────────────────
 
-export interface ExtractGraphResult {
-  company: boolean
-  topics: number
-  skipped?: 'no-ai-provider'
-}
-
-/**
- * Extract graph entities for one conversation: the deterministic company step
- * (always), then AI topic extraction (best-effort). Skips the AI half gracefully
- * — returning `{ skipped: 'no-ai-provider' }` — when no text provider is
- * configured, so the company edge still lands. Called by the
- * EXTRACT_GRAPH_ENTITIES job and the backfill script.
- */
-export async function extractGraphEntities(
-  conversationId: string,
-  opts: { fallbackOnRetryable?: boolean } = {},
-): Promise<ExtractGraphResult> {
-  const conversation = await prisma.conversation.findUnique({
-    where: { id: conversationId },
-    select: {
-      id: true,
-      userId: true,
-      organizationId: true,
-      subject: true,
-      contact: { select: { id: true, name: true, email: true } },
-      messages: { orderBy: { sentAt: 'desc' }, take: 12, select: { direction: true, content: true } },
-    },
-  })
-  if (!conversation) throw new Error('Conversation not found')
-
-  const contact: ContactLike = {
-    id: conversation.contact.id,
-    email: conversation.contact.email,
-    userId: conversation.userId,
-    organizationId: conversation.organizationId,
-  }
-
-  // 1. Deterministic company edge (always runs).
-  const companyId = await upsertCompanyEdge(contact, conversationId)
-
-  // 2. AI topics (best-effort). No provider → deterministic half only.
-  if (!getTextProvider()) {
-    return { company: Boolean(companyId), topics: 0, skipped: 'no-ai-provider' }
-  }
-
-  // Feed the user's existing top topics (by weight) so the model reuses a
-  // matching one instead of minting near-duplicate wording.
-  const existing = await prisma.graphEntity.findMany({
-    where: { userId: conversation.userId, type: 'TOPIC' },
-    orderBy: { weight: 'desc' },
-    take: 30,
-    select: { name: true, canonicalKey: true },
-  })
-
-  const topics = await extractTopics(
-    {
-      subject: conversation.subject,
-      contactName: conversation.contact.name,
-      // Oldest-first for readability inside the prompt.
-      messages: [...conversation.messages].reverse().map((m) => ({ direction: m.direction, content: m.content })),
-      existingTopics: existing,
-    },
-    opts,
-  )
-
-  let stored = 0
-  for (const t of topics) {
-    const canonicalKey = normalizeTopicKey(t.name)
-    if (canonicalKey.length < 2) continue
-
-    const topicEntity = await prisma.graphEntity.upsert({
-      where: { userId_type_canonicalKey: { userId: conversation.userId, type: 'TOPIC', canonicalKey } },
-      create: {
-        userId: conversation.userId,
-        organizationId: conversation.organizationId,
-        type: 'TOPIC',
-        name: t.name,
-        canonicalKey,
-      },
-      update: { weight: { increment: 1 } },
-      select: { id: true },
-    })
-
-    // contact ──DISCUSSED──▶ topic
-    await upsertEdge(conversation.userId, conversation.organizationId, contactNode(contact.id), entityNode(topicEntity.id), 'DISCUSSED', conversationId)
-    // company ──DISCUSSED──▶ topic (only when the contact has a company)
-    if (companyId) {
-      await upsertEdge(conversation.userId, conversation.organizationId, entityNode(companyId), entityNode(topicEntity.id), 'DISCUSSED', conversationId)
-    }
-    stored++
-  }
-
-  return { company: Boolean(companyId), topics: stored }
-}
-
-// ── Read-model for /graph ────────────────────────────────────────────────────
-
-export type GraphNodeType = 'PERSON' | 'COMPANY' | 'TOPIC'
+export type GraphNodeType = 'PERSON' | 'COMPANY' | 'TOPIC' | 'MEETING' | 'NOTE'
 
 export interface GraphNode {
   /** Node ref: "contact:<id>" for people, "entity:<id>" for companies/topics. */
@@ -348,10 +266,10 @@ export interface GraphLink {
   id: string
   source: string
   target: string
-  kind: 'WORKS_AT' | 'DISCUSSED'
-  weight: number
-  /** WORKS_AT = deterministic (email domain); DISCUSSED = AI-inferred. */
+  kind: GraphEdgeKindName
+  /** WORKS_AT / ATTENDED / KNOWS = deterministic; DISCUSSED / MENTIONS = AI. */
   deterministic: boolean
+  weight: number
   conversationId: string | null
 }
 
@@ -367,15 +285,15 @@ export interface KnowledgeGraph {
   nodes: GraphNode[]
   links: GraphLink[]
   conversations: GraphConversationRef[]
-  stats: { people: number; companies: number; topics: number; edges: number }
+  stats: { people: number; companies: number; topics: number; meetings: number; notes: number; edges: number }
   hasData: boolean
 }
 
 /**
- * One batched read-model for /graph: nodes (people + companies + topics) and
- * edges, plus the conversations edges cite (for the click-through sidebar).
- * Sequential queries only — the runtime Prisma pool is intentionally small
- * (see CLAUDE.md / metrics.helpers), so no Promise.all fan-out here.
+ * One batched read-model for /knowledge: nodes (people + companies + topics +
+ * meetings + notes) and edges, plus the conversations edges cite (the evidence
+ * trail). Sequential queries only — the runtime Prisma pool is intentionally
+ * small (see CLAUDE.md / metrics.helpers), so no Promise.all fan-out here.
  */
 export async function getKnowledgeGraph(userId: string): Promise<KnowledgeGraph> {
   const entities = await prisma.graphEntity.findMany({
@@ -389,17 +307,33 @@ export async function getKnowledgeGraph(userId: string): Promise<KnowledgeGraph>
     select: { id: true, fromNode: true, toNode: true, kind: true, weight: true, lastConversationId: true },
   })
 
-  // Contacts referenced by any edge endpoint (people are the existing Contacts).
+  // Contacts / meetings / notes referenced by any edge endpoint.
   const contactIds = new Set<string>()
+  const meetingIds = new Set<string>()
+  const noteIds = new Set<string>()
   for (const e of edges) {
     for (const ref of [e.fromNode, e.toNode]) {
       if (ref.startsWith('contact:')) contactIds.add(ref.slice('contact:'.length))
+      else if (ref.startsWith('meeting:')) meetingIds.add(ref.slice('meeting:'.length))
+      else if (ref.startsWith('note:')) noteIds.add(ref.slice('note:'.length))
     }
   }
   const contacts = contactIds.size
     ? await prisma.contact.findMany({
         where: { id: { in: [...contactIds] }, userId },
         select: { id: true, name: true, email: true },
+      })
+    : []
+  const meetings = meetingIds.size
+    ? await prisma.meeting.findMany({
+        where: { id: { in: [...meetingIds] }, userId },
+        select: { id: true, title: true, startsAt: true },
+      })
+    : []
+  const notes = noteIds.size
+    ? await prisma.note.findMany({
+        where: { id: { in: [...noteIds] }, userId },
+        select: { id: true, title: true, body: true, updatedAt: true },
       })
     : []
 
@@ -448,17 +382,43 @@ export async function getKnowledgeGraph(userId: string): Promise<KnowledgeGraph>
     personWeight.set(id, 0)
   }
 
+  // Meeting + note nodes (dropped silently when the backing row is gone).
+  for (const m of meetings) {
+    const id = meetingNode(m.id)
+    nodes.push({
+      id,
+      type: 'MEETING',
+      label: m.title.trim() || 'Meeting',
+      sublabel: m.startsAt.toISOString().slice(0, 10),
+      weight: 2,
+    })
+    nodeIds.add(id)
+  }
+  for (const n of notes) {
+    const id = noteNode(n.id)
+    const fallback = n.body.replace(/\s+/g, ' ').trim().slice(0, 40)
+    nodes.push({
+      id,
+      type: 'NOTE',
+      label: n.title.trim() || fallback || 'Note',
+      sublabel: n.updatedAt.toISOString().slice(0, 10),
+      weight: 1,
+    })
+    nodeIds.add(id)
+  }
+
   // Keep only edges whose BOTH endpoints resolved to a real node.
   const links: GraphLink[] = []
   for (const e of edges) {
     if (!nodeIds.has(e.fromNode) || !nodeIds.has(e.toNode)) continue
+    const kind = e.kind as GraphEdgeKindName
     links.push({
       id: e.id,
       source: e.fromNode,
       target: e.toNode,
-      kind: e.kind as 'WORKS_AT' | 'DISCUSSED',
+      kind,
       weight: e.weight,
-      deterministic: e.kind === 'WORKS_AT',
+      deterministic: isDeterministicEdge(kind),
       conversationId: e.lastConversationId,
     })
     if (personWeight.has(e.fromNode)) personWeight.set(e.fromNode, (personWeight.get(e.fromNode) ?? 0) + e.weight)
@@ -481,6 +441,8 @@ export async function getKnowledgeGraph(userId: string): Promise<KnowledgeGraph>
     people: nodes.filter((n) => n.type === 'PERSON').length,
     companies: nodes.filter((n) => n.type === 'COMPANY').length,
     topics: nodes.filter((n) => n.type === 'TOPIC').length,
+    meetings: nodes.filter((n) => n.type === 'MEETING').length,
+    notes: nodes.filter((n) => n.type === 'NOTE').length,
     edges: links.length,
   }
 

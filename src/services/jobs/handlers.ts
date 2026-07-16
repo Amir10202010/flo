@@ -9,7 +9,7 @@ import { upsertAutoDraft } from '@/services/draft.service'
 import { notifyNewAlerts } from '@/services/notification.service'
 import { runGmailMaintenance } from '@/services/maintenance.service'
 import { applyRulesToConversation } from '@/services/rule.service'
-import { extractGraphEntities } from '@/services/graph.service'
+import { extractGraphEntities } from '@/services/knowledge.extract'
 import { getTextProvider } from '@/services/ai'
 import {
   enqueueEmbedConversation,
