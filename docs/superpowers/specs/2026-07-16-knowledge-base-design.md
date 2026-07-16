@@ -1,8 +1,7 @@
 # Knowledge Base — the memory of the workspace
 
 **Date:** 2026-07-16
-**Status:** Approved — implementing
-**Branch:** `feat/knowledge-base` (built on the merged `feat/knowledge-graph`)
+**Status:** Shipped on `feat/knowledge-base` (built on the merged `feat/knowledge-graph`)
 
 ## 1. Goal
 

@@ -62,7 +62,7 @@ POLAR_PRODUCT_BUSINESS_ANNUAL    # Polar product id — Business, annual
 
 **App Router layout:**
 - `src/app/(auth)/` — login, signup, OAuth callback pages (unauthenticated shell); OAuth exchange is a Route Handler at `(auth)/callback/route.ts`, not a page
-- `src/app/(dashboard)/` — the platform shell (`DashboardLayout` + sectioned `Sidebar` + global `CommandPalette`). Pages: `dashboard` (executive home — post-login landing), `inbox` (+ `inbox/[id]`), `clients`, `insights`, `risk`, `analytics`, `assistant` (agentic workspace Q&A + actions), `integrations`, `settings`. Every data page has a matching `loading.tsx` skeleton
+- `src/app/(dashboard)/` — the platform shell (`DashboardLayout` + sectioned `Sidebar` + global `CommandPalette`). Pages: `dashboard` (executive home — post-login landing), `inbox` (+ `inbox/[id]`), `clients`, `knowledge` (graph + context panel; `knowledge/notes` + `[id]` editor; `/graph` redirects here), `meetings` (+ `meetings/[id]` brief/debrief), `insights`, `risk`, `analytics`, `assistant` (agentic workspace Q&A + actions), `integrations`, `settings`. Every data page has a matching `loading.tsx` skeleton
 - `src/app/api/` — REST API route handlers (conversations CRUD, integrations, Gmail OAuth + sync)
 - `src/app/page.tsx` — landing/marketing page
 
@@ -101,7 +101,16 @@ POLAR_PRODUCT_BUSINESS_ANNUAL    # Polar product id — Business, annual
 - `notification.service.ts` — proactive urgent-alert email. `notifyNewAlerts` selects OPEN crit/high alerts not yet notified (and not actively snoozed), throttles to ≤1 email per ~6h per mailbox (`Integration.metadata.lastAlertEmailAt`), folds in any due reminders, sends via `sendGmailMessage`. Pure `isThrottled`/`sortUrgent`/`buildAlertEmail` are unit-tested. Owner identity = `GMAIL_USER_EMAIL` (same as the digest). Deep links reuse `/inbox/[id]?draft=1`.
 - `reminder.service.ts` — follow-up reminders: `createReminder` / `listReminders` (pending) / `dueReminders` (PENDING, due, `firedAt=null`) / `markRemindersFired` / `setReminderStatus`. Surfaced in the assistant briefing, the dashboard `RemindersCard`, and the notification email when due.
 
-**Not yet wired up:** Gmail is the only functional ingestion channel. `TELEGRAM_API_ID/HASH` env vars and Telegram references in the UI/marketing/`types` are placeholders with no backing service.
+**Knowledge Base** (`src/services/graph.service.ts`, `knowledge.*.ts`, `calendar.service.ts`, `meeting.service.ts`, `note.knowledge.service.ts` — spec `docs/superpowers/specs/2026-07-16-knowledge-base-design.md`):
+- **Graph model:** `GraphEntity` (COMPANY | TOPIC) + `GraphEdge` with polymorphic string node refs — `contact:<id>` / `entity:<id>` / `meeting:<id>` / `note:<id>` (no FK; resolved in `graph.service`). Person nodes ARE `Contact` rows; meetings/notes are their own models. Edge kinds split by provenance: deterministic (WORKS_AT from email domain; ATTENDED / KNOWS from calendar co-attendance) vs AI-inferred (DISCUSSED from conversations, MENTIONS from notes/meetings) — the UI renders AI edges dashed and labels them as suggestions. Weights bump on repeat evidence; all upserts are idempotent by unique keys.
+- **Extraction** (`knowledge.extract.ts` + `ai/knowledge.ts`): ONE `generateJson` call per source returns topics + mentioned companies + facts (decisions / action items / risks → `KnowledgeFact`, deduped by content hash). Conversation flavor runs in `EXTRACT_GRAPH_ENTITIES` (chained from analysis); notes relink on save (`EXTRACT_NOTE_KNOWLEDGE`, REPLACE semantics — a note is a mutable doc); meetings debrief on capture (`EXTRACT_MEETING_KNOWLEDGE`). Mentioned people only link when they resolve to an existing Contact (no fabricated person nodes). `backfill:graph` re-runs the conversation flavor over synced mail.
+- **/knowledge** (`KnowledgeExplorer`): d3-force SVG canvas (`GraphCanvas` — controlled selection, eased view animations, memoized nodes + tick throttling, 600-node weight-ranked trim guard) + `KnowledgePanel` context panel fed by `getNodeContext` via `GET /api/knowledge/node?ref=…` (facts w/ provenance, conversations, meetings, notes, connections; client-cached per ref). Mobile (<768px) is browse-first (`KnowledgeBrowse` list → full-height sheet), never a shrunken canvas. `/graph` redirects here. Notes live at `/knowledge/notes` (+`/[id]` editor with autosave + auto-link chips).
+- **Meetings** (`/meetings`, `/meetings/[id]`): Google Calendar detection via a NEW `calendar.readonly` OAuth scope — granted scopes are recorded in `Integration.metadata.grantedScopes` at callback, so pre-existing connections degrade to an "Enable meetings" reconnect CTA (`hasCalendarScope`). `CALENDAR_SYNC` (connect + hourly maintenance + manual refresh) windows ±2–3 weeks, matches attendees to contacts by email, detects provider from join URLs (Meet/Zoom/other — capture is provider-agnostic: paste a transcript or type notes), and writes ATTENDED/KNOWS edges only for newly matched attendees (no weight inflation on re-sync). Before: AI brief from real relationship data (`briefMeeting`, cached in `Meeting.brief`). After: capture → debrief (summary/decisions/action-items with one-click reminders via `POST /api/reminders`/risks/follow-ups, all written into the graph + `KnowledgeEmbedding`).
+- **Assistant recall** (`knowledge.recall.ts`): questions naming known entities/contacts get a KNOWLEDGE briefing section (connections + facts) with citable `/knowledge?focus=` hrefs, and `related` chips power the chat's collapsible knowledge rail (AssistantModal ≥880px — the same `KnowledgePanel`, switchable per entity). The offline fallback answers entity questions from recalled facts.
+- **Knowledge search** (`knowledge.search.ts`): `/api/search` responses gain `knowledge` hits (entities/people keyword; meetings/notes keyword + semantic cosine over `KnowledgeEmbedding`); ⌘K shows them as a Knowledge group.
+- Pure logic tested by `npm run test:knowledge` (fact dedupe keys, mention resolution, provider detection, KNOWS pairs, recall matching, search scoring).
+
+**Not yet wired up:** Gmail is the only functional ingestion channel. `TELEGRAM_API_ID/HASH` env vars and Telegram references in the UI/marketing/`types` are placeholders with no backing service. Meeting transcript ingestion is paste/type only (bot/API capture per provider is a future seam behind `Meeting.provider`).
 
 **Client state:** `src/stores/inbox.store.ts` — selected conversation in the inbox split-view; `src/stores/ui.store.ts` — command-palette open state (sidebar button + global Ctrl/⌘+K) AND the Smart Compose modal open state (`composeOpen`, opened from the inbox header + palette).
 
@@ -124,6 +133,14 @@ POLAR_PRODUCT_BUSINESS_ANNUAL    # Polar product id — Business, annual
 | POST | `/api/assistant/act` | Execute a confirmed assistant action (`{action}`); re-validated server-side, userId-scoped, never sends mail |
 | POST | `/api/compose/draft` | Smart Compose: instruction → `{subject, body}` draft |
 | POST | `/api/compose/send` | Send a brand-new email via the connected Gmail (`{to, subject?, body}`) |
+| GET | `/api/knowledge/node` | Context panel data for one knowledge node (`?ref=contact:\|entity:\|meeting:\|note:<id>`) |
+| GET/POST | `/api/notes` | List / create knowledge notes (auto-link job queued on substantial bodies) |
+| GET/PATCH/DELETE | `/api/notes/[id]` | Read (with linked chips) / autosave / delete a note (+ its edges, facts, embedding) |
+| POST | `/api/meetings` | Log a meeting that wasn't on the calendar |
+| POST | `/api/meetings/sync` | Refresh meetings from Google Calendar now (202 + jobId) |
+| POST | `/api/meetings/[id]/brief` | Generate (or return cached) AI pre-meeting brief |
+| POST | `/api/meetings/[id]/capture` | Ingest transcript/notes → queue the AI debrief (202 + jobId) |
+| POST | `/api/reminders` | Create a follow-up reminder directly (debrief "Remind me") |
 | GET | `/api/alerts` | List risk alerts (`status=OPEN\|ACKNOWLEDGED\|RESOLVED\|all`; default OPEN+ACK) |
 | PATCH | `/api/alerts/[id]` | Alert status transition (`{action: acknowledge\|resolve\|reopen\|snooze, snoozeDays?}`) |
 | GET | `/api/reminders` | List pending reminders for the dashboard widget |

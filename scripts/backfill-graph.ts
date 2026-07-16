@@ -36,6 +36,7 @@ async function main() {
   let processed = 0
   let companies = 0
   let topics = 0
+  let facts = 0
   let skippedAi = 0
   let failed = 0
 
@@ -46,6 +47,7 @@ async function main() {
       const res = await extractGraphEntities(id, { fallbackOnRetryable: true })
       if (res.company) companies++
       topics += res.topics
+      facts += res.facts
       if (res.skipped === 'no-ai-provider') skippedAi++
     } catch (e) {
       failed++
@@ -53,14 +55,14 @@ async function main() {
     }
     processed++
     if (processed % 25 === 0) {
-      console.log(`  … ${processed}/${conversations.length} (companies ${companies}, topics ${topics})`)
+      console.log(`  … ${processed}/${conversations.length} (companies ${companies}, topics ${topics}, facts ${facts})`)
     }
     // Light throttle so the free-tier embedding/generation quota isn't hammered.
     if (hasAi) await sleep(350)
   }
 
   console.log(
-    `Done. processed: ${processed}, company edges: ${companies}, topics stored: ${topics}, ai-skipped: ${skippedAi}, failed: ${failed}.`,
+    `Done. processed: ${processed}, company edges: ${companies}, topics stored: ${topics}, facts: ${facts}, ai-skipped: ${skippedAi}, failed: ${failed}.`,
   )
 }
 
