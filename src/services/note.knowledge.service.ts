@@ -4,7 +4,7 @@ import { timeAgo } from '@/lib/time'
 import { getTextProvider, embedTexts } from './ai'
 import { extractNoteKnowledge } from './ai/knowledge'
 import { resolveMentionedContacts, writeExtractedKnowledge } from './knowledge.extract'
-import { contactNode, noteNode, type GraphNodeType } from './graph.service'
+import { contactNode, noteNode, outgoingChips, type NodeChip } from './graph.service'
 import { vectorToBuffer } from './embedding.service'
 import { enqueueExtractNoteKnowledge } from './jobs/queue'
 
@@ -21,20 +21,13 @@ import { enqueueExtractNoteKnowledge } from './jobs/queue'
 
 // ── Read shapes ──────────────────────────────────────────────────────────────
 
-export interface LinkedEntityChip {
-  /** Node ref — "contact:<id>" | "entity:<id>". */
-  ref: string
-  type: Extract<GraphNodeType, 'PERSON' | 'COMPANY' | 'TOPIC'>
-  label: string
-}
-
 export interface NoteListItem {
   id: string
   title: string
   excerpt: string
   updatedAtIso: string
   updatedAgo: string
-  linked: LinkedEntityChip[]
+  linked: NodeChip[]
   /** true while an auto-link pass is pending for the latest content. */
   pendingLink: boolean
 }
@@ -44,7 +37,7 @@ export interface NoteDetail {
   title: string
   body: string
   updatedAtIso: string
-  linked: LinkedEntityChip[]
+  linked: NodeChip[]
   pendingLink: boolean
 }
 
@@ -62,56 +55,11 @@ const MIN_LINK_BODY = 12
 
 // ── Linked-entity chip resolution (batched) ──────────────────────────────────
 
-/**
- * Resolve the outgoing MENTIONS edges of many notes into labelled chips in two
- * batched queries (entities + contacts). Sequential — small Prisma pool.
- */
-async function linkedChipsByNote(userId: string, noteIds: string[]): Promise<Map<string, LinkedEntityChip[]>> {
-  const out = new Map<string, LinkedEntityChip[]>()
-  if (!noteIds.length) return out
-
-  const edges = await prisma.graphEdge.findMany({
-    where: { userId, fromNode: { in: noteIds.map(noteNode) } },
-    orderBy: { weight: 'desc' },
-    select: { fromNode: true, toNode: true },
-  })
-  if (!edges.length) return out
-
-  const entityIds = new Set<string>()
-  const contactIds = new Set<string>()
-  for (const e of edges) {
-    if (e.toNode.startsWith('entity:')) entityIds.add(e.toNode.slice('entity:'.length))
-    else if (e.toNode.startsWith('contact:')) contactIds.add(e.toNode.slice('contact:'.length))
-  }
-
-  const entities = entityIds.size
-    ? await prisma.graphEntity.findMany({
-        where: { id: { in: [...entityIds] }, userId },
-        select: { id: true, type: true, name: true },
-      })
-    : []
-  const contacts = contactIds.size
-    ? await prisma.contact.findMany({
-        where: { id: { in: [...contactIds] }, userId },
-        select: { id: true, name: true },
-      })
-    : []
-  const entityById = new Map(entities.map((e) => [e.id, e]))
-  const contactById = new Map(contacts.map((c) => [c.id, c]))
-
-  for (const e of edges) {
-    const noteId = e.fromNode.slice('note:'.length)
-    const list = out.get(noteId) ?? []
-    if (list.length >= 8 || list.some((c) => c.ref === e.toNode)) continue
-    if (e.toNode.startsWith('entity:')) {
-      const entity = entityById.get(e.toNode.slice('entity:'.length))
-      if (entity) list.push({ ref: e.toNode, type: entity.type as 'COMPANY' | 'TOPIC', label: entity.name })
-    } else if (e.toNode.startsWith('contact:')) {
-      const contact = contactById.get(e.toNode.slice('contact:'.length))
-      if (contact) list.push({ ref: e.toNode, type: 'PERSON', label: contact.name })
-    }
-    out.set(noteId, list)
-  }
+/** Chips for many notes at once, keyed by note id (shared graph resolver). */
+async function linkedChipsByNote(userId: string, noteIds: string[]): Promise<Map<string, NodeChip[]>> {
+  const byRef = await outgoingChips(userId, noteIds.map(noteNode))
+  const out = new Map<string, NodeChip[]>()
+  for (const [ref, chips] of byRef) out.set(ref.slice('note:'.length), chips)
   return out
 }
 

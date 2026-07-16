@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import {
   Bot,
+  CalendarDays,
   ChartColumn,
   CircleCheck,
   CornerDownLeft,
+  FileText,
   Inbox,
   LayoutDashboard,
   Mail,
@@ -39,7 +41,8 @@ const PAGES: { href: string; label: string; icon: React.ReactNode; keywords: str
   { href: '/inbox', label: 'Inbox', icon: <Inbox size={15} />, keywords: 'mail conversations threads' },
   { href: '/clients', label: 'Contacts', icon: <Users size={15} />, keywords: 'contacts directory clients people' },
   { href: '/knowledge', label: 'Knowledge', icon: <Share2 size={15} />, keywords: 'knowledge graph network relationships companies topics entities memory' },
-  { href: '/knowledge/notes', label: 'Notes', icon: <Share2 size={15} />, keywords: 'notes write memo knowledge' },
+  { href: '/knowledge/notes', label: 'Notes', icon: <FileText size={15} />, keywords: 'notes write memo knowledge' },
+  { href: '/meetings', label: 'Meetings', icon: <CalendarDays size={15} />, keywords: 'meetings calendar brief debrief transcript zoom meet' },
   { href: '/dashboard?tab=trends', label: 'Trends', icon: <ChartColumn size={15} />, keywords: 'analytics charts metrics response time volume' },
   { href: '/settings', label: 'Settings', icon: <Settings size={15} />, keywords: 'account profile plan' },
 ]

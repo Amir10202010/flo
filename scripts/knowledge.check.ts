@@ -20,6 +20,7 @@ import {
   noteNode,
   type GraphEdgeKindName,
 } from '@/services/graph.service'
+import { detectMeetingProvider, hasCalendarScope, knowsPairs } from '@/services/calendar.service'
 
 let passed = 0
 function check(name: string, fn: () => void) {
@@ -107,6 +108,36 @@ check('deterministic kinds: WORKS_AT / ATTENDED / KNOWS; AI kinds: DISCUSSED / M
 check('meeting/note node refs use their own prefixes', () => {
   assert.equal(meetingNode('m1'), 'meeting:m1')
   assert.equal(noteNode('n1'), 'note:n1')
+})
+
+console.log('\nknowledge base — meeting detection:')
+
+check('provider detected from conference URLs (Meet, Zoom, else OTHER)', () => {
+  assert.equal(detectMeetingProvider(['https://meet.google.com/abc-defg-hij']), 'GOOGLE_MEET')
+  assert.equal(detectMeetingProvider([null, 'Join: https://us02web.zoom.us/j/123456']), 'ZOOM')
+  assert.equal(detectMeetingProvider(['https://zoom.com/j/9']), 'ZOOM')
+  assert.equal(detectMeetingProvider(['https://teams.microsoft.com/l/x', 'Room 4']), 'OTHER')
+  assert.equal(detectMeetingProvider([]), 'OTHER')
+})
+
+check('zoom detection does not fire on lookalike domains', () => {
+  assert.equal(detectMeetingProvider(['https://notzoom.us/j/1']), 'OTHER')
+  assert.equal(detectMeetingProvider(['https://gazoom.com/x']), 'OTHER')
+})
+
+check('co-attendance pairs are canonical (sorted, unique, no self-pairs)', () => {
+  assert.deepEqual(knowsPairs(['b', 'a']), [['a', 'b']])
+  assert.deepEqual(knowsPairs(['c', 'a', 'b']), [['a', 'b'], ['a', 'c'], ['b', 'c']])
+  assert.deepEqual(knowsPairs(['a', 'a']), [])
+  assert.deepEqual(knowsPairs(['solo']), [])
+  assert.deepEqual(knowsPairs([]), [])
+})
+
+check('calendar scope gate reads the recorded grant', () => {
+  assert.ok(hasCalendarScope({ grantedScopes: 'openid https://www.googleapis.com/auth/calendar.readonly' }))
+  assert.ok(!hasCalendarScope({ grantedScopes: 'https://www.googleapis.com/auth/gmail.readonly' }))
+  assert.ok(!hasCalendarScope({}))
+  assert.ok(!hasCalendarScope(null))
 })
 
 console.log(`\nAll ${passed} knowledge-base scenarios passed.`)

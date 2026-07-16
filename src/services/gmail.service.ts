@@ -52,6 +52,12 @@ function gmailFor(integration: Integration): GmailClient {
   return google.gmail({ version: 'v1', auth: buildOAuth2Client(integration) })
 }
 
+/** Authenticated OAuth2 client for other Google APIs on the same connection
+ *  (Calendar). Shares the token-refresh persistence above. */
+export function oauthClientFor(integration: Integration): OAuth2Client {
+  return buildOAuth2Client(integration)
+}
+
 /**
  * Fetch a single Gmail attachment's bytes on demand — backs the inline-image
  * proxy (`/api/attachments`). Returns the raw bytes, or null when Gmail has no

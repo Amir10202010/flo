@@ -14,6 +14,10 @@ export async function GET() {
       'https://www.googleapis.com/auth/gmail.readonly',
       'https://www.googleapis.com/auth/gmail.send',
       'https://www.googleapis.com/auth/userinfo.email',
+      // Meeting intelligence: detect meetings + attendees on the calendar.
+      // Read-only; granted scopes are recorded on the integration so features
+      // degrade honestly for connections made before this scope existed.
+      'https://www.googleapis.com/auth/calendar.readonly',
     ].join(' '),
     access_type: 'offline',
     prompt: 'consent',

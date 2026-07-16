@@ -11,6 +11,8 @@ import { runGmailMaintenance } from '@/services/maintenance.service'
 import { applyRulesToConversation } from '@/services/rule.service'
 import { extractGraphEntities } from '@/services/knowledge.extract'
 import { linkNoteKnowledge } from '@/services/note.knowledge.service'
+import { syncCalendarForUser } from '@/services/calendar.service'
+import { debriefMeeting } from '@/services/meeting.service'
 import { getTextProvider } from '@/services/ai'
 import {
   enqueueEmbedConversation,
@@ -146,6 +148,19 @@ export async function handleJob(job: Job): Promise<unknown> {
       // handling (retryable topic-extraction errors back off until then).
       const lastAttempt = job.attempts >= job.maxAttempts
       return await extractGraphEntities(conversationId, { fallbackOnRetryable: lastAttempt })
+    }
+
+    case 'CALENDAR_SYNC': {
+      const userId = String(payload.userId ?? job.userId ?? '')
+      if (!userId) throw new Error('CALENDAR_SYNC job missing userId')
+      return await syncCalendarForUser(userId)
+    }
+
+    case 'EXTRACT_MEETING_KNOWLEDGE': {
+      const meetingId = String(payload.meetingId ?? '')
+      if (!meetingId) throw new Error('EXTRACT_MEETING_KNOWLEDGE job missing meetingId')
+      const lastAttempt = job.attempts >= job.maxAttempts
+      return await debriefMeeting(meetingId, { fallbackOnRetryable: lastAttempt })
     }
 
     case 'EXTRACT_NOTE_KNOWLEDGE': {

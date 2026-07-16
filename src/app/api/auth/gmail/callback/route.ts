@@ -6,7 +6,7 @@ import { encryptSecret } from '@/lib/crypto'
 import { ACTIVE_ORG_COOKIE } from '@/lib/org'
 import { createOrganization } from '@/services/organization.service'
 import { startGmailWatch } from '@/services/gmail.service'
-import { enqueueGmailSync } from '@/services/jobs/queue'
+import { enqueueCalendarSync, enqueueGmailSync } from '@/services/jobs/queue'
 import { kickJobQueue } from '@/services/jobs/kick'
 
 export async function GET(req: NextRequest) {
@@ -104,7 +104,12 @@ export async function GET(req: NextRequest) {
     })
     const prevMeta = (prev?.metadata as Record<string, unknown> | null) ?? {}
     const sameMailbox = typeof prevMeta.email === 'string' && prevMeta.email === connectedEmail
-    const metadata = sameMailbox ? { ...prevMeta, email: connectedEmail } : { email: connectedEmail }
+    // Record what this grant actually covers (e.g. calendar.readonly) so
+    // scope-gated features degrade honestly instead of erroring.
+    const grantedScopes = tokens.scope ?? (sameMailbox ? prevMeta.grantedScopes : undefined) ?? null
+    const metadata = sameMailbox
+      ? { ...prevMeta, email: connectedEmail, grantedScopes }
+      : { email: connectedEmail, grantedScopes }
 
     const integration = await prisma.integration.upsert({
       where: { userId_type: { userId: user.id, type: 'GMAIL' } },
@@ -142,9 +147,13 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Kick the first sync so the shared inbox populates right away.
+    // Kick the first sync so the shared inbox populates right away — and the
+    // first calendar scan when this grant covers it.
     try {
       await enqueueGmailSync(user.id)
+      if (typeof grantedScopes === 'string' && grantedScopes.includes('auth/calendar.readonly')) {
+        await enqueueCalendarSync(user.id)
+      }
       kickJobQueue()
     } catch (e) {
       console.warn('[gmail/callback] initial sync enqueue failed (continuing):', e)

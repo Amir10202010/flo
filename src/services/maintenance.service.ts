@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { enqueueGmailSync, enqueueScanRiskAlerts, enqueueNotifyAlerts, enqueueMany, enqueueDeduped } from './jobs/queue'
+import { enqueueCalendarSync, enqueueGmailSync, enqueueScanRiskAlerts, enqueueNotifyAlerts, enqueueMany, enqueueDeduped } from './jobs/queue'
 import { startGmailWatch } from './gmail.service'
 import { findUnembeddedConversationIds } from './embedding.service'
 import { isoWeekKey } from './digest.service'
@@ -58,9 +58,11 @@ export async function runGmailMaintenance(userId: string): Promise<MaintenanceRe
   const now = new Date()
   const isMonday = now.getUTCDay() === 1
 
-  // 1. Safety sync — covers any push notification we missed.
+  // 1. Safety sync — covers any push notification we missed. Calendar rides
+  //    the same tick (the sync job itself no-ops without the calendar scope).
   try {
     await enqueueGmailSync(userId)
+    await enqueueCalendarSync(userId)
     result.synced = true
   } catch (e) {
     result.errors.push(`sync: ${String(e)}`)

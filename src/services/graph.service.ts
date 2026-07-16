@@ -451,6 +451,72 @@ export async function getKnowledgeGraph(userId: string): Promise<KnowledgeGraph>
   return { nodes, links, conversations: conversationRefs, stats, hasData: links.length > 0 }
 }
 
+// ── Outgoing-link chips (shared by notes, meetings, panels) ─────────────────
+
+export interface NodeChip {
+  /** Node ref — "contact:<id>" | "entity:<id>" | "meeting:<id>" | "note:<id>". */
+  ref: string
+  type: GraphNodeType
+  label: string
+}
+
+/**
+ * Resolve the outgoing edges of the given source nodes into labelled chips,
+ * batched (one query per referenced model). Keyed by source node ref; capped
+ * per source, heaviest edges first. Sequential — small Prisma pool.
+ */
+export async function outgoingChips(
+  userId: string,
+  fromNodes: string[],
+  capPerSource = 8,
+): Promise<Map<string, NodeChip[]>> {
+  const out = new Map<string, NodeChip[]>()
+  if (!fromNodes.length) return out
+
+  const edges = await prisma.graphEdge.findMany({
+    where: { userId, fromNode: { in: fromNodes } },
+    orderBy: { weight: 'desc' },
+    select: { fromNode: true, toNode: true },
+  })
+  if (!edges.length) return out
+
+  const entityIds = new Set<string>()
+  const contactIds = new Set<string>()
+  for (const e of edges) {
+    if (e.toNode.startsWith('entity:')) entityIds.add(e.toNode.slice('entity:'.length))
+    else if (e.toNode.startsWith('contact:')) contactIds.add(e.toNode.slice('contact:'.length))
+  }
+
+  const entities = entityIds.size
+    ? await prisma.graphEntity.findMany({
+        where: { id: { in: [...entityIds] }, userId },
+        select: { id: true, type: true, name: true },
+      })
+    : []
+  const contacts = contactIds.size
+    ? await prisma.contact.findMany({
+        where: { id: { in: [...contactIds] }, userId },
+        select: { id: true, name: true },
+      })
+    : []
+  const entityById = new Map(entities.map((e) => [e.id, e]))
+  const contactById = new Map(contacts.map((c) => [c.id, c]))
+
+  for (const e of edges) {
+    const list = out.get(e.fromNode) ?? []
+    if (list.length >= capPerSource || list.some((c) => c.ref === e.toNode)) continue
+    if (e.toNode.startsWith('entity:')) {
+      const entity = entityById.get(e.toNode.slice('entity:'.length))
+      if (entity) list.push({ ref: e.toNode, type: entity.type as GraphNodeType, label: entity.name })
+    } else if (e.toNode.startsWith('contact:')) {
+      const contact = contactById.get(e.toNode.slice('contact:'.length))
+      if (contact) list.push({ ref: e.toNode, type: 'PERSON', label: contact.name })
+    }
+    out.set(e.fromNode, list)
+  }
+  return out
+}
+
 // ── Mini-graph previews for /clients ─────────────────────────────────────────
 
 export interface MiniGraphNeighbor {
