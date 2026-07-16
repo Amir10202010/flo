@@ -10,6 +10,7 @@ import { notifyNewAlerts } from '@/services/notification.service'
 import { runGmailMaintenance } from '@/services/maintenance.service'
 import { applyRulesToConversation } from '@/services/rule.service'
 import { extractGraphEntities } from '@/services/knowledge.extract'
+import { linkNoteKnowledge } from '@/services/note.knowledge.service'
 import { getTextProvider } from '@/services/ai'
 import {
   enqueueEmbedConversation,
@@ -145,6 +146,15 @@ export async function handleJob(job: Job): Promise<unknown> {
       // handling (retryable topic-extraction errors back off until then).
       const lastAttempt = job.attempts >= job.maxAttempts
       return await extractGraphEntities(conversationId, { fallbackOnRetryable: lastAttempt })
+    }
+
+    case 'EXTRACT_NOTE_KNOWLEDGE': {
+      const noteId = String(payload.noteId ?? '')
+      if (!noteId) throw new Error('EXTRACT_NOTE_KNOWLEDGE job missing noteId')
+      // Final attempt accepts an empty link pass instead of parking FAILED —
+      // mirrors the other AI-gated jobs' quota-exhaustion handling.
+      const lastAttempt = job.attempts >= job.maxAttempts
+      return await linkNoteKnowledge(noteId, { fallbackOnRetryable: lastAttempt })
     }
 
     case 'GMAIL_MAINTENANCE': {

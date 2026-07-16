@@ -73,7 +73,7 @@ export default function MiniGraph({
 
   return (
     <Link
-      href={`/graph?focus=contact:${contactId}`}
+      href={`/knowledge?focus=contact:${contactId}`}
       className="mini-graph-link"
       title={`Open ${contactName} in the knowledge graph · ${summary}`}
       aria-label={`Open ${contactName} in the knowledge graph`}

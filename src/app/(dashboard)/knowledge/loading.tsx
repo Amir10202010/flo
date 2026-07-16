@@ -1,5 +1,5 @@
-// Instant skeleton for the Knowledge Graph explorer.
-export default function GraphLoading() {
+// Instant skeleton for the Knowledge graph view.
+export default function KnowledgeLoading() {
   return (
     <div className="dash-page" style={{ padding: '28px 32px 40px', maxWidth: 1480, margin: '0 auto', width: '100%' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 16 }}>

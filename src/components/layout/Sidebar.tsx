@@ -24,7 +24,7 @@ const NAV: NavEntry[] = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/inbox', icon: Inbox, label: 'Inbox', tour: 'inbox' },
   { href: '/clients', icon: Users, label: 'Contacts', tour: 'clients' },
-  { href: '/graph', icon: Share2, label: 'Graph', pill: 'Beta' },
+  { href: '/knowledge', icon: Share2, label: 'Knowledge', pill: 'Beta' },
 ]
 
 const SYSTEM: NavEntry[] = [

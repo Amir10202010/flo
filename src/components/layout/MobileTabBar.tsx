@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Inbox, LayoutDashboard, Sparkles, Users } from 'lucide-react'
+import { Inbox, LayoutDashboard, Share2, Sparkles, Users } from 'lucide-react'
 import { useUiStore } from '@/stores/ui.store'
 
 const TABS = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Home' },
   { href: '/inbox', icon: Inbox, label: 'Inbox' },
   { href: '/clients', icon: Users, label: 'Clients' },
+  { href: '/knowledge', icon: Share2, label: 'Knowledge' },
 ] as const
 
 /**
