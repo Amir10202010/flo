@@ -339,6 +339,29 @@ html, body {
 }
 .s3-shot img { display: block; width: 100%; }
 
+/* Two product shots cascaded on the traction slide: the dashboard (front) over
+   the knowledge graph (behind, offset up-right). One slide shows both surfaces
+   — the daily driver AND the memory graph — without spending a whole slide on
+   each. Each frame carries its own URL bar, so they self-label. */
+.s3-fr {
+  position: absolute;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xl);
+}
+.s3-fr .bbar { height: 32px; }
+.s3-fr .burl { height: 20px; font-size: 10.5px; }
+.s3-fr img { display: block; width: 100%; }
+/* Back frame (graph): dimmed a touch so the front dashboard reads as on top. */
+.s3-fr.back { z-index: 1; }
+.s3-fr.back::after {
+  content: ''; position: absolute; inset: 0;
+  background: rgba(12,18,60,0.06); pointer-events: none;
+}
+.s3-fr.front { z-index: 2; }
+
 /* ═══ Slide 4 — demo ═══════════════════════════════════════════════════════ */
 #s4 { display: flex; flex-direction: column; align-items: center; padding: 40px 0 0; }
 
@@ -641,18 +664,24 @@ html, body {
       </div>
     </div>
 
-    <div class="wash" style="left:600px; right:-40px; top:60px; bottom:60px;" aria-hidden="true"></div>
+    <div class="wash" style="left:560px; right:-40px; top:40px; bottom:20px;" aria-hidden="true"></div>
 
-    <!-- What the 112 signed up for: the real dashboard, on a real mailbox.
-         The 127 overdue in its UNANSWERED card is the same 127 slide 2 claims. -->
-    <div class="r s3-shot">
+    <!-- Two real product shots, cascaded: the dashboard the 112 signed up for,
+         over the knowledge graph it builds from their mail. Each frame carries
+         its own URL bar, so they self-label without captions. -->
+    <div class="r s3-fr back" style="left:842px; top:88px; width:660px;">
+      <div class="bbar">
+        <span class="bdots"><i></i><i></i><i></i></span>
+        <span class="burl">usevelnox.com/knowledge</span>
+      </div>
+      <img src="shots/knowledge.png" alt="The Velnox knowledge graph — people, companies and topics connected" />
+    </div>
+    <div class="r s3-fr front" style="left:574px; top:358px; width:748px;">
       <div class="bbar">
         <span class="bdots"><i></i><i></i><i></i></span>
         <span class="burl">usevelnox.com/dashboard</span>
       </div>
-      <div class="shot-body">
-        <img src="shots/dashboard.png" alt="The Velnox dashboard running on the founder's own Gmail" />
-      </div>
+      <img src="shots/dashboard.png" alt="The Velnox dashboard running on the founder's own Gmail" />
     </div>
   </section>
 
