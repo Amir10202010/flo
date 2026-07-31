@@ -7,7 +7,7 @@
 Velnox reads your Gmail and tells you which client to answer today, who's going cold,
 and what to say — with the reply already drafted.
 
-[Live app](https://flo-one-theta.vercel.app) · [Architecture notes](CLAUDE.md) · [Knowledge Base design](docs/superpowers/specs/2026-07-16-knowledge-base-design.md)
+[usevelnox.com](https://www.usevelnox.com) · [Architecture notes](CLAUDE.md) · [Knowledge Base design](docs/superpowers/specs/2026-07-16-knowledge-base-design.md)
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-000?logo=nextdotjs&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-087ea4?logo=react&logoColor=white)
@@ -86,8 +86,8 @@ A few decisions worth calling out:
 Gmail + Calendar read scopes, and (optionally) a free Gemini AI Studio key.
 
 ```bash
-git clone https://github.com/Amir10202010/flo.git
-cd flo
+git clone https://github.com/Amir10202010/velnox.git
+cd velnox
 npm install
 cp .env.example .env.local   # then fill it in — every variable is documented there
 npx prisma migrate dev       # apply the schema
